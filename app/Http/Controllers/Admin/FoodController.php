@@ -187,8 +187,15 @@ class FoodController extends Controller
             return back();
         }
         $product_category = json_decode($product->category_ids);
-        $categories = Category::where(['parent_id' => 0])->get();
-        return view('admin-views.product.edit', compact('product', 'product_category', 'categories'));
+        $categories = Category::where( 'parent_id', '=>', 0 )
+                                ->get();
+        $main_category = Category::findOrFail($product->category_id);
+        if( $main_category->parent_id >0){
+            $main_category = Category::findOrFail($main_category->parent_id);
+
+        }
+       // return $main_category->id;
+        return view('admin-views.product.edit', compact('product', 'product_category', 'categories' , 'main_category'));
     }
 
     public function status(Request $request)
@@ -437,6 +444,7 @@ class FoodController extends Controller
     }
     public function get_categories(Request $request)
     {
+        
         $cat = Category::where(['parent_id' => $request->parent_id])->get();
         $res = '<option value="' . 0 . '" disabled selected>---'.translate('messages.Select').'---</option>';
         foreach ($cat as $row) {

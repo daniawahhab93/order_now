@@ -177,7 +177,7 @@
                                                     onchange="getRequest('{{ url('/') }}/admin/food/get-categories?parent_id='+this.value,'sub-categories')">
                                                     @foreach ($categories as $category)
                                                         <option value="{{ $category['id'] }}"
-                                                            {{ $category->id == $product_category[0]->id ? 'selected' : '' }}>
+                                                            {{ $category->id == $main_category->id ? 'selected' : '' }}>
                                                             {{ $category['name'] }}</option>
                                                     @endforeach
                                                 </select>
@@ -420,7 +420,8 @@
         $(document).ready(function() {
             setTimeout(function() {
                 let category = $("#category-id").val();
-                let sub_category = '{{ count($product_category) >= 2 ? $product_category[1]->id : '' }}';
+                // let sub_category = '{{ count($product_category) >= 2 ? $product_category[1]->id : '' }}';
+                let sub_category = '{{  $product->category_id  }}';
                 let sub_sub_category = '{{ count($product_category) >= 3 ? $product_category[2]->id : '' }}';
                 getRequest('{{ url('/') }}/admin/food/get-categories?parent_id=' + category +
                     '&sub_category=' + sub_category, 'sub-categories');

@@ -1696,6 +1696,8 @@ class Helpers
                 translate('messages.customer_name') => isset($item->customer) ? $item->customer->f_name . ' ' . $item->customer->l_name : null,
                 translate('messages.phone') => isset($item->customer) ? $item->customer->phone : null,
                 translate('messages.total_amount') => $item['order_amount'] . ' ' . Helpers::currency_symbol(),
+                translate('messages.amount') => $item['order_amount'] + $item['delivery_charge'] . ' ' . Helpers::currency_symbol(),
+                translate('messages.delivery') =>  $item['delivery_charge'] . ' ' . Helpers::currency_symbol(),
                 translate('messages.order_status') => $item['order_status']
             ];
         }

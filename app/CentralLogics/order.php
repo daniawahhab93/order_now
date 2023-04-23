@@ -297,16 +297,18 @@ class OrderLogic
         {
 
             $data[]=[
-                '#'=>$key+1,
-                translate('messages.order')=>$order['id'],
-                translate('messages.date')=>date('d M Y',strtotime($order['created_at'])),
-                translate('messages.customer')=>$order->customer?$order->customer['f_name'].' '.$order->customer['l_name']:translate('messages.invalid').' '.translate('messages.customer').' '.translate('messages.data'),
-                translate('messages.Restaurant')=>\Str::limit($order->restaurant?$order->restaurant->name:translate('messages.Restaurant deleted!'),20,'...'),
-                translate('messages.payment').' '.translate('messages.status')=>$order->payment_status=='paid'?translate('messages.paid'):translate('messages.unpaid'),
-                translate('messages.total')=>\App\CentralLogics\Helpers::format_currency($order['order_amount']),
-                translate('messages.order').' '.translate('messages.status')=>translate('messages.'. $order['order_status']),
-                translate('messages.order').' '.translate('messages.type')=>translate('messages.'.$order['order_type'])
-            ];
+                #' => $key + 1,
+                translate('messages.order') => $order['id'],
+                translate('messages.date') => date('d M Y', strtotime($order['created_at'])),
+                translate('messages.customer') => $order->customer ? $order->customer['f_name'] . ' ' . $order->customer['l_name'] : translate('messages.invalid') . ' ' . translate('messages.customer') . ' ' . translate('messages.data'),
+                translate('messages.Restaurant') => \Str::limit($order->restaurant ? $order->restaurant->name : translate('messages.Restaurant deleted!'), 20, '...'),
+                translate('messages.payment') . ' ' . translate('messages.status') => $order->payment_status == 'paid' ? translate('messages.paid') : translate('messages.unpaid'),
+                translate('messages.total') => \App\CentralLogics\Helpers::format_currency($order['order_amount']),
+                translate('messages.item') => \App\CentralLogics\Helpers::format_currency($order['order_amount'] - $order['delivery_charge']),
+                translate('messages.delivery') => \App\CentralLogics\Helpers::format_currency($order['delivery_charge']),
+                translate('messages.order') . ' ' . translate('messages.status') => translate('messages.' . $order['order_status']),
+                translate('messages.order') . ' ' . translate('messages.type') => translate('messages.' . $order['order_type'])
+            ]
         }
         return $data;
     }

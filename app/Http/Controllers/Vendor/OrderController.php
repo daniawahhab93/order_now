@@ -22,6 +22,7 @@ class OrderController extends Controller
 {
     public function list($status)
     {
+        
         Order::where(['checked' => 0])->where('restaurant_id',Helpers::get_restaurant_id())->update(['checked' => 1]);
 
         $orders = Order::with(['customer'])
@@ -91,6 +92,7 @@ class OrderController extends Controller
         ->paginate(config('default_pagination'));
 
         $status = translate('messages.'.$status);
+    
         return view('vendor-views.order.list', compact('orders', 'status'));
     }
 
@@ -103,6 +105,7 @@ class OrderController extends Controller
                     ->orWhere('transaction_reference', 'like', "%{$value}%");
             }
         })->Notpos()->limit(100)->get();
+        
         return response()->json([
             'view'=>view('vendor-views.order.partials._table',compact('orders'))->render()
         ]);

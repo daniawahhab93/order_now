@@ -239,6 +239,8 @@
                         </th>
                         <th>{{translate('messages.customer')}} {{translate('messages.info')}}</th>
                         <th>{{translate('messages.total')}} {{translate('messages.amount')}}</th>
+                        <th>{{translate('messages.item')}} {{translate('messages.amount')}}</th>
+                        <th>{{translate('messages.delivery')}} {{translate('messages.amount')}}</th>
                         <th>{{translate('messages.order')}} {{translate('messages.status')}}</th>
                         <th class="w-100px">{{translate('messages.action')}}</th>
                     </tr>
@@ -273,10 +275,42 @@
                                     @endif
                                 </div>
                             </td>
-                            <td>
+                             <td>
                                 <div class="d-inline-block text-right total-amount-table-data">
                                     <div class="paid--amount-status">
                                         {{\App\CentralLogics\Helpers::format_currency($order['order_amount'])}}
+                                    </div>
+                                    @if($order->payment_status=='paid')
+                                        <strong class="text--success order--status">
+                                            {{translate('messages.paid')}}
+                                        </strong>
+                                    @else
+                                        <strong class="text--danger order--status">
+                                            {{translate('messages.unpaid')}}
+                                        </strong>
+                                    @endif
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-inline-block text-right total-amount-table-data">
+                                    <div class="paid--amount-status">
+                                        {{\App\CentralLogics\Helpers::format_currency($order['order_amount'] - $order['delivery_charge'])}}
+                                    </div>
+                                    @if($order->payment_status=='paid')
+                                        <strong class="text--success order--status">
+                                            {{translate('messages.paid')}}
+                                        </strong>
+                                    @else
+                                        <strong class="text--danger order--status">
+                                            {{translate('messages.unpaid')}}
+                                        </strong>
+                                    @endif
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-inline-block text-right total-amount-table-data">
+                                    <div class="paid--amount-status">
+                                        {{\App\CentralLogics\Helpers::format_currency($order['delivery_charge'])}}
                                     </div>
                                     @if($order->payment_status=='paid')
                                         <strong class="text--success order--status">

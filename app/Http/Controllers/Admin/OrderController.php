@@ -499,6 +499,8 @@ class OrderController extends Controller
                         'title' => translate('messages.order_push_title'),
                         'description' => $value,
                         'order_id' => $order['id'],
+                        'username' =>$order->user()->fname.' '.$order->user()->lname,
+                        'total_amount' => \App\CentralLogics\Helpers::format_currency($order->order_amount),
                         'image' => '',
                         'type' => 'order_status'
                     ];
@@ -515,6 +517,8 @@ class OrderController extends Controller
                     'title' => translate('messages.order_push_title'),
                     'description' => translate('messages.you_are_assigned_to_a_order'),
                     'order_id' => $order['id'],
+                    'username' =>$order->user()->fname.' '.$order->user()->lname,
+                    'total_amount' => \App\CentralLogics\Helpers::format_currency($order->order_amount),
                     'image' => '',
                     'type' => 'assign'
                 ];
@@ -961,22 +965,22 @@ class OrderController extends Controller
     public function restaurant_order_search(Request $request){
         $key = explode(' ', $request['search']);
         $orders = Order::where(['restaurant_id'=>$request->restaurant_id])
-                        ->where(function($q) use($key){
-                            foreach ($key as $value){
-                                $q->orWhere('id', 'like', "%{$value}%");
+            ->where(function($q) use($key){
+                foreach ($key as $value){
+                    $q->orWhere('id', 'like', "%{$value}%");
 
-                            }
-                        })
-                        ->whereHas('customer', function($q) use($key){
-                            foreach($key as $value){
-                                $q->orWhere('f_name', 'like', "%{$value}%")
-                                ->orWhere('l_name', 'like', "%{$value}%");
-                            }
-                        })->get();
+                }
+            })
+            ->whereHas('customer', function($q) use($key){
+                foreach($key as $value){
+                    $q->orWhere('f_name', 'like', "%{$value}%")
+                        ->orWhere('l_name', 'like', "%{$value}%");
+                }
+            })->get();
 
 
-                        return response()->json([
-                            'view'=> view('admin-views.vendor.view.partials._orderTable', compact('orders'))->render()
-                        ]);
+        return response()->json([
+            'view'=> view('admin-views.vendor.view.partials._orderTable', compact('orders'))->render()
+        ]);
     }
 }

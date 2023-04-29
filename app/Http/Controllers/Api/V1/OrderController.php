@@ -423,6 +423,7 @@ class OrderController extends Controller
             return response()->json([
                 'message' => translate('messages.order_placed_successfully'),
                 'order_id' => $order->id,
+                'username' =>$order->user()->fname.' '.$order->user()->lname,
                 'total_ammount' => $total_price+$order->delivery_charge+$total_tax_amount
             ], 200);
         } catch (\Exception $e) {
@@ -592,6 +593,8 @@ class OrderController extends Controller
                         'description' => $value,
                         'order_id' => $order->id,
                         'image' => '',
+                        'username' =>$order->user()->fname.' '.$order->user()->lname,
+                        'total_amount' => \App\CentralLogics\Helpers::format_currency($order->order_amount),
                         'type'=>'order_status',
                     ];
                     Helpers::send_push_notif_to_device($fcm_token, $data);
@@ -608,6 +611,8 @@ class OrderController extends Controller
                         'title' =>translate('messages.order_placed_successfully'),
                         'description' => translate('messages.new_order_push_description'),
                         'order_id' => $order->id,
+                        'username' =>$order->user()->fname.' '.$order->user()->lname,
+                        'total_amount' => \App\CentralLogics\Helpers::format_currency($order->order_amount),
                         'image' => '',
                     ];
                     Helpers::send_push_notif_to_topic($data, $order->restaurant->zone->deliveryman_wise_topic, 'order_request');

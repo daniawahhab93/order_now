@@ -76,6 +76,8 @@ class MercadoPagoController extends Controller
                         'title' =>translate('messages.order_placed_successfully'),
                         'description' => $value,
                         'order_id' => $order['id'],
+                        'username' =>$order->user()->fname.' '.$order->user()->lname,
+                        'total_amount' => \App\CentralLogics\Helpers::format_currency($order->order_amount),
                         'image' => '',
                         'type'=>'order_status'
                     ];
@@ -91,6 +93,8 @@ class MercadoPagoController extends Controller
                     'title' =>translate('messages.order_placed_successfully'),
                     'description' => translate('messages.new_order_push_description'),
                     'order_id' => $order->id,
+                    'username' =>$order->user()->fname.' '.$order->user()->lname,
+                    'total_amount' => \App\CentralLogics\Helpers::format_currency($order->order_amount),
                     'image' => '',
                     'type'=>'order_status',
                 ];

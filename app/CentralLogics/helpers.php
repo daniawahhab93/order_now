@@ -627,7 +627,7 @@ class Helpers
     {
         $currency_symbol_position = BusinessSetting::where(['key' => 'currency_symbol_position'])->first()->value;
 
-        return $currency_symbol_position == 'right' ? number_format($value, config('round_up_to_digit')) . ' ' . self::currency_symbol() : self::currency_symbol() . ' ' . number_format($value, config('round_up_to_digit'));
+        return $currency_symbol_position == 'right' ? number_format($value, config('round_up_to_digit')) :  ' ';
     }
 
     public static function send_push_notif_to_device($fcm_token, $data)
@@ -654,6 +654,16 @@ class Helpers
         } else {
             $sender_type = '';
         }
+        if (isset($data['username'])) {
+            $username = $data['username'];
+        } else {
+            $username = '';
+        }
+        if (isset($data['total_amount'])) {
+            $total_amount = $data['total_amount'];
+        } else {
+            $total_amount = '';
+        }
 
         $postdata = '{
             "to" : "' . $fcm_token . '",
@@ -663,6 +673,8 @@ class Helpers
                 "body" : "' . $data['description'] . '",
                 "image" : "' . $data['image'] . '",
                 "order_id":"' . $data['order_id'] . '",
+                "username":"' . $username . '",
+                "total_amount":"' . $total_amount . '",
                 "type":"' . $data['type'] . '",
                 "conversation_id":"' . $conversation_id . '",
                 "sender_type":"' . $sender_type . '",
@@ -673,6 +685,8 @@ class Helpers
                 "body" : "' . $data['description'] . '",
                 "image" : "' . $data['image'] . '",
                 "order_id":"' . $data['order_id'] . '",
+                   "username":"' . $username . '",
+                "total_amount":"' . $total_amount . '",
                 "title_loc_key":"' . $data['order_id'] . '",
                 "body_loc_key":"' . $data['type'] . '",
                 "type":"' . $data['type'] . '",

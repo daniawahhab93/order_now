@@ -308,7 +308,7 @@ class OrderLogic
                 translate('messages.delivery') => \App\CentralLogics\Helpers::format_currency($order['delivery_charge']),
                 translate('messages.order') . ' ' . translate('messages.status') => translate('messages.' . $order['order_status']),
                 translate('messages.order') . ' ' . translate('messages.type') => translate('messages.' . $order['order_type'])
-            ]
+            ];
         }
         return $data;
     }

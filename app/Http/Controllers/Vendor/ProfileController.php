@@ -36,6 +36,7 @@ class ProfileController extends Controller
             'l_name' => 'nullable|max:100',
             'email' => 'required|unique:'.$table.',email,'.$seller->id,
             'phone' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10|max:20|unique:'.$table.',phone,'.$seller->id,
+            'image' => 'nullable|max:2048',
         ], [
             'f_name.required' => translate('messages.first_name_is_required'),
         ]);
@@ -44,6 +45,7 @@ class ProfileController extends Controller
         $seller->l_name = $request->l_name;
         $seller->phone = $request->phone;
         $seller->email = $request->email;
+
         if ($request->image) {
             $seller->image = Helpers::update('vendor/', $seller->image, 'png', $request->file('image'));
         }

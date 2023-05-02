@@ -26,11 +26,11 @@
             <div class="card-header py-2">
                 <div class="search--button-wrapper">
                     <h5 class="card-title"></h5>
-                    <form action="javascript:" id="search-form">
+                    <form method="GET">
                         <!-- Search -->
                         <div class="input--group input-group input-group-merge input-group-flush">
                             <input id="datatableSearch_" type="search" name="search" class="form-control"
-                                    placeholder="{{translate('search_by_order_id')}}" aria-label="{{translate('messages.search')}}" required>
+                                    placeholder="{{translate('search_by_order_id')}}" aria-label="{{translate('messages.search')}}" value="{{ request()->search ?? null }}">
                             <button type="submit" class="btn btn--secondary"><i class="tio-search"></i></button>
 
                         </div>
@@ -323,7 +323,8 @@
                     </tbody>
                 </table>
             </div>
-            @if(!$orders)
+            {{-- {{ dd($orders) }} --}}
+            @if (count($orders) === 0)
             <div class="empty--data">
                 <img src="{{asset('/public/assets/admin/img/empty.png')}}" alt="public">
                 <h5>
@@ -529,7 +530,7 @@
 
             $('#vendor_ids').select2({
                 ajax: {
-                    url: '{{url('/')}}/admin/vendor/get-restaurants',
+                    url: '{{url('/')}}/admin/restaurant/get-restaurants',
                     data: function (params) {
                         return {
                             q: params.term, // search term
@@ -683,31 +684,5 @@
         });
     </script>
 
-    <script>
-        $('#search-form').on('submit', function () {
-            var formData = new FormData(this);
-            $.ajaxSetup({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                }
-            });
-            $.post({
-                url: '{{route('admin.order.search')}}',
-                data: formData,
-                cache: false,
-                contentType: false,
-                processData: false,
-                beforeSend: function () {
-                    $('#loading').show();
-                },
-                success: function (data) {
-                    $('#set-rows').html(data.view);
-                    $('.card-footer').hide();
-                },
-                complete: function () {
-                    $('#loading').hide();
-                },
-            });
-        });
-    </script>
+
 @endpush

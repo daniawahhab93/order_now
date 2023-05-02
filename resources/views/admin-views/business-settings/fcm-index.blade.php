@@ -374,11 +374,11 @@
                                     <span class="d-block text--semititle">
                                         {{translate('messages.order')}} {{translate('messages.refunded')}} {{translate('messages.message')}}
                                     </span>
-                                    <label class="switch--custom-label toggle-switch toggle-switch-sm d-inline-flex checked" for="order_refunded_message">
+                                    <label class="switch--custom-label toggle-switch toggle-switch-sm d-inline-flex checked" for="order_refunded_message_status">
                                     <input type="checkbox" name="order_refunded_message_status"
                                         class="toggle-switch-input"
                                         value="1"
-                                        id="order_refunded_message" {{$data?($data['status']==1?'checked':''):''}}>
+                                        id="order_refunded_message_status" {{$data?($data['status']==1?'checked':''):''}}>
                                         <span class="toggle-switch-label text">
                                             <span class="toggle-switch-indicator"></span>
                                         </span>
@@ -387,7 +387,32 @@
                                     </label>
                                 </div>
                                 <textarea name="order_refunded_message"
-                                        class="form-control" placeholder="{{translate('Ex : Thank you for your refund request')}}">{{$data['message']??''}}</textarea>
+                                        class="form-control" placeholder="{{translate('messages.Ex : Your refund request is successful')}}">{{$data['message']??''}}</textarea>
+                            </div>
+                        </div>
+
+                        @php($orm=\App\Models\BusinessSetting::where('key','refund_cancel_message')->first())
+                        @php($data=$orm?json_decode($orm->value,true):'')
+                        <div class="col-md-6 col-12">
+                            <div class="form-group">
+                                <div class="d-flex flex-wrap justify-content-between mb-3">
+                                    <span class="d-block text--semititle">
+                                        {{translate('messages.order')}} {{translate('messages.Refund')}} {{translate('messages.cancel')}} {{translate('messages.message')}}
+                                    </span>
+                                    <label class="switch--custom-label toggle-switch toggle-switch-sm d-inline-flex checked" for="refund_cancel_message">
+                                    <input type="checkbox" name="refund_cancel_message_status"
+                                        class="toggle-switch-input"
+                                        value="1"
+                                        id="refund_cancel_message" {{$data?($data['status']==1?'checked':''):''}}>
+                                        <span class="toggle-switch-label text">
+                                            <span class="toggle-switch-indicator"></span>
+                                        </span>
+                                        <span class="pl-2 switch--custom-label-text text-primary on text-uppercase">{{ translate('messages.on') }}</span>
+                                        <span class="pl-2 switch--custom-label-text off text-uppercase">{{ translate('messages.off') }}</span>
+                                    </label>
+                                </div>
+                                <textarea name="refund_cancel_message"
+                                        class="form-control" placeholder="{{translate('messages.Ex : Your_order_refund_request_is_canceled')}}">{{$data['message']??''}}</textarea>
                             </div>
                         </div>
                     </div>

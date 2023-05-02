@@ -56,6 +56,26 @@
             </div>
         </div>
 
+        @if ($wr->method)
+        <div class="col-md-4">
+            <div class="card min-height-260px">
+                <div class="card-header">
+                    <h3 class="h3 mb-0 text-capitalize">{{ translate($wr->method->method_name) }} </h3>
+                    <i class="tio tio-dollar-outlined"></i>
+                </div>
+                <div class="card-body">
+                    <div class="col-md-8 mt-2">
+                    @forelse(json_decode($wr->withdrawal_method_fields, true) as $key=> $item)
+                    <h5 class="text-capitalize "> {{  translate($key) }}: {{$item}}</h5>
+                    @empty
+                    <h5 class="text-capitalize"> {{translate('messages.No_Data_found')}}</h5>
+                    @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
         <div class="col-md-4">
             <div class="card min-height-260px">
                 <div class="card-header">
@@ -122,7 +142,7 @@
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
-                    <form action="{{route('admin.vendor.withdraw_status',[$wr->id])}}" method="POST">
+                    <form action="{{route('admin.restaurant.withdraw_status',[$wr->id])}}" method="POST">
                         @csrf
                         <div class="modal-body">
                             <div class="form-group">

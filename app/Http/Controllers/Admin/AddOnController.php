@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Illuminate\Support\Facades\DB;
 use App\Scopes\RestaurantScope;
-
+use App\CentralLogics\ProductLogic;
 class AddOnController extends Controller
 {
     public function index(Request $request)
@@ -155,8 +155,6 @@ class AddOnController extends Controller
                     Toastr::error(translate('messages.please_fill_all_required_fields'));
                     return back();
                 }
-
-
             array_push($data, [
                 'name' => $collection['name'],
                 'price' => $collection['price'],
@@ -191,6 +189,7 @@ class AddOnController extends Controller
             $query->whereBetween('id', [$request['start_id'], $request['end_id']]);
         })
         ->withoutGlobalScope(RestaurantScope::class)->get();
-        return (new FastExcel($addons))->download('Addons.xlsx');
+        return (new FastExcel(ProductLogic::format_export_addons($addons)))->download('Addons.xlsx');
+
     }
 }

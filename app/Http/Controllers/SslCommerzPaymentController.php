@@ -4,14 +4,14 @@ namespace App\Http\Controllers;
 
 ini_set('memory_limit', '-1');
 
+use App\Models\Order;
+use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 use App\CentralLogics\Helpers;
 use App\CentralLogics\OrderLogic;
-use App\Library\SslCommerz\SslCommerzNotification;
-use App\Models\Order;
+use Illuminate\Support\Facades\DB;
 use Brian2694\Toastr\Facades\Toastr;
-use DB;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use App\Library\SslCommerz\SslCommerzNotification;
 
 class SslCommerzPaymentController extends Controller
 {
@@ -152,7 +152,7 @@ class SslCommerzPaymentController extends Controller
         if ($order_detials->callback != null) {
             return redirect($order_detials->callback . '&status=cancel');
         }
-        return \redirect()->route('payment-cancel');
+        return \redirect()->route('payment-fail');
     }
 
     public function ipn(Request $request)

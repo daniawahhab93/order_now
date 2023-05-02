@@ -33,7 +33,7 @@
                         onchange="set_restaurant_filter('{{ url()->full() }}',this.value)"
                         data-placeholder="{{ translate('messages.select') }} {{ translate('messages.restaurant') }}"
                         class="js-data-example-ajax form-control"
-                        onchange="getRestaurantData('{{ url('/') }}/admin/vendor/get-addons?data[]=0&restaurant_id=',this.value,'add_on')"
+                        onchange="getRestaurantData('{{ url('/') }}/admin/restaurant/get-addons?data[]=0&restaurant_id=',this.value,'add_on')"
                         required title="Select Restaurant"
                         oninvalid="this.setCustomValidity('{{ translate('messages.please_select_restaurant') }}')">
                         @if ($restaurant)
@@ -260,7 +260,7 @@
                                         </td>
                                         <td>
                                             @if ($food->restaurant)
-                                                <a class="text--title" href="{{route('admin.vendor.view',['restaurant'=>$food->restaurant_id])}}" title="{{translate('view_restaurant')}}">
+                                                <a class="text--title" href="{{route('admin.restaurant.view',['restaurant'=>$food->restaurant_id])}}" title="{{translate('view_restaurant')}}">
                                                     {{ Str::limit($food->restaurant->name, 20, '...') }}
                                                 </a>
                                             @else
@@ -402,7 +402,7 @@
 
         $('#restaurant').select2({
             ajax: {
-                url: '{{ url('/') }}/admin/vendor/get-restaurants',
+                url: '{{ url('/') }}/admin/restaurant/get-restaurants',
                 data: function(params) {
                     return {
                         q: params.term, // search term

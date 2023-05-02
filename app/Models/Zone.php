@@ -16,7 +16,11 @@ class Zone extends Model
         'id'=>'integer',
         'status'=>'integer',
         'minimum_shipping_charge'=>'float',
-        'per_km_shipping_charge'=>'float'
+        'maximum_shipping_charge'=>'float',
+        'per_km_shipping_charge'=>'float',
+        'max_cod_order_amount'=>'float',
+        'increased_delivery_fee'=>'float',
+        'increased_delivery_fee_status'=>'integer',
     ];
 
     protected $spatialFields = [
@@ -52,5 +56,14 @@ class Zone extends Model
     protected static function booted()
     {
         static::addGlobalScope(new ZoneScope);
+    }
+    public function incentives()
+    {
+        return $this->hasMany(Incentive::class)->orderBy('earning');
+    }
+
+    public function incentive_logs()
+    {
+        return $this->hasMany(IncentiveLog::class);
     }
 }

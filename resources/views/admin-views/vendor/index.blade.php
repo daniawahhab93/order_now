@@ -16,7 +16,7 @@
         </div>
         <!-- End Page Header -->
 
-        <form action="{{ route('admin.vendor.store') }}" method="post" enctype="multipart/form-data"
+        <form action="{{ route('admin.restaurant.store') }}" method="post" enctype="multipart/form-data"
             class="js-validate">
             @csrf
             <div class="card mb-2">
@@ -115,6 +115,17 @@
                     <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
+                                <label class="input-label" for="cuisine">{{ translate('messages.cuisine') }}</label>
+                                <select name="cuisine_ids[]" id="cuisine" class="form-control h--45px min--45 js-select2-custom"
+                                multiple="multiple"  data-placeholder="{{ translate('messages.select') }} {{ translate('messages.Cuisine') }}" >
+                                    <option value="" disabled>{{ translate('messages.select') }}
+                                        {{ translate('messages.Cuisine') }}</option>
+                                    @foreach (\App\Models\Cuisine::where('status',1 )->get(['id','name']) as $cu)
+                                            <option value="{{ $cu->id }}">{{ $cu->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label class="input-label" for="choice_zones">{{ translate('messages.zone') }}
                                         <span data-toggle="tooltip" data-placement="right" data-original-title="{{ translate('messages.select_zone_for_map') }}"
                                         class="input-label-secondary"><img
@@ -125,7 +136,7 @@
                                     data-placeholder="{{ translate('messages.select') }} {{ translate('messages.zone') }}" onchange="get_zone_data(this.value)">
                                     <option value="" selected disabled>{{ translate('messages.select') }}
                                         {{ translate('messages.zone') }}</option>
-                                    @foreach (\App\Models\Zone::all() as $zone)
+                                    @foreach (\App\Models\Zone::where('status',1 )->get(['id','name']) as $zone)
                                         @if (isset(auth('admin')->user()->zone_id))
                                             @if (auth('admin')->user()->zone_id == $zone->id)
                                                 <option value="{{ $zone->id }}" selected>{{ $zone->name }}
@@ -137,6 +148,9 @@
                                     @endforeach
                                 </select>
                             </div>
+
+
+
                             <div class="form-group">
                                 <label class="input-label" for="latitude">{{ translate('messages.latitude') }}<span data-toggle="tooltip" data-placement="right" data-original-title="{{ translate('messages.restaurant_lat_lng_warning') }}"
                                         class="input-label-secondary"><img
@@ -158,7 +172,7 @@
                         </div>
                         <div class="col-md-8">
                             <input id="pac-input" class="controls rounded initial-8" title="{{translate('messages.search_your_location_here')}}" type="text" placeholder="{{translate('messages.search_here')}}"/>
-                            <div id="map"></div>
+                            <div style="height: 370px !important" id="map"></div>
                         </div>
                     </div>
                 </div>
@@ -363,150 +377,141 @@
             });
         });
     </script>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
-    {{--{{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}--}}
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&callback=initMap&v=3.45.8">
-    </script>
-    <script>
-
-        @php($default_location = \App\Models\BusinessSetting::where('key', 'default_location')->first())
-        @php($default_location = $default_location->value ? json_decode($default_location->value, true) : 0)
-        let myLatlng = {
-            lat: {{ $default_location ? $default_location['lat'] : '23.757989' }},
-            lng: {{ $default_location ? $default_location['lng'] : '90.360587' }}
-        };
-        const map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 10,
-            center: myLatlng,
-        });
-        var zonePolygon = null;
-        let infoWindow = new google.maps.InfoWindow({
-            content: "Click the map to get Lat/Lng!",
-            position: myLatlng,
-        });
-        var bounds = new google.maps.LatLngBounds();
-
-        function initMap() {
-
-            infoWindow.open(map);
-            // Create the search box and link it to the UI element.
-            const input = document.getElementById("pac-input");
-            //console.log(input);
-            const searchBox = new google.maps.places.SearchBox(input);
-            map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
-            let markers = [];
-            searchBox.addListener("places_changed", () => {
-                const places = searchBox.getPlaces();
-
-                if (places.length == 0) {
-                return;
-                }
-                // Clear out the old markers.
-                markers.forEach((marker) => {
-                marker.setMap(null);
-                });
-                markers = [];
-                // For each place, get the icon, name and location.
-                const bounds = new google.maps.LatLngBounds();
-                places.forEach((place) => {
-                if (!place.geometry || !place.geometry.location) {
-                    console.log("Returned place contains no geometry");
-                    return;
-                }
-                const icon = {
-                    url: place.icon,
-                    size: new google.maps.Size(71, 71),
-                    origin: new google.maps.Point(0, 0),
-                    anchor: new google.maps.Point(17, 34),
-                    scaledSize: new google.maps.Size(25, 25),
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+            <script
+                    src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=drawing,places&v=3.45.8">
+            </script>
+        <script>
+                @php($default_location = \App\Models\BusinessSetting::where('key', 'default_location')->first())
+                @php($default_location = $default_location->value ? json_decode($default_location->value, true) : 0)
+                let myLatlng = {
+                    lat: {{ $default_location ? $default_location['lat'] : '23.757989' }},
+                    lng: {{ $default_location ? $default_location['lng'] : '90.360587' }}
                 };
-                // Create a marker for each place.
-                markers.push(
-                    new google.maps.Marker({
-                    map,
-                    icon,
-                    title: place.name,
-                    position: place.geometry.location,
-                    })
-                );
-
-                if (place.geometry.viewport) {
-                    // Only geocodes have viewport.
-                    bounds.union(place.geometry.viewport);
-                } else {
-                    bounds.extend(place.geometry.location);
-                }
+                let map = new google.maps.Map(document.getElementById("map"), {
+                    zoom: 13,
+                    center: myLatlng,
                 });
-                map.fitBounds(bounds);
-            });
-        }
-        initMap();
-
-        function get_zone_data(id) {
-            $.get({
-                url: '{{ url('/') }}/admin/zone/get-coordinates/' + id,
-                dataType: 'json',
-                success: function(data) {
-                    if (zonePolygon) {
-                        zonePolygon.setMap(null);
+                var zonePolygon = null;
+                let infoWindow = new google.maps.InfoWindow({
+                    content: "Click the map to get Lat/Lng!",
+                    position: myLatlng,
+                });
+                var bounds = new google.maps.LatLngBounds();
+                function initMap() {
+                    // Create the initial InfoWindow.
+                    infoWindow.open(map);
+                    //get current location block
+                    infoWindow = new google.maps.InfoWindow();
+                    // Try HTML5 geolocation.
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                                myLatlng = {
+                                    lat: position.coords.latitude,
+                                    lng: position.coords.longitude,
+                                };
+                                infoWindow.setPosition(myLatlng);
+                                infoWindow.setContent("Location found.");
+                                infoWindow.open(map);
+                                map.setCenter(myLatlng);
+                            },
+                            () => {
+                                handleLocationError(true, infoWindow, map.getCenter());
+                            }
+                        );
+                    } else {
+                        // Browser doesn't support Geolocation
+                        handleLocationError(false, infoWindow, map.getCenter());
                     }
-                    zonePolygon = new google.maps.Polygon({
-                        paths: data.coordinates,
-                        strokeColor: "#FF0000",
-                        strokeOpacity: 0.8,
-                        strokeWeight: 2,
-                        fillColor: 'white',
-                        fillOpacity: 0,
-                    });
-                    zonePolygon.setMap(map);
-                    map.setCenter(data.center);
-                    google.maps.event.addListener(zonePolygon, 'click', function(mapsMouseEvent) {
-                        infoWindow.close();
-                        // Create a new InfoWindow.
-                        infoWindow = new google.maps.InfoWindow({
-                            position: mapsMouseEvent.latLng,
-                            content: JSON.stringify(mapsMouseEvent.latLng.toJSON(), null, 2),
+                    //-----end block------
+                    // Create the search box and link it to the UI element.
+                    const input = document.getElementById("pac-input");
+                    const searchBox = new google.maps.places.SearchBox(input);
+                    map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
+                    let markers = [];
+                    searchBox.addListener("places_changed", () => {
+                        const places = searchBox.getPlaces();
+                        if (places.length == 0) {
+                        return;
+                        }
+                        // Clear out the old markers.
+                        markers.forEach((marker) => {
+                        marker.setMap(null);
                         });
-                        var coordinates = JSON.stringify(mapsMouseEvent.latLng.toJSON(), null, 2);
-                        var coordinates = JSON.parse(coordinates);
-
-                        document.getElementById('latitude').value = coordinates['lat'];
-                        document.getElementById('longitude').value = coordinates['lng'];
-                        infoWindow.open(map);
-                    });
-                },
-            });
-        }
-        $(document).on('ready', function() {
-            var id = $('#choice_zones').val();
-            $.get({
-                url: '{{ url('/') }}/admin/zone/get-coordinates/' + id,
-                dataType: 'json',
-                success: function(data) {
-                    if (zonePolygon) {
-                        zonePolygon.setMap(null);
-                    }
-                    zonePolygon = new google.maps.Polygon({
-                        paths: data.coordinates,
-                        strokeColor: "#FF0000",
-                        strokeOpacity: 0.8,
-                        strokeWeight: 2,
-                        fillColor: 'white',
-                        fillOpacity: 0,
-                    });
-                    zonePolygon.setMap(map);
-                    zonePolygon.getPaths().forEach(function(path) {
-                        path.forEach(function(latlng) {
-                            bounds.extend(latlng);
-                            map.fitBounds(bounds);
+                        markers = [];
+                        // For each place, get the icon, name and location.
+                        const bounds = new google.maps.LatLngBounds();
+                        places.forEach((place) => {
+                        if (!place.geometry || !place.geometry.location) {
+                            console.log("Returned place contains no geometry");
+                            return;
+                        }
+                        const icon = {
+                            url: place.icon,
+                            size: new google.maps.Size(71, 71),
+                            origin: new google.maps.Point(0, 0),
+                            anchor: new google.maps.Point(17, 34),
+                            scaledSize: new google.maps.Size(25, 25),
+                        };
+                        // Create a marker for each place.
+                        markers.push(
+                            new google.maps.Marker({
+                            map,
+                            icon,
+                            title: place.name,
+                            position: place.geometry.location,
+                            })
+                        );
+                        if (place.geometry.viewport) {
+                            // Only geocodes have viewport.
+                            bounds.union(place.geometry.viewport);
+                        } else {
+                            bounds.extend(place.geometry.location);
+                        }
                         });
+                        map.fitBounds(bounds);
                     });
-                    map.setCenter(data.center);
-                    google.maps.event.addListener(zonePolygon, 'click', function(mapsMouseEvent) {
-                        infoWindow.close();
-                        // Create a new InfoWindow.
-                        infoWindow = new google.maps.InfoWindow({
+                }
+                initMap();
+                function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+                    infoWindow.setPosition(pos);
+                    infoWindow.setContent(
+                        browserHasGeolocation ?
+                        "Error: The Geolocation service failed." :
+                        "Error: Your browser doesn't support geolocation."
+                    );
+                    infoWindow.open(map);
+                }
+                $('#choice_zones').on('change', function() {
+                    var id = $(this).val();
+                    $.get({
+                        url: '{{ url('/') }}/admin/zone/get-coordinates/' + id,
+                        dataType: 'json',
+                        success: function(data) {
+                            if (zonePolygon) {
+                                zonePolygon.setMap(null);
+                            }
+                            zonePolygon = new google.maps.Polygon({
+                                paths: data.coordinates,
+                                strokeColor: "#FF0000",
+                                strokeOpacity: 0.8,
+                                strokeWeight: 2,
+                                fillColor: 'white',
+                                fillOpacity: 0,
+                            });
+                            zonePolygon.setMap(map);
+                            zonePolygon.getPaths().forEach(function(path) {
+                                path.forEach(function(latlng) {
+                                    bounds.extend(latlng);
+                                    map.fitBounds(bounds);
+                                });
+                            });
+                            map.setCenter(data.center);
+                            google.maps.event.addListener(zonePolygon, 'click', function(mapsMouseEvent) {
+                                infoWindow.close();
+                                // Create a new InfoWindow.
+                                infoWindow = new google.maps.InfoWindow({
                             position: mapsMouseEvent.latLng,
                             content: JSON.stringify(mapsMouseEvent.latLng.toJSON(),
                                 null, 2),
@@ -514,15 +519,20 @@
                         var coordinates = JSON.stringify(mapsMouseEvent.latLng.toJSON(), null,
                             2);
                         var coordinates = JSON.parse(coordinates);
-
-                        document.getElementById('latitude').value = coordinates['lat'];
-                        document.getElementById('longitude').value = coordinates['lng'];
-                        infoWindow.open(map);
+                                    document.getElementById('latitude').value = coordinates['lat'];
+                                    document.getElementById('longitude').value = coordinates['lng'];
+                                    infoWindow.open(map);
+                                });
+                            },
+                        });
                     });
-                },
+                    document.addEventListener('keypress', function (e) {
+                if (e.keyCode === 13 || e.which === 13) {
+                    e.preventDefault();
+                    return false;
+                }
             });
-        });
-    </script>
+        </script>
     <script>
         $('#reset_btn').click(function(){
             $('#name').val(null);

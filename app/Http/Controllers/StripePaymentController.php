@@ -22,7 +22,7 @@ class StripePaymentController extends Controller
     {
         $tran = Str::random(6) . '-' . rand(1, 1000);
         $order_id = $request->order_id;
-        $order = Order::with(['details'])->where(['id' => $order_id])->first();
+        $order = Order::with(['details','subscription'])->where(['id' => $order_id])->first();
         $config = Helpers::get_business_settings('stripe');
         Stripe::setApiKey($config['api_key']);
         header('Content-Type: application/json');
@@ -48,7 +48,7 @@ class StripePaymentController extends Controller
                         'images' => [asset('storage/app/public/business') . '/' . BusinessSetting::where(['key' => 'logo'])->first()->value],
                     ],
                 ],
-                'quantity' => 1,
+                'quantity' => $order->subscription ? $order->subscription->quantity : 1,
             ]],
             'mode' => 'payment',
             'success_url' => (String)route('pay-stripe.success',['order_id'=>$order->id,'transaction_ref'=>$tran]),

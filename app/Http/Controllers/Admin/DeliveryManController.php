@@ -2,19 +2,25 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use App\Models\DeliveryMan;
-use App\Models\DMReview;
 use App\Models\Zone;
-use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\DMReview;
 use App\Models\UserInfo;
-use Brian2694\Toastr\Facades\Toastr;
+use App\Models\DeliveryMan;
+use App\Models\Conversation;
+use App\Models\IncentiveLog;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use App\CentralLogics\Helpers;
+use App\Models\DeliveryManWallet;
+use App\Models\WalletTransaction;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Support\Facades\Mail;
+use Rap2hpoutre\FastExcel\FastExcel;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+
 
 class DeliveryManController extends Controller
 {
@@ -29,7 +35,7 @@ class DeliveryManController extends Controller
         $zone_id = $request->query('zone_id', 'all');
         $delivery_men = DeliveryMan::when(is_numeric($zone_id), function($query) use($zone_id){
             return $query->where('zone_id', $zone_id);
-        })->with('zone')->where('type','zone_wise')->latest()->paginate(config('default_pagination'));
+        })->with('zone')->where('type','zone_wise')->latest()->where('application_status','approved')->paginate(config('default_pagination'));
         $zone = is_numeric($zone_id)?Zone::findOrFail($zone_id):null;
         return view('admin-views.delivery-man.list', compact('delivery_men', 'zone'));
     }
@@ -44,7 +50,7 @@ class DeliveryManController extends Controller
                     ->orWhere('phone', 'like', "%{$value}%")
                     ->orWhere('identity_number', 'like', "%{$value}%");
             }
-        })->where('type','zone_wise')->get();
+        })->where('type','zone_wise')->where('application_status','approved')->get();
         return response()->json([
             'view'=>view('admin-views.delivery-man.partials._table',compact('delivery_men'))->render(),
             'count'=>$delivery_men->count()
@@ -104,9 +110,14 @@ class DeliveryManController extends Controller
             'zone_id' => 'required',
             'earning' => 'required',
             'password'=>'required|min:6',
+            'vehicle_id' => 'required',
+            'image' => 'nullable|max:2048',
+            'identity_image.*' => 'nullable|max:2048',
+
         ], [
             'f_name.required' => translate('messages.first_name_is_required'),
             'zone_id.required' => translate('messages.select_a_zone'),
+            'vehicle_id.required' => translate('messages.select_a_vehicle'),
             'earning.required' => translate('messages.select_dm_type')
         ]);
 
@@ -135,6 +146,7 @@ class DeliveryManController extends Controller
         $dm->identity_number = $request->identity_number;
         $dm->identity_type = $request->identity_type;
         $dm->zone_id = $request->zone_id;
+        $dm->vehicle_id = $request->vehicle_id;
         $dm->identity_image = $identity_image;
         $dm->image = $image_name;
         $dm->active = 0;
@@ -242,10 +254,16 @@ class DeliveryManController extends Controller
             'identity_number' => 'required|max:30',
             'email' => 'required|unique:delivery_men,email,'.$id,
             'phone' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10|unique:delivery_men,phone,'.$id,
+            'vehicle_id' => 'required',
             'earning' => 'required',
+            'password' => 'nullable|min:6',
+            'image' => 'nullable|max:2048',
+            'identity_image.*' => 'nullable|max:2048',
         ], [
             'f_name.required' => translate('messages.first_name_is_required'),
-            'earning.required' => translate('messages.select_dm_type')
+            'earning.required' => translate('messages.select_dm_type'),
+            'vehicle_id.required' => translate('messages.select_a_vehicle'),
+
         ]);
 
         $delivery_man = DeliveryMan::find($id);
@@ -271,6 +289,8 @@ class DeliveryManController extends Controller
         } else {
             $identity_image = $delivery_man['identity_image'];
         }
+
+        $delivery_man->vehicle_id = $request->vehicle_id;
 
         $delivery_man->f_name = $request->f_name;
         $delivery_man->l_name = $request->l_name;
@@ -390,4 +410,181 @@ class DeliveryManController extends Controller
             'view' => view('admin-views.delivery-man.partials._conversations', compact('convs', 'user', 'receiver'))->render()
         ]);
     }
+    public function dm_list_export(Request $request){
+
+        $withdraw_request = DeliveryMan::where('type','zone_wise')->orderBy('id','desc')->get();
+        if ($request->type == 'excel') {
+            return (new FastExcel(Helpers::export_d_man($withdraw_request)))->download('deliveryman_list.xlsx');
+        } elseif ($request->type == 'csv') {
+            return (new FastExcel(Helpers::export_d_man($withdraw_request)))->download('deliveryman_list.csv');
+        }
+    }
+
+
+    public function pending(Request $request)
+    {
+        $key = explode(' ', $request['search']);
+        $zone_id = $request->query('zone_id', 'all');
+        $delivery_men = DeliveryMan::when(is_numeric($zone_id), function($query) use($zone_id){
+            return $query->where('zone_id', $zone_id);
+        })
+        ->when(isset($key),function($query)use($key){
+            $query->where(function($q)use($key){
+                foreach ($key as $value) {
+                    $q->orWhere('f_name', 'like', "%{$value}%")
+                ->orWhere('l_name', 'like', "%{$value}%")
+                ->orWhere('email', 'like', "%{$value}%")
+                ->orWhere('phone', 'like', "%{$value}%")
+                ->orWhere('identity_number', 'like', "%{$value}%");
+                }
+            });
+        })
+        ->with('zone')->where('type','zone_wise')->where('application_status', 'pending')->latest()->paginate(config('default_pagination'));
+        $zone = is_numeric($zone_id)?Zone::findOrFail($zone_id):null;
+        return view('admin-views.delivery-man.pending_list', compact('delivery_men', 'zone'));
+
+
+    }
+    public function denied(Request $request)
+    {
+        $key = explode(' ', $request['search']);
+        $zone_id = $request->query('zone_id', 'all');
+        $delivery_men = DeliveryMan::when(is_numeric($zone_id), function($query) use($zone_id){
+            return $query->where('zone_id', $zone_id);
+        })
+        ->when(isset($key),function($query)use($key){
+            $query->where(function($q)use($key){
+                foreach ($key as $value) {
+                    $q->orWhere('f_name', 'like', "%{$value}%")
+                ->orWhere('l_name', 'like', "%{$value}%")
+                ->orWhere('email', 'like', "%{$value}%")
+                ->orWhere('phone', 'like', "%{$value}%")
+                ->orWhere('identity_number', 'like', "%{$value}%");
+                }
+            });
+        })
+        ->with('zone')->where('type','zone_wise')->where('application_status', 'denied')->latest()->paginate(config('default_pagination'));
+        $zone = is_numeric($zone_id)?Zone::findOrFail($zone_id):null;
+        return view('admin-views.delivery-man.denied', compact('delivery_men', 'zone'));
+    }
+
+    public function get_incentives(Request $request)
+    {
+        $incentives = IncentiveLog::when($request->search, function ($query) use ($request) {
+            $key = explode(' ', $request->search);
+            $query->whereHas('deliveryman', function ($query) use ($key) {
+                $query->where(function ($q) use ($key) {
+                    foreach ($key as $value) {
+                        $q->orWhere('f_name', 'like', "%{$value}%");
+                        $q->orWhere('l_name', 'like', "%{$value}%");
+                        $q->orWhere('phone', 'like', "%{$value}%");
+                        $q->orWhere('email', 'like', "%{$value}%");
+                    }
+                });
+            });
+        })
+            ->where('status', '!=', 'pending')
+            ->latest()->paginate(config('default_pagination'));
+        return view('admin-views.delivery-man.incentive', compact('incentives'));
+    }
+    public function pending_incentives(Request $request)
+    {
+        $incentives = IncentiveLog::
+        when($request->search, function ($query) use ($request) {
+            $key = explode(' ', $request->search);
+            $query->whereHas('deliveryman', function ($query) use ($key) {
+                $query->where(function ($q) use ($key) {
+                    foreach ($key as $value) {
+                        $q->orWhere('f_name', 'like', "%{$value}%");
+                        $q->orWhere('l_name', 'like', "%{$value}%");
+                        $q->orWhere('phone', 'like', "%{$value}%");
+                        $q->orWhere('email', 'like', "%{$value}%");
+                    }
+                });
+            });
+        })
+            ->whereStatus('pending')
+            ->latest()->paginate(config('default_pagination'));
+        return view('admin-views.delivery-man.incentive', compact('incentives'));
+    }
+
+    public function update_incentive_status(Request $request)
+    {
+        $request->validate([
+            'status' => 'required|in:denied',
+            'id' => 'required'
+        ]);
+
+        $incentive = IncentiveLog::findOrFail($request->id);
+
+        if ($incentive->status == "pending") {
+            $incentive->status = $request->status;
+            $incentive->save();
+            Toastr::success(translate('messages.incentive_denied'));
+            return back();
+        }
+
+    }
+
+    public function update_all_incentive_status(Request $request)
+    {
+        $request->validate([
+            'incentive_id' => 'required'
+        ]);
+        $incentives = IncentiveLog::whereIn('id', $request->incentive_id)->get();
+        foreach ($incentives as $incentive) {
+            Helpers::dm_wallet_transaction($incentive->delivery_man_id, $incentive->incentive, null, 'incentive');
+            $incentive->status = "approved";
+            // $incentive->subsidy = $request->incentive[$incentive->id];
+            $incentive->save();
+        }
+        Toastr::success(translate('messages.succesfully_approved_incentive'));
+        return back();
+    }
+
+    public function get_bonus(Request $request)
+    {
+        $data = WalletTransaction::where('transaction_type', 'dm_admin_bonus')
+        ->when($request->search, function ($query) use ($request) {
+                $query->where(function($query) use ($request) {
+                    $key = explode(' ', $request->search);
+                    $query->where(function ($q) use ($key) {
+                        foreach ($key as $value) {
+                            $q->Where('transaction_id', 'like', "%{$value}%");
+                        }
+                    })
+                    ->orWhereHas('delivery_man', function ($query) use ($key) {
+                        $query->where(function ($q) use ($key) {
+                            foreach ($key as $value) {
+                                $q->orWhere('f_name', 'like', "%{$value}%");
+                                $q->orWhere('l_name', 'like', "%{$value}%");
+                                $q->orWhere('phone', 'like', "%{$value}%");
+                                $q->orWhere('email', 'like', "%{$value}%");
+                            }
+                        });
+                    });
+                });
+        })
+
+        ->paginate(config('default_pagination'));
+        return view('admin-views.delivery-man.bonus', compact('data'));
+    }
+
+    public function add_bonus(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'delivery_man_id'=>'exists:delivery_men,id',
+            'amount'=>'numeric|min:.01',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => Helpers::error_processor($validator)]);
+        }
+
+        if(Helpers::dm_wallet_transaction($request->delivery_man_id, $request->amount, $request->referance)){
+            return response()->json(['message'=>trans('messages.bonus_added_successfully')], 200);
+        }
+        return response()->json(['errors' => [['code'=>'transaction-failed', 'message'=>translate('messages.faield_to_create_transaction')]]]);
+    }
+
 }

@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Vendor\Auth;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\CentralLogics\Helpers;
 use App\Models\VendorEmployee;
 use Gregwar\Captcha\CaptchaBuilder;
-use Illuminate\Support\Facades\Session;
-use App\CentralLogics\Helpers;
+use App\Http\Controllers\Controller;
 use Brian2694\Toastr\Facades\Toastr;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Session;
 
 class EmployeeLoginController extends Controller
 {
@@ -40,9 +41,9 @@ class EmployeeLoginController extends Controller
                         $secret_key = Helpers::get_business_settings('recaptcha')['secret_key'];
                         $response = $value;
                         $url = 'https://www.google.com/recaptcha/api/siteverify?secret=' . $secret_key . '&response=' . $response;
-                        $response = \file_get_contents($url);
-                        $response = json_decode($response);
-                        if (!$response->success) {
+                        $response = Http::get($url);
+                        $response = $response->json();
+                        if (!isset($response['success']) || !$response['success']) {
                             $fail(translate('messages.ReCAPTCHA Failed'));
                         }
                     },

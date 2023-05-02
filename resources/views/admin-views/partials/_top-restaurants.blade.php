@@ -19,7 +19,7 @@
     <ul class="top--resturant">
     @foreach($top_restaurants as $key=>$item)
         <li>
-            <div class="top--resturant-item" onclick="location.href='{{route('admin.vendor.view', $item->id)}}'">
+            <div class="top--resturant-item" onclick="location.href='{{route('admin.restaurant.view', $item->id)}}'">
                 <img onerror="this.src='{{asset('public/assets/admin/img/100x100/1.png')}}'" src="{{asset('storage/app/public/restaurant')}}/{{$item['logo']}}">
                 <div class="top--resturant-item-content">
                     <h5 class="name m-0">

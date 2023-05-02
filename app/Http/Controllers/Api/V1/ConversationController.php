@@ -20,8 +20,20 @@ class ConversationController extends Controller
 {
     public function messages_store(Request $request)
     {
-        info(['New message request',$request->all()]);
+        // info(['New message request',$request->all()]);
+
         if ($request->has('image')) {
+
+
+            $validator = Validator::make($request->all(), [
+                'image.*' => 'max:2048',
+            ]);
+
+            if ($validator->fails()) {
+                $validator->getMessageBag()->add('image', 'Max Image Upload limit is 2mb');
+                return response()->json(['errors' => Helpers::error_processor($validator)],403);
+            }
+
             $image_name=[];
             foreach($request->file('image') as $key=>$img)
             {
@@ -35,6 +47,7 @@ class ConversationController extends Controller
 
         $limit = $request['limit']??10;
         $offset = $request['offset']??1;
+        $fcm_token_web = null;
 
         $sender = UserInfo::where('user_id', $request->user()->id)->first();
         if(!$sender){
@@ -57,6 +70,7 @@ class ConversationController extends Controller
                 if($receiver->vendor_id){
                     $vendor = Vendor::find($receiver->vendor_id);
                     $fcm_token=$vendor->firebase_token;
+                    $fcm_token_web=$vendor->fcm_token_web;
                 }elseif($receiver->deliveryman_id){
                     $delivery_man = DeliveryMan::find($receiver->deliveryman_id);
                     $fcm_token=$delivery_man->fcm_token;
@@ -69,6 +83,7 @@ class ConversationController extends Controller
                 if($receiver->vendor_id){
                     $vendor = Vendor::find($receiver->vendor_id);
                     $fcm_token=$vendor->firebase_token;
+                    $fcm_token_web=$vendor->fcm_token_web;
                 }elseif($receiver->deliveryman_id){
                     $delivery_man = DeliveryMan::find($receiver->deliveryman_id);
                     $fcm_token=$delivery_man->fcm_token;
@@ -95,6 +110,7 @@ class ConversationController extends Controller
 
                 $receiver_id = $receiver->id;
                 $fcm_token=$vendor->firebase_token;
+                $fcm_token_web=$vendor->fcm_token_web;
 
             }else if($request->receiver_type == 'delivery_man'){
                 $receiver = UserInfo::where('deliveryman_id',$request->receiver_id)->first();
@@ -164,6 +180,9 @@ class ConversationController extends Controller
                         'sender_type'=> 'user'
                     ];
                     Helpers::send_push_notif_to_device($fcm_token, $data);
+                    if($fcm_token_web){
+                        Helpers::send_push_notif_to_device($fcm_token_web, $data);
+                    }
 
                 }
             }
@@ -209,7 +228,8 @@ class ConversationController extends Controller
     public function chat_image(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'image' => 'required'
+            'image' => 'required|max:2048'
+
         ]);
 
         if ($validator->fails()) {
@@ -406,6 +426,16 @@ class ConversationController extends Controller
     {
 
         if ($request->has('image')) {
+
+            $validator = Validator::make($request->all(), [
+                'image.*' => 'max:2048',
+            ]);
+
+            if ($validator->fails()) {
+                $validator->getMessageBag()->add('image', 'Max Image Upload limit is 2mb');
+                return response()->json(['errors' => Helpers::error_processor($validator)],403);
+            }
+
             $image_name=[];
             foreach($request->file('image') as $key=>$img)
             {
@@ -419,7 +449,7 @@ class ConversationController extends Controller
 
         $limit = $request['limit']??10;
         $offset = $request['offset']??1;
-
+        $fcm_token_web = null;
         $dm = DeliveryMan::where(['auth_token' => $request['token']])->first();
 
         $sender = UserInfo::where('deliveryman_id', $dm->id)->first();
@@ -443,6 +473,7 @@ class ConversationController extends Controller
                 if($receiver->vendor_id){
                     $vendor = Vendor::find($receiver->vendor_id);
                     $fcm_token=$vendor->firebase_token;
+                    $fcm_token_web = "restaurant_panel_{$vendor->restaurants[0]->id}_message";
                 }elseif($receiver->user_id){
                     $user = User::find($receiver->user_id);
                     $fcm_token=$user->cm_firebase_token;
@@ -453,6 +484,7 @@ class ConversationController extends Controller
                 if($receiver->vendor_id){
                     $vendor = Vendor::find($receiver->vendor_id);
                     $fcm_token=$vendor->firebase_token;
+                    $fcm_token_web="restaurant_panel_{$vendor->restaurants[0]->id}_message";
                 }elseif($receiver->user_id){
                     $user = User::find($receiver->user_id);
                     $fcm_token=$user->cm_firebase_token;
@@ -475,6 +507,7 @@ class ConversationController extends Controller
                 }
                 $receiver_id = $receiver->id;
                 $fcm_token=$vendor->firebase_token;
+                $fcm_token_web="restaurant_panel_{$vendor->restaurants[0]->id}_message";
             }else if($request->receiver_type == 'customer'){
                 $receiver = UserInfo::where('user_id',$request->receiver_id)->first();
                 $user = User::find($request->receiver_id);
@@ -533,6 +566,9 @@ class ConversationController extends Controller
                     'sender_type'=> 'delivery_man'
                 ];
                 Helpers::send_push_notif_to_device($fcm_token, $data);
+                if($fcm_token_web){
+                    Helpers::send_push_notif_to_topic($data, $fcm_token_web, 'message');
+                }
             }
 
         } catch (\Exception $e) {

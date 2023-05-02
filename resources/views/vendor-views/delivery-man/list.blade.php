@@ -93,7 +93,7 @@
                                     </div>
                                 @else
                                     <div>
-                                        Active Status : <strong class="text-info text-capitalize">{{translate('messages.pending')}}</strong>
+                                        Active Status : <strong class="text-info text-capitalize">{{translate('messages.not_approved')}}</strong>
                                     </div>
                                 @endif
                             </td>

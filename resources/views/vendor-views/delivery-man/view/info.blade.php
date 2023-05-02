@@ -285,6 +285,8 @@
         </div>
         <!-- End Card -->
 
+        @php($restaurant=\App\CentralLogics\Helpers::get_restaurant_data())
+        @if ($restaurant->restaurant_model == 'commission' && $restaurant->reviews_section || ($restaurant->restaurant_model == 'subscription' && isset($restaurant->restaurant_sub) && $restaurant->restaurant_sub->review))
         <!-- Card -->
         <div class="card">
             <!-- Table -->
@@ -338,7 +340,8 @@
                                 @endif
                             </td>
                             <td>
-                                #10000000
+                                <a href="{{route('vendor.order.details',['id'=>$review->order_id])}}">{{$review->order_id}}</a>
+
                             </td>
                             <td>
                                 <div class="text-wrap w-18rem">
@@ -389,6 +392,9 @@
             <!-- End Footer -->
         </div>
         <!-- End Card -->
+        @endif
+
+
     </div>
 @endsection
 

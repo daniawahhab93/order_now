@@ -34,29 +34,34 @@
             <!-- Nav -->
             <ul class="nav nav-tabs page-header-tabs">
             <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', $restaurant->id)}}">{{translate('messages.overview')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', $restaurant->id)}}">{{translate('messages.overview')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'order'])}}"  aria-disabled="true">{{translate('messages.orders')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'order'])}}"  aria-disabled="true">{{translate('messages.orders')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'product'])}}"  aria-disabled="true">{{translate('messages.foods')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'product'])}}"  aria-disabled="true">{{translate('messages.foods')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'reviews'])}}"  aria-disabled="true">{{translate('messages.reviews')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'reviews'])}}"  aria-disabled="true">{{translate('messages.reviews')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link active" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'discount'])}}"  aria-disabled="true">{{translate('discounts')}}</a>
+                    <a class="nav-link active" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'discount'])}}"  aria-disabled="true">{{translate('discounts')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'transaction'])}}"  aria-disabled="true">{{translate('messages.transactions')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'transaction'])}}"  aria-disabled="true">{{translate('messages.transactions')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'settings'])}}"  aria-disabled="true">{{translate('messages.settings')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'settings'])}}"  aria-disabled="true">{{translate('messages.settings')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'conversations'])}}"  aria-disabled="true">{{translate('messages.conversations')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'conversations'])}}"  aria-disabled="true">{{translate('messages.conversations')}}</a>
                 </li>
+                @if ($restaurant->restaurant_model != 'none' && $restaurant->restaurant_model != 'commission' )
+                <li class="nav-item">
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'subscriptions'])}}"  aria-disabled="true">{{translate('messages.subscription')}}</a>
+                </li>
+                @endif
             </ul>
             <!-- End Nav -->
         </div>
@@ -140,7 +145,7 @@
         </button>
       </div>
       <div class="modal-body">
-        <form action="{{route('admin.vendor.discount',[$restaurant['id']])}}" method="post" id="discount-form">
+        <form action="{{route('admin.restaurant.discount',[$restaurant['id']])}}" method="post" id="discount-form">
             @csrf
             <div class="row gx-2">
                 <div class="col-md-4 col-6">
@@ -194,7 +199,7 @@
                 <button type="submit" class="btn btn--primary h--37px">{{$restaurant->discount?translate('messages.update'):translate('messages.add')}}</button>
             </div>
         </form>
-        <form action="{{route('admin.vendor.clear-discount',[$restaurant->id])}}" method="post" id="discount-{{$restaurant->id}}">
+        <form action="{{route('admin.restaurant.clear-discount',[$restaurant->id])}}" method="post" id="discount-{{$restaurant->id}}">
             @csrf @method('delete')
         </form>
       </div>
@@ -232,7 +237,7 @@
                 }
             });
             $.post({
-                url: "{{route('admin.vendor.discount',[$restaurant['id']])}}",
+                url: "{{route('admin.restaurant.discount',[$restaurant['id']])}}",
                 data: formData,
                 cache: false,
                 contentType: false,
@@ -252,7 +257,7 @@
                         });
 
                         setTimeout(function () {
-                            location.href = "{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'discount'])}}";
+                            location.href = "{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'discount'])}}";
                         }, 2000);
                     }
                 }

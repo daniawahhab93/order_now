@@ -9,6 +9,13 @@
 @endpush
 
 @section('content')
+    @php($business_model = \App\Models\BusinessSetting::where('key', 'business_model')->first())
+    @php($order_subscription = \App\Models\BusinessSetting::where('key', 'order_subscription')->first())
+
+    @php($business_model = isset($business_model->value) ? json_decode($business_model->value, true) : [
+        'commission'        =>  1,
+        'subscription'     =>  0,
+    ])
 <div class="content container-fluid">
     <!-- Page Header -->
     <div class="page-header">
@@ -34,29 +41,34 @@
             <!-- Nav -->
             <ul class="nav nav-tabs page-header-tabs">
             <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', $restaurant->id)}}">{{translate('messages.overview')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', $restaurant->id)}}">{{translate('messages.overview')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'order'])}}"  aria-disabled="true">{{translate('messages.orders')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'order'])}}"  aria-disabled="true">{{translate('messages.orders')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'product'])}}"  aria-disabled="true">{{translate('messages.foods')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'product'])}}"  aria-disabled="true">{{translate('messages.foods')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'reviews'])}}"  aria-disabled="true">{{translate('messages.reviews')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'reviews'])}}"  aria-disabled="true">{{translate('messages.reviews')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'discount'])}}"  aria-disabled="true">{{translate('discounts')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'discount'])}}"  aria-disabled="true">{{translate('discounts')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'transaction'])}}"  aria-disabled="true">{{translate('messages.transactions')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'transaction'])}}"  aria-disabled="true">{{translate('messages.transactions')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link active" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'settings'])}}"  aria-disabled="true">{{translate('messages.settings')}}</a>
+                    <a class="nav-link active" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'settings'])}}"  aria-disabled="true">{{translate('messages.settings')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'conversations'])}}"  aria-disabled="true">{{translate('messages.conversations')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'conversations'])}}"  aria-disabled="true">{{translate('messages.conversations')}}</a>
                 </li>
+                @if ($restaurant->restaurant_model != 'none' && $restaurant->restaurant_model != 'commission' )
+                <li class="nav-item">
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'subscriptions'])}}"  aria-disabled="true">{{translate('messages.subscription')}}</a>
+                </li>
+                @endif
             </ul>
             <!-- End Nav -->
         </div>
@@ -79,18 +91,39 @@
                             <span class="pr-2 d-flex">
                                 <span>{{translate('messages.manage_food_setup')}}</span>
                                 <span  data-toggle="tooltip" data-placement="right" data-original-title='{{translate("By disabling this field, the restaurant can't manage foods, which means
-the restaurant web panel/ app won't get the access for managing foods.
-")}}' class="input-label-secondary">
+                                    the restaurant web panel/ app won't get the access for managing foods.
+                                    ")}}' class="input-label-secondary">
                                     <i class="tio-info-outined"></i>
                                 </span>
                             </span>
-                            <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.vendor.toggle-settings',[$restaurant->id,$restaurant->food_section?0:1, 'food_section'])}}'" name="food_section" id="food_section" {{$restaurant->food_section?'checked':''}}>
+                            <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.restaurant.toggle-settings',[$restaurant->id,$restaurant->food_section?0:1, 'food_section'])}}'" name="food_section" id="food_section" {{$restaurant->food_section?'checked':''}}>
                             <span class="toggle-switch-label text">
                                 <span class="toggle-switch-indicator"></span>
                             </span>
                         </label>
                     </div>
                 </div>
+
+
+                <div class="col-xl-4 col-md-4 col-sm-6">
+                    <div class="form-group mb-0">
+                        <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border  rounded px-3 form-control" for="schedule_order">
+                            <span class="pr-2 d-flex">
+                                <span class="line--limit-1">
+                                    {{translate('messages.scheduled')}} {{translate('messages.order')}} {{translate('messages.option')}}
+                                </span>
+                                <span  data-toggle="tooltip" data-placement="right" data-original-title="{{translate(' If this status is turned on, the customer is able to place a scheduled order for this restaurant.')}}" class="input-label-secondary">
+                                    <i class="tio-info-outined"></i>
+                                </span>
+                            </span>
+                            <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.restaurant.toggle-settings',[$restaurant->id,$restaurant->schedule_order?0:1, 'schedule_order'])}}'" id="schedule_order" {{$restaurant->schedule_order?'checked':''}}>
+                            <span class="toggle-switch-label">
+                                <span class="toggle-switch-indicator"></span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                @if ($restaurant->restaurant_model == 'commission')
                 <div class="col-xl-4 col-md-4 col-sm-6">
                     <div class="form-group mb-0">
                         <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border  rounded px-3 form-control" for="reviews_section">
@@ -102,7 +135,7 @@ the restaurant web panel/ app won't get the access for managing foods.
                                 <i class="tio-info-outined"></i>
                             </span>
                         </span>
-                            <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.vendor.toggle-settings',[$restaurant->id,$restaurant->reviews_section?0:1, 'reviews_section'])}}'" name="reviews_section" id="reviews_section" {{$restaurant->reviews_section?'checked':''}}>
+                            <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.restaurant.toggle-settings',[$restaurant->id,$restaurant->reviews_section?0:1, 'reviews_section'])}}'" name="reviews_section" id="reviews_section" {{$restaurant->reviews_section?'checked':''}}>
                             <span class="toggle-switch-label text">
                                 <span class="toggle-switch-indicator"></span>
                             </span>
@@ -120,32 +153,13 @@ the restaurant web panel/ app won't get the access for managing foods.
                                     <i class="tio-info-outined"></i>
                                 </span>
                             </span>
-                            <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.vendor.toggle-settings',[$restaurant->id,$restaurant->pos_system?0:1, 'pos_system'])}}'" id="pos_system" {{$restaurant->pos_system?'checked':''}}>
+                            <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.restaurant.toggle-settings',[$restaurant->id,$restaurant->pos_system?0:1, 'pos_system'])}}'" id="pos_system" {{$restaurant->pos_system?'checked':''}}>
                             <span class="toggle-switch-label">
                                 <span class="toggle-switch-indicator"></span>
                             </span>
                         </label>
                     </div>
                 </div>
-                <div class="col-xl-4 col-md-4 col-sm-6">
-                    <div class="form-group mb-0">
-                        <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border  rounded px-3 form-control" for="schedule_order">
-                            <span class="pr-2 d-flex">
-                                <span class="line--limit-1">
-                                    {{translate('messages.scheduled')}} {{translate('messages.order')}} {{translate('messages.option')}}
-                                </span>
-                                <span  data-toggle="tooltip" data-placement="right" data-original-title="{{translate(' If this status is turned on, the customer is able to place a scheduled order for this restaurant.')}}" class="input-label-secondary">
-                                    <i class="tio-info-outined"></i>
-                                </span>
-                            </span>
-                            <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.vendor.toggle-settings',[$restaurant->id,$restaurant->schedule_order?0:1, 'schedule_order'])}}'" id="schedule_order" {{$restaurant->schedule_order?'checked':''}}>
-                            <span class="toggle-switch-label">
-                                <span class="toggle-switch-indicator"></span>
-                            </span>
-                        </label>
-                    </div>
-                </div>
-
                 <div class="col-xl-4 col-md-4 col-sm-6">
                     <div class="form-group mb-0">
                         <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border  rounded px-3 form-control" for="self_delivery_system">
@@ -157,33 +171,14 @@ the restaurant web panel/ app won't get the access for managing foods.
                                     <i class="tio-info-outined"></i>
                                 </span>
                             </span>
-                            <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.vendor.toggle-settings',[$restaurant->id,$restaurant->self_delivery_system?0:1, 'self_delivery_system'])}}'" id="self_delivery_system" {{$restaurant->self_delivery_system?'checked':''}}>
+                            <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.restaurant.toggle-settings',[$restaurant->id,$restaurant->self_delivery_system?0:1, 'self_delivery_system'])}}'" id="self_delivery_system" {{$restaurant->self_delivery_system?'checked':''}}>
                             <span class="toggle-switch-label">
                                 <span class="toggle-switch-indicator"></span>
                             </span>
                         </label>
                     </div>
                 </div>
-                {{-- <div class="col-xl-4 col-md-4 col-sm-6">
-                    <div class="form-group mb-0">
-                        <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border  rounded px-3 form-control" for="free_delivery">
-                            <span class="pr-2 d-flex">
-                                <span class="line--limit-1">
-                                    {{translate('messages.free_delivery')}} :
-                                </span>
-                                <span  data-toggle="tooltip" data-placement="right" data-original-title="{{translate(' If this option is on, customers will get free delivery for this restaurant. ')}}" class="input-label-secondary">
-                                    <i class="tio-info-outined"></i>
-                                </span>
-                            </span>
-
-                            <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.vendor.toggle-settings',[$restaurant->id,$restaurant->free_delivery?0:1, 'free_delivery'])}}'" id="free_delivery" {{$restaurant->free_delivery?'checked':''}}>
-                            <span class="toggle-switch-label">
-                                <span class="toggle-switch-indicator"></span>
-                            </span>
-                        </label>
-                    </div>
-                </div> --}}
-
+                @endif
 
                 <div class="col-xl-4 col-md-4 col-sm-6">
                     <div class="form-group mb-0">
@@ -196,7 +191,7 @@ the restaurant web panel/ app won't get the access for managing foods.
                                     <i class="tio-info-outined"></i>
                                 </span>
                             </span>
-                            <input type="checkbox" name="delivery" class="toggle-switch-input" onclick="location.href='{{route('admin.vendor.toggle-settings',[$restaurant->id,$restaurant->delivery?0:1, 'delivery'])}}'" id="delivery" {{$restaurant->delivery?'checked':''}}>
+                            <input type="checkbox" name="delivery" class="toggle-switch-input" onclick="location.href='{{route('admin.restaurant.toggle-settings',[$restaurant->id,$restaurant->delivery?0:1, 'delivery'])}}'" id="delivery" {{$restaurant->delivery?'checked':''}}>
                             <span class="toggle-switch-label">
                                 <span class="toggle-switch-indicator"></span>
                             </span>
@@ -209,49 +204,52 @@ the restaurant web panel/ app won't get the access for managing foods.
                         <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border  rounded px-3 form-control" for="take_away">
                             <span class="pr-2 d-flex">
                                 <span class="line--limit-1">
-                                    {{translate('messages.take_away')}}:
+                                    {{translate('messages.take_away')}}
                                 </span>
                                 <span  data-toggle="tooltip" data-placement="right" data-original-title='{{translate("By disabling this option, customers can't place self-pickup / take-away orders.")}}' class="input-label-secondary">
                                     <i class="tio-info-outined"></i>
                                 </span>
                             </span>
-                            <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.vendor.toggle-settings',[$restaurant->id,$restaurant->take_away?0:1, 'take_away'])}}'" id="take_away" {{$restaurant->take_away?'checked':''}}>
+                            <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.restaurant.toggle-settings',[$restaurant->id,$restaurant->take_away?0:1, 'take_away'])}}'" id="take_away" {{$restaurant->take_away?'checked':''}}>
                             <span class="toggle-switch-label">
                                 <span class="toggle-switch-indicator"></span>
                             </span>
                         </label>
                     </div>
                 </div>
-                {{-- @if ($toggle_veg_non_veg)
+
+                    @if (isset($order_subscription) && $order_subscription->value == 1)
                     <div class="col-xl-4 col-md-4 col-sm-6">
                         <div class="form-group mb-0">
-                            <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border  rounded px-3 form-control" for="veg">
-                            <span class="pr-2 text-capitalize">{{translate('messages.veg')}}:</span>
-                                <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.vendor.toggle-settings',[$restaurant->id,$restaurant->veg?0:1, 'veg'])}}'" id="veg" {{$restaurant->veg?'checked':''}}>
+                            <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border  rounded px-3 form-control" for="order_subscription">
+                                <span class="pr-2 d-flex">
+                                    <span class="line--limit-1">
+                                        {{translate('messages.order_subscription')}}
+                                    </span>
+                                    <span  data-toggle="tooltip" data-placement="right" data-original-title='{{translate("If this option is on , customer can place subscription based order in user app.")}}' class="input-label-secondary">
+                                        <i class="tio-info-outined"></i>
+                                    </span>
+                                </span>
+                                <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.restaurant.toggle-settings',[$restaurant->id,$restaurant->order_subscription_active?0:1, 'order_subscription_active'])}}'" id="order_subscription" {{$restaurant->order_subscription_active == 1?'checked':''}}>
                                 <span class="toggle-switch-label">
                                     <span class="toggle-switch-indicator"></span>
                                 </span>
                             </label>
                         </div>
                     </div>
-                    <div class="col-xl-4 col-md-4 col-sm-6">
-                        <div class="form-group mb-0">
-                            <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border  rounded px-3 form-control" for="non_veg">
-                            <span class="pr-2 text-capitalize">{{translate('messages.non_veg')}}:</span>
-                                <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('admin.vendor.toggle-settings',[$restaurant->id,$restaurant->non_veg?0:1, 'non_veg'])}}'" id="non_veg" {{$restaurant->non_veg?'checked':''}}>
-                                <span class="toggle-switch-label">
-                                    <span class="toggle-switch-indicator"></span>
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-                @endif --}}
+                    @endif
+
             </div>
 
-            <form action="{{route('admin.vendor.update-settings',[$restaurant['id']])}}" method="post"
+            <form action="{{route('admin.restaurant.update-settings',[$restaurant['id']])}}" method="post"
                 enctype="multipart/form-data">
                 @csrf
                 <div class="row g-2 mt-4">
+
+
+
+
+
                     <div class="col-lg-4">
                         <div class="form-group">
                             <label class="input-label text-capitalize">{{ translate('Restaurant Type') }}</label>
@@ -307,6 +305,7 @@ the restaurant web panel/ app won't get the access for managing foods.
                             <input type="text" name="maximum_delivery_time" id="maximum_delivery_time" class="form-control" placeholder="{{ translate('messages.Ex :') }} 5" pattern="[0-9]{2}" required value="{{explode('-',$restaurant->delivery_time)[1]}}">
                         </div>
                     </div>
+                    @if ($restaurant->restaurant_model == 'commission')
                     <div class="col-lg-4 col-sm-6">
                         <div class="form-group">
                             <label class="toggle-switch toggle-switch-sm d-flex justify-content-between input-label mb-1" for="comission_status">
@@ -321,13 +320,103 @@ the restaurant web panel/ app won't get the access for managing foods.
                             <input type="number" id="comission" min="0" max="10000" step="0.01" name="comission" class="form-control" required value="{{$restaurant->comission??'0'}}" {{isset($restaurant->comission)?'':'readonly'}}>
                         </div>
                     </div>
-                </div>
+                    @endif
+            </div>
                 <div class="text-right">
                     <button type="submit" class="btn btn--primary">{{translate('messages.save')}} {{translate('messages.changes')}}</button>
                 </div>
             </form>
         </div>
     </div>
+
+
+    {{-- @if (\App\CentralLogics\Helpers::subscription_check() == true) --}}
+
+    <form action="{{route('admin.restaurant.update-settings',[$restaurant['id']])}}"   id="Business_Model_change" method="post">
+    @csrf
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="card-title">
+                <span class="card-header-icon">
+                    <i class="tio-settings"></i>
+                </span>
+                <span>{{translate('messages.Restaurant Business Model')}}</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            @if ($business_model['commission'] == 0 &&  $business_model['subscription'] == 1 )
+            <div class="col-lg-6 col-sm-6">
+                <div class="form-group">
+                    <label for="inputState">{{  translate('Restaurant Business Model') }}</label>
+                    <select name="restaurant_model" id="inputState" class="form-control">
+                        @if ($restaurant->restaurant_model == 'none')
+                            <option {{ ($restaurant->restaurant_model == 'none') ? 'selected' :'' }} > {{ translate('messages.None') }} </option>
+                            <option value="subscription" {{ ($restaurant->restaurant_model == 'subscription') ? 'selected' :'' }} > {{ translate('messages.Subscription') }} </option>
+                        @elseif ($restaurant->restaurant_model == 'unsubscribed')
+                            <option  {{ ($restaurant->restaurant_model == 'unsubscribed') ? 'selected' :'' }} > {{ translate('messages.Unsubscribed') }} </option>
+                        @elseif ($restaurant->restaurant_model == 'commission')
+                            {{-- <option value="commission"  {{ ($restaurant->restaurant_model == 'commission') ? 'selected' :'' }}> {{ translate('messages.Commission') }}</option> --}}
+                            <option value="subscription" {{ ($restaurant->restaurant_model == 'subscription') ? 'selected' :'' }} > {{ translate('messages.Subscription') }} </option>
+                        @else
+                            <option value="subscription" {{ ($restaurant->restaurant_model == 'subscription') ? 'selected' :'' }} > {{ translate('messages.Subscription') }} </option>
+                        @endif
+                    </select>
+                </div>
+            </div>
+            @elseif($business_model['commission'] == 1 &&  $business_model['subscription'] == 1 )
+            <div class="col-lg-6 col-sm-6">
+                <div class="form-group">
+                    <label  for="inputState">{{  translate('Restaurant Business Model') }}</label>
+                    <select  name="restaurant_model" id="inputState" class="form-control">
+                        @if ($restaurant->restaurant_model == 'none')
+                            <option {{ ($restaurant->restaurant_model == 'none') ? 'selected' :'' }} > {{ translate('messages.None') }} </option>
+                            <option value="subscription" {{ ($restaurant->restaurant_model == 'subscription') ? 'selected' :'' }} > {{ translate('messages.Subscription') }} </option>
+                            <option value="commission"  {{ ($restaurant->restaurant_model == 'commission') ? 'selected' :'' }}> {{ translate('messages.Commission') }}</option>
+                        @elseif ($restaurant->restaurant_model == 'unsubscribed')
+                            <option  {{ ($restaurant->restaurant_model == 'unsubscribed') ? 'selected' :'' }} > {{ translate('messages.Unsubscribed') }} </option>
+                            <option value="commission"  {{ ($restaurant->restaurant_model == 'commission') ? 'selected' :'' }}> {{ translate('messages.Commission') }}</option>
+                        @else
+                            <option value="subscription" {{ ($restaurant->restaurant_model == 'subscription') ? 'selected' :'' }} > {{ translate('messages.Subscription') }} </option>
+                            <option value="commission"  {{ ($restaurant->restaurant_model == 'commission') ? 'selected' :'' }}> {{ translate('messages.Commission') }}</option>
+                        @endif
+                    </select>
+                </div>
+            </div>
+            @elseif($business_model['commission'] == 1 &&  $business_model['subscription'] == 0 )
+            <div class="col-lg-6 col-sm-6">
+                <div class="form-group">
+                    <label  for="inputState">{{  translate('Restaurant Business Model') }}</label>
+                    <select  name="restaurant_model" id="inputState" class="form-control">
+                        @if ($restaurant->restaurant_model == 'none')
+                            <option {{ ($restaurant->restaurant_model == 'none') ? 'selected' :'' }} > {{ translate('messages.None') }} </option>
+                            <option value="commission"  {{ ($restaurant->restaurant_model == 'commission') ? 'selected' :'' }}> {{ translate('messages.Commission') }}</option>
+                        @elseif ($restaurant->restaurant_model == 'unsubscribed')
+                        <option  {{ ($restaurant->restaurant_model == 'unsubscribed') ? 'selected' :'' }} > {{ translate('messages.Unsubscribed') }} </option>
+                        <option value="commission"  {{ ($restaurant->restaurant_model == 'commission') ? 'selected' :'' }}> {{ translate('messages.Commission') }}</option>
+                        @elseif ($restaurant->restaurant_model == 'subscription')
+                        <option  {{ ($restaurant->restaurant_model == 'subscription') ? 'selected' :'' }} > {{ translate('messages.Subscription') }} </option>
+                        <option value="commission"  {{ ($restaurant->restaurant_model == 'commission') ? 'selected' :'' }}> {{ translate('messages.Commission') }}</option>
+                            @else
+                            <option value="commission"  {{ ($restaurant->restaurant_model == 'commission') ? 'selected' :'' }}> {{ translate('messages.Commission') }}</option>
+                        @endif
+                    </select>
+                </div>
+            </div>
+
+            @endif
+
+            <div class="text-right">
+                <button type="button" class="btn btn-primary h--45px"href="javascript:"
+            onclick="form_alert('Business_Model_change','{{ translate('messages.You_want_to_Change_the_Business_Model_for ') }} {{ $restaurant->name }} {{ translate('messages.This_will_expire_the_current_package') }}')">
+                <span class="ml-1">{{ translate('messages.Change_Restaurant_Business_Model') }}</span>
+            </button>
+
+            </div>
+        </div>
+    </form>
+    </div>
+    {{-- @endif --}}
+
     <div class="card mb-3">
         <div class="card-header">
             <h5 class="card-title">
@@ -503,7 +592,7 @@ the restaurant web panel/ app won't get the access for managing foods.
                 }
             });
             $.post({
-                url: '{{route('admin.vendor.add-schedule')}}',
+                url: '{{route('admin.restaurant.add-schedule')}}',
                 data: formData,
                 cache: false,
                 contentType: false,

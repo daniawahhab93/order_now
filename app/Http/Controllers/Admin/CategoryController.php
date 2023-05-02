@@ -12,6 +12,8 @@ use App\CentralLogics\Helpers;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Illuminate\Support\Facades\DB;
 use App\Models\Translation;
+use Illuminate\Support\Str;
+use App\CentralLogics\CategoryLogic;
 
 class CategoryController extends Controller
 {
@@ -46,6 +48,8 @@ class CategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|unique:categories|max:100',
+            'image' => 'nullable|max:2048',
+
         ], [
             'name.required' => translate('messages.Name is required!'),
         ]);
@@ -99,8 +103,12 @@ class CategoryController extends Controller
     {
         $request->validate([
             'name' => 'required|max:100|unique:categories,name,'.$id,
+            'image' => 'nullable|max:2048',
+
         ]);
         $category = Category::find($id);
+        $slug = Str::slug($request->name[array_search('en', $request->lang)]);
+        $category->slug = $category->slug? $category->slug :"{$slug}{$category->id}";
 
         $category->name = $request->name[array_search('en', $request->lang)];
         $category->image = $request->has('image') ? Helpers::update('category/', $category->image, 'png', $request->file('image')) : $category->image;
@@ -179,6 +187,7 @@ class CategoryController extends Controller
                 'image' => $collection['image'],
                 'parent_id' => $parent_id,
                 'position' => $collection['position'],
+                'priority' => $collection['priority'],
                 'status' => empty($collection['status'])?1:$collection['status'],
                 'created_at'=>now(),
                 'updated_at'=>now()
@@ -210,7 +219,7 @@ class CategoryController extends Controller
             $query->whereBetween('id', [$request['start_id'], $request['end_id']]);
         })
         ->get();
-        return (new FastExcel($categories))->download('Categories.xlsx');
+        return (new FastExcel(CategoryLogic::format_export_category($categories)))->download('Categories.xlsx');
     }
 
     public function search(Request $request){
@@ -239,7 +248,7 @@ class CategoryController extends Controller
     }
 
     public function export_categories($type){
-        $collection = Category::all();
+        $collection = Category::where('position','0')->orderBy('id','desc')->get();
 
         if($type == 'excel'){
             return (new FastExcel(Helpers::export_categories($collection)))->download('Categories.xlsx');

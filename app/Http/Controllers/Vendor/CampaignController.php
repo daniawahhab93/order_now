@@ -14,7 +14,7 @@ class CampaignController extends Controller
 {
     function list()
     {
-        $campaigns=Campaign::with('restaurants')->latest()->paginate(config('default_pagination'));
+        $campaigns=Campaign::with('restaurants')->running()->active()->latest()->paginate(config('default_pagination'));
         return view('vendor-views.campaign.list',compact('campaigns'));
     }
     function itemlist()
@@ -32,7 +32,7 @@ class CampaignController extends Controller
     }
     public function addrestaurant(Campaign $campaign, $restaurant)
     {
-        $campaign->restaurants()->attach($restaurant);
+        $campaign->restaurants()->attach($restaurant, ['campaign_status' => 'pending']);
         $campaign->save();
         Toastr::success(translate('messages.restaurant_added_to_campaign'));
         return back();

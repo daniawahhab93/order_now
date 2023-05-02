@@ -10,6 +10,7 @@ use App\Models\Restaurant;
 use App\Models\User;
 use App\Models\Wishlist;
 use App\Models\OrderTransaction;
+use App\Models\SubscriptionTransaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,8 +28,9 @@ class DashboardController extends Controller
         session()->put('dash_params', $params);
         $data = self::dashboard_data();
         $total_sell = $data['total_sell'];
+        $total_subs = $data['total_subs'];
         $commission = $data['commission'];
-        return view('admin-views.dashboard', compact('data', 'total_sell', 'commission', 'params'));
+        return view('admin-views.dashboard', compact('data', 'total_sell','total_subs' ,'commission', 'params'));
     }
 
     public function order(Request $request)
@@ -64,6 +66,7 @@ class DashboardController extends Controller
         session()->put('dash_params', $params);
 
         $data = self::dashboard_data();
+        $total_subs = $data['total_subs'];
         $total_sell = $data['total_sell'];
         $commission = $data['commission'];
         $popular = $data['popular'];
@@ -83,7 +86,7 @@ class DashboardController extends Controller
             'stat_zone' => view('admin-views.partials._zone-change', compact('data'))->render(),
             'order_stats_top' => view('admin-views.partials._order-statics', compact('data'))->render(),
             'user_overview' => view('admin-views.partials._user-overview-chart', compact('data'))->render(),
-            'monthly_graph' => view('admin-views.partials._monthly-earning-graph', compact('total_sell', 'commission'))->render(),
+            'monthly_graph' => view('admin-views.partials._monthly-earning-graph', compact('total_sell','total_subs', 'commission'))->render(),
         ], 200);
     }
 
@@ -260,6 +263,7 @@ class DashboardController extends Controller
 
         $total_sell = [];
         $commission = [];
+        $total_subs= [];
         for ($i = 1; $i <= 12; $i++) {
             $total_sell[$i] = OrderTransaction::NotRefunded()
                 ->when(is_numeric($params['zone_id']), function($q)use($params){
@@ -267,12 +271,25 @@ class DashboardController extends Controller
                 })
                 ->whereMonth('created_at', $i)->whereYear('created_at', now()->format('Y'))
                 ->sum('order_amount');
+
+
+                $total_subs[$i] = SubscriptionTransaction::
+                // ->when(is_numeric($params['zone_id']), function($q)use($params){
+                //     return $q->where('zone_id', $params['zone_id']);
+                // })
+                whereMonth('created_at', $i)->whereYear('created_at', now()->format('Y'))
+                ->sum('paid_amount');
+
+
+
             $commission[$i] = OrderTransaction::NotRefunded()
                 ->when(is_numeric($params['zone_id']), function($q)use($params){
                     return $q->where('zone_id', $params['zone_id']);
                 })
                 ->whereMonth('created_at', $i)->whereYear('created_at', now()->format('Y'))
-                ->sum('admin_commission');
+                // ->sum('admin_commission');
+                ->sum(DB::raw('admin_commission + admin_expense - delivery_fee_comission'));
+
             $commission[$i] += OrderTransaction::NotRefunded()
                 ->when(is_numeric($params['zone_id']), function($q)use($params){
                     return $q->where('zone_id', $params['zone_id']);
@@ -288,6 +305,7 @@ class DashboardController extends Controller
         $dash_data['top_deliveryman'] = $top_deliveryman;
         $dash_data['top_restaurants'] = $top_restaurants;
         $dash_data['total_sell'] = $total_sell;
+        $dash_data['total_subs'] = $total_subs;
         $dash_data['commission'] = $commission;
 
         return $dash_data;

@@ -29,7 +29,7 @@
                     </td>
                     <td>
                         <div class="btn--container">
-                            <a href="{{route('admin.vendor.withdraw_view',[$wt['id'],$restaurant->vendor['id']])}}"
+                            <a href="{{route('admin.restaurant.withdraw_view',[$wt['id'],$restaurant->vendor['id']])}}"
                                 class="btn btn-sm btn--warning btn-outline-warning action-btn"><i class="tio-visible"></i>
                             </a>
                     </div>

@@ -51,6 +51,18 @@
                     <!-- End Datatable Info -->
 
                     <!-- Unfold -->
+                            <!-- End Unfold -->
+                            @if(Request::is('admin/refund/*'))
+                            <div class="select-item">
+                                <select name="slist" class="form-control js-select2-custom"
+                                onchange="window.location.href=this.options[this.selectedIndex].value;" >
+                                    <option {{($status=='requested')?'selected':''}} value="{{ route('admin.refund.refund_attr', ['requested']) }}">{{translate('messages.Refund Requests')}}</option>
+                                    <option {{($status=='refunded')?'selected':''}} value="{{ route('admin.refund.refund_attr', ['refunded']) }}">{{translate('messages.Refund')}}</option>
+                                    <option {{($status=='rejected')?'selected':''}} value="{{ route('admin.refund.refund_attr', ['rejected']) }}">{{translate('Rejected')}}</option>
+                                </select>
+                            </div>
+                            @endif
+                            <!-- Unfold -->
                     <div class="hs-unfold">
                         <a class="js-hs-unfold-invoker btn btn-sm btn-white dropdown-toggle btn export-btn export--btn btn-outline-primary btn--primary font--sm" href="javascript:;"
                             data-hs-unfold-options='{
@@ -282,7 +294,7 @@
                         <th class="w-60px">
                             SL
                         </th>
-                       <th class="table-column-pl-0 w-90px">{{translate('messages.Order ID')}}</th>
+                        <th class="table-column-pl-0 w-90px">{{translate('messages.Order ID')}}</th>
                         <th class="w-140px">{{translate('messages.order')}} {{translate('messages.date')}}</th>
                         <th class="w-130px">{{translate('messages.customer_information')}}</th>
                         <th class="w-140px">{{translate('messages.restaurant')}}</th>
@@ -329,7 +341,7 @@
                             </td>
                             <td>
                                 <label class="m-0">
-                                    <a href="{{route('admin.vendor.view', $order->restaurant_id)}}" class="text--title" alt="view restaurant">
+                                    <a href="{{route('admin.restaurant.view', $order->restaurant_id)}}" class="text--title" alt="view restaurant">
                                         {{Str::limit($order->restaurant?$order->restaurant->name:translate('messages.Restaurant deleted!'),20,'...')}}
                                     </a>
                                 </label>
@@ -382,6 +394,12 @@
                                     @endif
                                 </div>
                             </td>
+
+                            @if (isset($order->subscription)  && $order->subscription->status != 'canceled' )
+                                @php
+                                    $order->order_status = $order->subscription_log ? $order->subscription_log->order_status : $order->order_status;
+                                @endphp
+                            @endif
                             <td class="text-capitalize text-center">
                                 @if($order['order_status']=='pending')
                                     <span class="badge badge-soft-info mb-1">
@@ -534,10 +552,10 @@
                         <input type="checkbox" id="orderStatus5" name="orderStatus[]" class="custom-control-input" value="delivered" {{isset($orderstatus)?(in_array('delivered', $orderstatus)?'checked':''):''}}>
                         <label class="custom-control-label" for="orderStatus5">{{translate('messages.delivered')}}</label>
                     </div>
-                    <div class="custom-control custom-radio mb-2">
+                    {{-- <div class="custom-control custom-radio mb-2">
                         <input type="checkbox" id="orderStatus6" name="orderStatus[]" class="custom-control-input" value="returned" {{isset($orderstatus)?(in_array('returned', $orderstatus)?'checked':''):''}}>
                         <label class="custom-control-label" for="orderStatus6">{{translate('messages.returned')}}</label>
-                    </div>
+                    </div> --}}
                     <div class="custom-control custom-radio mb-2">
                         <input type="checkbox" id="orderStatus7" name="orderStatus[]" class="custom-control-input" value="failed" {{isset($orderstatus)?(in_array('failed', $orderstatus)?'checked':''):''}}>
                         <label class="custom-control-label" for="orderStatus7">{{translate('messages.failed')}}</label>
@@ -636,7 +654,7 @@
 
             $('#vendor_ids').select2({
                 ajax: {
-                    url: '{{url('/')}}/admin/vendor/get-restaurants',
+                    url: '{{url('/')}}/admin/restaurant/get-restaurants',
                     data: function (params) {
                         return {
                             q: params.term, // search term

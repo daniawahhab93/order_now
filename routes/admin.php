@@ -14,6 +14,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
     Route::group(['middleware' => ['admin']], function () {
 
+        Route::get('lang/{locale}', 'LanguageController@lang')->name('lang');
         Route::get('settings', 'SystemController@settings')->name('settings');
         Route::post('settings', 'SystemController@settings_update');
         Route::post('settings-password', 'SystemController@settings_password_update')->name('settings-password');
@@ -72,7 +73,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::get('status/{id}/{status}', 'FoodController@status')->name('status');
             Route::get('review-status/{id}/{status}', 'FoodController@reviews_status')->name('reviews.status');
             Route::post('search', 'FoodController@search')->name('search');
-            Route::post('search-vendor', 'FoodController@search_vendor')->name('search-vendor');
+            Route::post('search-restaurant', 'FoodController@search_vendor')->name('search-restaurant');
             Route::get('reviews', 'FoodController@review_list')->name('reviews');
             Route::post('restaurant-food-export', 'FoodController@restaurant_food_export')->name('restaurant-food-export');
             Route::get('restaurant-food-export/{type}/{restaurant_id}', 'FoodController@restaurant_food_export')->name('restaurant-food-export');
@@ -115,6 +116,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::delete('item/delete/{campaign}', 'CampaignController@delete_item')->name('delete-item');
             Route::post('basic-search', 'CampaignController@searchBasic')->name('searchBasic');
             Route::post('item-search', 'CampaignController@searchItem')->name('searchItem');
+            Route::get('restaurant-confirmation/{campaign}/{id}/{status}', 'CampaignController@restaurant_confirmation')->name('restaurant_confirmation');
         });
 
         Route::group(['prefix' => 'coupon', 'as' => 'coupon.', 'middleware' => ['module:coupon']], function () {
@@ -143,7 +145,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::post('bulk-export', 'AttributeController@bulk_export_data')->name('bulk-export');
         });
 
-        Route::group(['prefix' => 'vendor', 'as' => 'vendor.'], function () {
+        Route::group(['prefix' => 'restaurant', 'as' => 'restaurant.','middleware'=>['module:restaurant']], function () {
             Route::get('get-restaurants-data/{restaurant}', 'VendorController@get_restaurant_data')->name('get-restaurants-data');
             Route::get('restaurant-filter/{id}', 'VendorController@restaurant_filter')->name('restaurantfilter');
             Route::get('get-account-data/{restaurant}', 'VendorController@get_account_data')->name('restaurantfilter');
@@ -161,6 +163,11 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
                 Route::delete('clear-discount/{restaurant}', 'VendorController@cleardiscount')->name('clear-discount');
                 // Route::get('view/{restaurant}', 'VendorController@view')->name('view_tab');
                 Route::get('view/{restaurant}/{tab?}/{sub_tab?}', 'VendorController@view')->name('view');
+                Route::get('pending/list', 'VendorController@pending')->name('pending');
+                Route::get('denied/list', 'VendorController@denied')->name('denied');
+                // restaurant Transcation Search
+                Route::post('transcation/search/', 'VendorController@rest_transcation_search')->name('rest_transcation_search');
+                Route::post('transcation/search-by-date', 'VendorController@trans_search_by_date')->name('trans_search_by_date');
 
                 // message
                 Route::get('message/{conversation_id}/{user_id}', 'VendorController@conversation_view')->name('message-view');
@@ -234,6 +241,16 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             });
         });
 
+        Route::group(['prefix' => 'cuisine', 'as' => 'cuisine.'], function () {
+            Route::group(['middleware' => ['module:category']], function () {
+                Route::get('add', 'CuisineController@index')->name('add');
+                Route::get('status/{id}/{status}', 'CuisineController@status')->name('status');
+                Route::put('update', 'CuisineController@update')->name('update');
+                Route::post('store', 'CuisineController@store')->name('store');
+                Route::delete('delete', 'CuisineController@destroy')->name('delete');
+            });
+        });
+
         Route::group(['prefix' => 'order', 'as' => 'order.', 'middleware' => ['module:order']], function () {
             Route::get('list/{status}', 'OrderController@list')->name('list');
             Route::get('details/{id}', 'OrderController@details')->name('details');
@@ -263,6 +280,16 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::get('quick-view-cart-item', 'OrderController@quick_view_cart_item')->name('quick-view-cart-item');
             Route::get('export-orders/{status}/{type}', 'OrderController@export_orders')->name('export');
         });
+        Route::group(['prefix' => 'refund', 'as' => 'refund.', 'middleware' => ['module:order']], function () {
+            Route::get('settings', 'OrderController@refund_settings')->name('refund_settings');
+            Route::get('refund_mode', 'OrderController@refund_mode')->name('refund_mode');
+            Route::post('refund_reason', 'OrderController@refund_reason')->name('refund_reason');
+            Route::get('/status/{id}/{status}', 'OrderController@reason_status')->name('reason_status');
+            Route::put('reason_edit/', 'OrderController@reason_edit')->name('reason_edit');
+            Route::delete('reason_delete/{id}', 'OrderController@reason_delete')->name('reason_delete');
+            Route::put('order_refund_rejection/','OrderController@order_refund_rejection')->name('order_refund_rejection');
+            Route::get('/{status}', 'OrderController@list')->name('refund_attr');
+        });
 
         Route::group(['prefix' => 'dispatch', 'as' => 'dispatch.', 'middleware' => ['module:order']], function () {
             Route::get('list/{status}', 'OrderController@dispatch_list')->name('list');
@@ -273,6 +300,8 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::post('store', 'ZoneController@store')->name('store');
             Route::get('edit/{id}', 'ZoneController@edit')->name('edit');
             Route::post('update/{id}', 'ZoneController@update')->name('update');
+            Route::get('settings/{id}', 'ZoneController@zone_settings')->name('settings');
+            Route::post('zone-settings-update/{id}', 'ZoneController@zone_settings_update')->name('zone_settings_update');
             Route::delete('delete/{zone}', 'ZoneController@destroy')->name('delete');
             Route::get('status/{id}/{status}', 'ZoneController@status')->name('status');
             Route::post('search', 'ZoneController@search')->name('search');
@@ -280,6 +309,8 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::get('get-all-zone-cordinates/{id?}', 'ZoneController@get_all_zone_cordinates')->name('zoneCoordinates');
             //Route::post('export-zone-cordinates', 'ZoneController@export_zones')->name('export-zones');
             Route::get('export-zone-cordinates/{type}', 'ZoneController@export_zones')->name('export-zones');
+            Route::post('store-incentive/{zone_id}', 'ZoneController@store_incentive')->name('incentive.store');
+            Route::delete('destroy-incentive/{id}', 'ZoneController@destroy_incentive')->name('incentive.destory');
         });
 
         Route::group(['prefix' => 'notification', 'as' => 'notification.', 'middleware' => ['module:notification']], function () {
@@ -297,6 +328,8 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::get('business-setup', 'BusinessSettingsController@business_index')->name('business-setup');
             Route::get('config-setup', 'BusinessSettingsController@config_setup')->name('config-setup');
             Route::post('config-update', 'BusinessSettingsController@config_update')->name('config-update');
+            Route::get('react-setup', 'BusinessSettingsController@react_setup')->name('react-setup');
+            Route::post('react-update', 'BusinessSettingsController@react_update')->name('react-update');
             Route::post('update-setup', 'BusinessSettingsController@business_setup')->name('update-setup');
             Route::get('theme-settings', 'BusinessSettingsController@theme_settings')->name('theme-settings');
             Route::POST('theme-settings-update', 'BusinessSettingsController@update_theme_settings')->name('theme-settings-update');
@@ -332,6 +365,18 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::get('pages/privacy-policy', 'BusinessSettingsController@privacy_policy')->name('privacy-policy');
             Route::post('pages/privacy-policy', 'BusinessSettingsController@privacy_policy_update');
 
+            Route::get('pages/refund-policy', 'BusinessSettingsController@refund_policy')->name('refund-policy');
+            Route::post('pages/refund-policy', 'BusinessSettingsController@refund_policy_update');
+            Route::get('pages/refund-policy/{status}', 'BusinessSettingsController@refund_policy_status')->name('refund-policy-status');
+
+            Route::get('pages/shipping-policy', 'BusinessSettingsController@shipping_policy')->name('shipping-policy');
+            Route::post('pages/shipping-policy', 'BusinessSettingsController@shipping_policy_update');
+            Route::get('pages/shipping-policy/{status}', 'BusinessSettingsController@shipping_policy_status')->name('shipping-policy-status');
+
+            Route::get('pages/cancellation-policy', 'BusinessSettingsController@cancellation_policy')->name('cancellation-policy');
+            Route::post('pages/cancellation-policy', 'BusinessSettingsController@cancellation_policy_update');
+            Route::get('pages/cancellation-policy/{status}', 'BusinessSettingsController@cancellation_policy_status')->name('cancellation-policy-status');
+
             Route::get('pages/about-us', 'BusinessSettingsController@about_us')->name('about-us');
             Route::post('pages/about-us', 'BusinessSettingsController@about_us_update');
 
@@ -349,9 +394,22 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::get('db-index', 'DatabaseSettingController@db_index')->name('db-index');
             Route::post('db-clean', 'DatabaseSettingController@clean_db')->name('clean-db');
 
+            Route::get('site_direction', 'BusinessSettingsController@site_direction')->name('site_direction');
             //environment setup
             // Route::get('environment-setup', 'EnvironmentSettingsController@environment_index')->name('environment-setup');
             // Route::post('update-environment', 'EnvironmentSettingsController@environment_setup')->name('update-environment');
+
+
+            Route::group(['prefix' => 'withdraw-method', 'as' => 'withdraw-method.'], function () {
+                Route::get('list', 'WithdrawalMethodController@list')->name('list');
+                Route::get('create', 'WithdrawalMethodController@create')->name('create');
+                Route::post('store', 'WithdrawalMethodController@store')->name('store');
+                Route::get('edit/{id}', 'WithdrawalMethodController@edit')->name('edit');
+                Route::put('update', 'WithdrawalMethodController@update')->name('update');
+                Route::delete('delete/{id}', 'WithdrawalMethodController@delete')->name('delete');
+                Route::post('status-update', 'WithdrawalMethodController@status_update')->name('status-update');
+                Route::post('default-status-update', 'WithdrawalMethodController@default_status_update')->name('default-status-update');
+            });
         });
 
 
@@ -377,12 +435,23 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
                 Route::delete('delete/{id}', 'DeliveryManController@delete')->name('delete');
                 Route::post('search', 'DeliveryManController@search')->name('search');
                 Route::get('get-deliverymen', 'DeliveryManController@get_deliverymen')->name('get-deliverymen');
+                Route::get('export-delivery-man', 'DeliveryManController@dm_list_export')->name('export-delivery-man');
+                Route::get('pending/list', 'DeliveryManController@pending')->name('pending');
+                Route::get('denied/list', 'DeliveryManController@denied')->name('denied');
 
                 Route::group(['prefix' => 'reviews', 'as' => 'reviews.'], function () {
                     Route::get('list', 'DeliveryManController@reviews_list')->name('list');
                     Route::get('status/{id}/{status}', 'DeliveryManController@reviews_status')->name('status');
                 });
 
+                //incentive
+                Route::get('incentive', 'DeliveryManController@pending_incentives')->name('incentive');
+                Route::get('incentive-history', 'DeliveryManController@get_incentives')->name('incentive-history');
+                Route::put('incentive', 'DeliveryManController@update_incentive_status');
+                Route::post('incentive_all', 'DeliveryManController@update_all_incentive_status')->name('update-incentive');
+                 //bonus
+                Route::get('bonus', 'DeliveryManController@get_bonus')->name('bonus');
+                Route::post('bonus', 'DeliveryManController@add_bonus');
                 // message
                 Route::get('message/{conversation_id}/{user_id}', 'DeliveryManController@conversation_view')->name('message-view');
                 Route::get('{user_id}/message/list', 'DeliveryManController@conversation_list')->name('message-list');
@@ -414,6 +483,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
                 Route::get('order-details/{id}', 'POSController@order_details')->name('order-details');
                 Route::get('invoice/{id}', 'POSController@generate_invoice');
                 Route::post('customer-store', 'POSController@customer_store')->name('customer-store');
+                Route::get('data', 'POSController@extra_charge')->name('extra_charge');
             });
         });
         Route::group(['prefix' => 'reviews', 'as' => 'reviews.', 'middleware' => ['module:customerList']], function () {
@@ -423,24 +493,42 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
         Route::group(['prefix' => 'report', 'as' => 'report.', 'middleware' => ['module:report']], function () {
             Route::get('order', 'ReportController@order_index')->name('order');
-            Route::get('day-wise-report', 'ReportController@day_wise_report')->name('day-wise-report');
+            Route::get('transaction-report', 'ReportController@day_wise_report')->name('day-wise-report');
             Route::get('food-wise-report', 'ReportController@food_wise_report')->name('food-wise-report');
-            Route::post('food-wise-report-search', 'ReportController@food_search')->name('food-wise-report-search');
-            Route::post('day-wise-report-search', 'ReportController@day_search')->name('day-wise-report-search');
             Route::get('food-wise-report-export', 'ReportController@food_wise_report_export')->name('food-wise-report-export');
-            Route::get('day-wise-report-export', 'ReportController@day_wise_report_export')->name('day-wise-report-export');
+            Route::get('transaction-report-export', 'ReportController@day_wise_report_export')->name('day-wise-report-export');
             Route::get('order-transactions', 'ReportController@order_transaction')->name('order-transaction');
             Route::get('earning', 'ReportController@earning_index')->name('earning');
             Route::post('set-date', 'ReportController@set_date')->name('set-date');
+            Route::get('expense-report', 'ReportController@expense_report')->name('expense-report');
+            Route::get('expense-export', 'ReportController@expense_export')->name('expense-export');
+            Route::post('expense-report-search', 'ReportController@expense_search')->name('expense-report-search');
+
+            Route::get('subscription-report', 'ReportController@subscription_report')->name('subscription-report');
+            Route::get('subscription-export', 'ReportController@subscription_export')->name('subscription-export');
+
+            Route::get('restaurant-report', 'ReportController@restaurant_report')->name('restaurant-report');
+            Route::get('restaurant-export', 'ReportController@restaurant_export')->name('restaurant-wise-report-export');
+
+            Route::get('generate-statement/{id}', 'ReportController@generate_statement')->name('generate-statement');
+            Route::get('subscription/generate-statement/{id}', 'ReportController@subscription_generate_statement')->name('subscription.generate-statement');
+
+            Route::get('order-report', 'ReportController@order_report')->name('order-report');
+            Route::post('order-report-search', 'ReportController@search_order_report')->name('search_order_report');
+            Route::get('order-report-export', 'ReportController@order_report_export')->name('order-report-export');
+
+            Route::get('campaign-order-report', 'ReportController@campaign_order_report')->name('campaign_order-report');
+            Route::get('campaign-order-report-export', 'ReportController@campaign_report_export')->name('campaign_report_export');
+
         });
         Route::get('customer/select-list', 'CustomerController@get_customers')->name('customer.select-list');
         Route::group(['prefix' => 'customer', 'as' => 'customer.', 'middleware' => ['module:customerList']], function () {
-            Route::group(['middleware' => ['module:customerList']], function () {
-                Route::get('list', 'CustomerController@customer_list')->name('list');
-                Route::get('view/{user_id}', 'CustomerController@view')->name('view');
-                Route::post('search', 'CustomerController@search')->name('search');
-                Route::get('status/{customer}/{status}', 'CustomerController@status')->name('status');
-            });
+            Route::get('list', 'CustomerController@customer_list')->name('list');
+            Route::get('view/{user_id}', 'CustomerController@view')->name('view');
+            Route::post('search', 'CustomerController@search')->name('search');
+            Route::post('order-search', 'CustomerController@order_search')->name('order_search');
+            Route::get('status/{customer}/{status}', 'CustomerController@status')->name('status');
+            Route::get('logs', 'VisitorLogController@index')->name('visitor_logs');
 
             Route::group(['prefix' => 'wallet', 'as' => 'wallet.', 'middleware' => ['module:customer_wallet']], function () {
                 Route::get('add-fund', 'CustomerWalletController@add_fund_view')->name('add-fund');
@@ -466,12 +554,111 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::delete('/delete/{file_path}', 'FileManagerController@destroy')->name('destroy');
         });
 
-        //social media login
-        // Route::group(['prefix' => 'social-login', 'as' => 'social-login.','middleware'=>['module:business_settings']], function () {
-        //     Route::get('view', 'BusinessSettingsController@viewSocialLogin')->name('view');
-        //     Route::post('update/{service}', 'BusinessSettingsController@updateSocialLogin')->name('update');
+        Route::group(['prefix' => 'subscription', 'as' => 'subscription.','middleware'=>['module:restaurant']], function () {
+            Route::get('/', 'SubscriptionController@package_list')->name('list');
 
-        // });
+            Route::get('package/add', 'SubscriptionController@create')->name('create');
+            Route::post('store/', 'SubscriptionController@store')->name('subscription_store');
+            Route::get('package/details/{id}', 'SubscriptionController@details')->name('package_details');
+            Route::post('package/search', 'SubscriptionController@search')->name('package_search');
+            Route::get('status/{package}/{status}', 'SubscriptionController@status')->name('package_status');
+            Route::get('package/{id}/edit', 'SubscriptionController@edit')->name('package_edit');
+            Route::get('package/list/', 'SubscriptionController@package_list')->name('package_list');
+            Route::get('settings/', 'SubscriptionController@settings')->name('settings');
+            Route::post('settings/update/', 'SubscriptionController@settings_update')->name('settings_update');
+            Route::get('settings/update/{status}', 'SubscriptionController@settings_update_status')->name('settings_update_status');
+
+            Route::get('package_selected/{id}/{rest_id}', 'SubscriptionController@package_selected')->name('package_selected');
+
+            Route::post('update/', 'SubscriptionController@update')->name('subscription_update');
+            Route::get('transcation/list/{id}', 'SubscriptionController@transcation_list')->name('transcation_list');
+            Route::post('transcation/search', 'SubscriptionController@transcation_search')->name('transcation_search');
+            Route::post('/search', 'SubscriptionController@trans_search_by_date')->name('trans_search_by_date');
+
+            Route::post('subscription/search', 'SubscriptionController@subscription_search')->name('subscription_search');
+
+            Route::delete('package/cancel', 'SubscriptionController@package_cancel')->name('package_cancel');
+
+            // Route::post('new_max_order/', 'SubscriptionController@new_max_order')->name('new_max_order');
+            // Route::get('subscription_delete/{key}/{value}', 'SubscriptionController@subscription_delete')->name('subscription_delete');
+            Route::get('list/', 'SubscriptionController@subscription_list')->name('subscription_list');
+            Route::get('invoice/{id}', 'SubscriptionController@invoice')->name('invoice');
+
+
+            Route::get('subscription/package/{id}', 'SubscriptionController@package_renew_change')->name('package_renew_change');
+            Route::post('package_renew_change_update', 'SubscriptionController@package_renew_change_update')->name('package_renew_change_update');
+        });
+
+        //social media login
+        Route::group(['prefix' => 'social-login', 'as' => 'social-login.','middleware'=>['module:business_settings']], function () {
+            Route::get('view', 'BusinessSettingsController@viewSocialLogin')->name('view');
+            Route::post('update/{service}', 'BusinessSettingsController@updateSocialLogin')->name('update');
+        });
+        Route::group(['prefix' => 'apple-login', 'as' => 'apple-login.'], function () {
+            Route::post('update/{service}', 'BusinessSettingsController@updateAppleLogin')->name('update');
+        });
+
+        Route::group(['prefix' => 'contact', 'as' => 'contact.','middleware'=>['module:contact_message']], function () {
+            // Route::post('contact-store', 'ContactMessages@store')->name('store');
+            Route::get('list', 'ContactMessages@list')->name('list');
+            Route::delete('delete', 'ContactMessages@destroy')->name('delete');
+            Route::get('view/{id}', 'ContactMessages@view')->name('view');
+            Route::post('update/{id}', 'ContactMessages@update')->name('update');
+            Route::post('send-mail/{id}', 'ContactMessages@send_mail')->name('send-mail');
+        });
+        // ,'middleware'=>['module:vehicle']
+        Route::group(['prefix' => 'vehicle', 'as' => 'vehicle.', 'middleware' => ['module:deliveryman']], function () {
+            // Route::post('contact-store', 'ContactMessages@store')->name('store');
+            Route::get('list', 'VehicleController@list')->name('list');
+            Route::get('add', 'VehicleController@create')->name('create');
+            Route::get('status/{vehicle}/{status}', 'VehicleController@status')->name('status');
+            Route::get('edit/{vehicle}', 'VehicleController@edit')->name('edit');
+            Route::post('store', 'VehicleController@store')->name('store');
+            Route::post('update/{vehicle}', 'VehicleController@update')->name('update');
+            Route::delete('delete', 'VehicleController@destroy')->name('delete');
+            Route::get('view/{vehicle}', 'VehicleController@view')->name('view');
+
+        });
+        Route::group(['middleware' => ['module:order']], function () {
+        Route::get('order-cancel-reasons/status/{id}/{status}', 'OrderCancelReasonController@status')->name('order-cancel-reasons.status');
+        Route::get('order-cancel-reasons', 'OrderCancelReasonController@index')->name('order-cancel-reasons.index');
+        Route::post('order-cancel-reasons/store', 'OrderCancelReasonController@store')->name('order-cancel-reasons.store');
+        Route::put('order-cancel-reasons/update', 'OrderCancelReasonController@update')->name('order-cancel-reasons.update');
+        Route::delete('order-cancel-reasons/{destroy}', 'OrderCancelReasonController@destroy')->name('order-cancel-reasons.destroy');
+
+
+        Route::group(['prefix' => 'order', 'as' => 'order.subscription.'], function () {
+            Route::get('subscription/update-status/{supscription_id}/{status}', 'OrderSubscriptionController@view')->name('update-status');
+            Route::get('subscription', 'OrderSubscriptionController@index')->name('index');
+            Route::get('subscription/show/{subscription}', 'OrderSubscriptionController@show')->name('show');
+            Route::get('subscription/edit/{subscription}', 'OrderSubscriptionController@edit')->name('edit');
+            Route::put('subscription/update/{subscription}', 'OrderSubscriptionController@update')->name('update');
+            Route::delete('subscription/pause_log_delete/{subscription}', 'OrderSubscriptionController@pause_log_delete')->name('pause_log_delete');
+        });
+
+    });
+        Route::group(['prefix' => 'shift', 'as' => 'shift.'], function () {
+            Route::get('/', 'ShiftController@list')->name('list');
+            Route::post('store', 'ShiftController@store')->name('store');
+            Route::get('edit/{id}', 'ShiftController@edit')->name('edit');
+            Route::post('update', 'ShiftController@update')->name('update');
+            Route::delete('delete/{shift}', 'ShiftController@destroy')->name('delete');
+            Route::post('search', 'ShiftController@search')->name('search');
+            Route::get('status/{id}/{status}', 'ShiftController@status')->name('status');
+        });
+    });
+
+    Route::group(['prefix' => 'language', 'as' => 'language.'], function () {
+        Route::get('', 'LanguageController@index')->name('index');
+        Route::post('add-new', 'LanguageController@store')->name('add-new');
+        Route::get('update-status', 'LanguageController@update_status')->name('update-status');
+        Route::get('update-default-status', 'LanguageController@update_default_status')->name('update-default-status');
+        Route::post('update', 'LanguageController@update')->name('update');
+        Route::get('translate/{lang}', 'LanguageController@translate')->name('translate');
+        Route::post('translate-submit/{lang}', 'LanguageController@translate_submit')->name('translate-submit');
+        Route::post('remove-key/{lang}', 'LanguageController@translate_key_remove')->name('remove-key');
+        Route::get('delete/{lang}', 'LanguageController@delete')->name('delete');
+        Route::any('auto-translate/{lang}', 'LanguageController@auto_translate')->name('auto-translate');
     });
 
     Route::get('zone/get-coordinates/{id}', 'ZoneController@get_coordinates')->name('zone.get-coordinates');

@@ -24,7 +24,7 @@
 
                     <li class="list-inline-item py-1">
                         <a class="list-separator-link" href="{{route('admin.dashboard')}}">
-                               {{translate('messages.home')}}
+                            {{translate('messages.home')}}
                             <i class="tio-home ml-xl-2"></i>
                         </a>
                     </li>

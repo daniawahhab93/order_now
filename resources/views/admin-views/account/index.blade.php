@@ -37,7 +37,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="input-label" for="restaurant">{{translate('messages.restaurant')}}<span class="input-label-secondary"></span></label>
-                            <select id="restaurant" name="restaurant_id" data-placeholder="{{translate('messages.select')}} {{translate('messages.restaurant')}}" onchange="getAccountData('{{url('/')}}/admin/vendor/get-account-data/',this.value,'restaurant')" class="form-control h--48px" title="Select Restaurant" disabled>
+                            <select id="restaurant" name="restaurant_id" data-placeholder="{{translate('messages.select')}} {{translate('messages.restaurant')}}" onchange="getAccountData('{{url('/')}}/admin/restaurant/get-account-data/',this.value,'restaurant')" class="form-control h--48px" title="Select Restaurant" disabled>
 
                             </select>
                         </div>
@@ -187,7 +187,7 @@
                             <td scope="row">{{$k+$account_transaction->firstItem()}}</td>
                             <td>
                                 @if($at->restaurant)
-                                <a href="{{route('admin.vendor.view',[$at->restaurant['id']])}}">{{ Str::limit($at->restaurant->name, 20, '...') }}</a>
+                                <a href="{{route('admin.restaurant.view',[$at->restaurant['id']])}}">{{ Str::limit($at->restaurant->name, 20, '...') }}</a>
                                 @elseif($at->deliveryman)
                                 <a href="{{route('admin.delivery-man.preview',[$at->deliveryman->id])}}">{{ $at->deliveryman->f_name }} {{ $at->deliveryman->l_name }}</a>
                                 @else
@@ -261,7 +261,7 @@
     });
     $('#restaurant').select2({
         ajax: {
-            url: '{{url('/')}}/admin/vendor/get-restaurants',
+            url: '{{url('/')}}/admin/restaurant/get-restaurants',
             data: function (params) {
                 return {
                     q: params.term, // search term

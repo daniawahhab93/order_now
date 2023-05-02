@@ -2,7 +2,7 @@
     {{-- {{ dd($conv) }} --}}
     @php($user= $conv->sender_type == 'admin' ? $conv->receiver :  $conv->sender)
     @if ($user)
-    @php($unchecked=($conv->last_message->sender_id == $user->id) ? $conv->unread_message_count : 0)
+    @php($unchecked=(isset($conv->last_message->sender_id) && $conv->last_message->sender_id == $user->id) ? $conv->unread_message_count : 0)
         <div
             class="chat-user-info d-flex border-bottom p-3 align-items-center customer-list {{$unchecked ? 'conv-active' : ''}}"
             onclick="viewConvs('{{route('admin.message.view',['conversation_id'=>$conv->id,'user_id'=>$user->id])}}','customer-{{$user->id}}','{{ $conv->id }}','{{ $user->id }}')"

@@ -21,6 +21,15 @@ class ConversationController extends Controller
     public function messages_store(Request $request)
     {
         if ($request->has('image')) {
+            $validator = Validator::make($request->all(), [
+                'image.*' => 'max:2048',
+            ]);
+
+            if ($validator->fails()) {
+                $validator->getMessageBag()->add('image', 'Max Image Upload limit is 2mb');
+                return response()->json(['errors' => Helpers::error_processor($validator)],403);
+            }
+
             $image_name=[];
             foreach($request->file('image') as $key=>$img)
             {

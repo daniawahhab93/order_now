@@ -12,17 +12,27 @@ class Coupon extends Model
         'max_discount' => 'float',
         'discount' => 'float',
         'limit'=>'integer',
+        'restaurant_id'=>'integer',
+        // 'customer_id'=>'integer',
+        'status'=>'integer',
+        'id'=>'integer',
+        'total_uses'=>'integer',
     ];
     public function scopeActive($query)
     {
         return $query->where('status', '=', 1);
     }
-    
+
+    public function restaurant()
+    {
+        return $this->belongsTo(Restaurant::class, 'restaurant_id');
+    }
+
     // protected static function booted()
     // {
     //     if(auth('vendor')->check())
     //     {
     //         static::addGlobalScope(new RestaurantScope);
-    //     } 
+    //     }
     // }
 }

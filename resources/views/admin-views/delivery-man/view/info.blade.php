@@ -3,7 +3,15 @@
 @section('title',translate('Delivery Man Preview'))
 
 @push('css_or_js')
+<style>
 
+    .padding{
+    padding: 5px !important;
+    }
+    .font{
+        font-weight: bold;
+    }
+</style>
 @endpush
 
 @section('content')
@@ -43,11 +51,11 @@
                         </div>
                         @else
                         <div class="btn--container justify-content-end">
-                            <a class="btn btn-primary text-capitalize font-weight-bold"
+                            <a class="btn btn--primary text-capitalize my-2"
                             onclick="request_alert('{{route('admin.delivery-man.application',[$dm['id'],'approved'])}}','{{translate('messages.you_want_to_approve_this_application')}}')"
                                 href="javascript:">{{translate('messages.approve')}}</a>
                             @if($dm->application_status !='denied')
-                            <a class="btn btn-danger text-capitalize font-weight-bold"
+                            <a class="btn btn--danger text-capitalize my-2"
                             onclick="request_alert('{{route('admin.delivery-man.application',[$dm['id'],'denied'])}}','{{translate('messages.you_want_to_deny_this_application')}}')"
                                 href="javascript:">{{translate('messages.deny')}}</a>
                             @endif
@@ -120,7 +128,10 @@
                             @endif
 
                         @else
-                        <label class="m-0 badge badge-soft-{{$dm->application_status=='pending'?'info':'danger'}}">{{translate('messages.'.$dm->application_status)}}</label>
+                        <label class="m-0 badge badge-soft-{{$dm->application_status=='pending'?'info':'danger'}}">
+
+                            {{   $dm->application_status=='pending'? translate('messages.not_approved'): translate('messages.'.$dm->application_status) }}
+                        </label>
                         @endif
                     </h5>
                     @if($dm->application_status=='approved')
@@ -152,7 +163,20 @@
             <!-- Body -->
             <div class="card-body">
                 <div class="row gy-3 align-items-center">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
+
+                        <h2 class="title">{{ translate('Vehicle Information') }}</h2>
+                            @if (isset($dm->vehicle))
+                            <div>{{ translate('Vehicle_Type') }} : {{ $dm->vehicle->type}}</div>
+                            <div>{{ translate('Vehicle_Extra_Charges') }} : {{ $dm->vehicle->extra_charges}}</div>
+                            <div>{{ translate('Vehicle_minimum_coverage_area') }} : {{ $dm->vehicle->starting_coverage_area}}</div>
+                            <div>{{ translate('Vehicle_maximum_coverage_area') }} : {{ $dm->vehicle->maximum_coverage_area}}</div>
+                            @else
+                            <div>{{ translate('No_vehicle_data_found') }}</div>
+                            @endif
+
+                    </div>
+                    <div class="col-md-4">
                         <div class="d-flex align-items-center justify-content-center">
                             <img class="avatar avatar-xxl avatar-4by3 mr-4 mw-120px initial-22"
                                  onerror="this.src='{{asset('public/assets/admin/img/160x160/img1.jpg')}}'"
@@ -245,7 +269,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <ul class="list-unstyled list-unstyled-py-2 mb-0 rating--review-right py-3">
 
                         @php($total=$dm->reviews->count())
@@ -325,6 +349,64 @@
             <!-- End Body -->
         </div>
         <!-- End Card -->
+        <!-- Card -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="card-header-title">{{ translate('Identity_Information') }}</h5>
+            </div>
+            <!-- Body -->
+            <div class="card-body">
+                <div class="row gy-3 align-items-center">
+                    <div class="col-md-4">
+                        <h5>{{ translate('identity_type') }} :
+                                <span class="font-light"> {{ translate($dm->identity_type) }} </span>
+                        </h5>
+                        <h5>{{ translate('identity_number') }} :
+                                <span class="font-light"> {{ $dm->identity_number }} </span>
+                        </h5>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="d-flex flex-wrap justify-content-center ">
+                        @foreach (json_decode($dm->identity_image) as $key => $img)
+                                    <button class="btn padding p-1" data-toggle="modal"
+                                        data-target="#image-{{ $key }}">
+                                        <div class="gallary-card">
+                                            <img onerror="this.src='{{ asset('/public/assets/admin/img/900x400/img1.jpg') }}'"
+                                            src="{{ asset('storage/app/public/delivery-man') }}/{{ $img }}" class="avatar avatar-xxl avatar-4by3 mw-120px initial-22">
+                                        </div>
+                                    </button>
+                                    <div class="modal fade" id="image-{{ $key }}" tabindex="-1" role="dialog"
+                                    aria-labelledby="myModlabel" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h4 class="modal-title" id="myModlabel">
+                                                    {{ translate('messages.Identity_Image') }}</h4>
+                                                <button type="button" class="close" data-dismiss="modal"><span
+                                                        aria-hidden="true">&times;</span><span
+                                                        class="sr-only">{{ translate('messages.Close') }}</span></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <img onerror="this.src='{{ asset('/public/assets/admin/img/900x400/img1.jpg') }}'"
+                                                    src="{{ asset('storage/app/public/delivery-man/' . $img) }}"
+                                                    class="w-100">
+                                            </div>
+                                            <div class="modal-footer">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @endforeach
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- End Body -->
+        </div>
+        <!-- End Card -->
+
 
         <!-- Card -->
         <div class="card">

@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use App\Scopes\ZoneScope;
+use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class ItemCampaign extends Model
 {
@@ -27,7 +28,7 @@ class ItemCampaign extends Model
     {
         return $this->morphMany(Translation::class, 'translationable');
     }
-    
+
     public function restaurant()
     {
         return $this->belongsTo(Restaurant::class);
@@ -42,7 +43,7 @@ class ItemCampaign extends Model
     {
         return $query->where('status', '=', 1);
     }
-    
+
     public function scopeRunning($query)
     {
         return $query->whereDate('end_date', '>=', date('Y-m-d'));
@@ -57,4 +58,30 @@ class ItemCampaign extends Model
             }]);
         });
     }
+
+    protected static function boot()
+    {
+        parent::boot();
+        static::created(function ($itemcampaign) {
+            $itemcampaign->slug = $itemcampaign->generateSlug($itemcampaign->title);
+            $itemcampaign->save();
+        });
+    }
+    private function generateSlug($name)
+    {
+        $slug = Str::slug($name);
+        if ($max_slug = static::where('slug', 'like',"{$slug}%")->latest('id')->value('slug')) {
+
+            if($max_slug == $slug) return "{$slug}-2";
+
+            $max_slug = explode('-',$max_slug);
+            $count = array_pop($max_slug);
+            if (isset($count) && is_numeric($count)) {
+                $max_slug[]= ++$count;
+                return implode('-', $max_slug);
+            }
+        }
+        return $slug;
+    }
+
 }

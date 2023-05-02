@@ -10,9 +10,19 @@ use Illuminate\Support\Facades\DB;
 
 class CouponController extends Controller
 {
-    public function add_new()
+    public function add_new(Request $request)
     {
-        $coupons = Coupon::latest()->paginate(config('default_pagination'));
+        $key = explode(' ', $request['search']);
+        $coupons = Coupon::where('created_by','admin')
+        ->when(isset($key), function($query)use($key){
+            $query->where( function ($q) use ($key) {
+                foreach ($key as $value) {
+                    $q->orWhere('title', 'like', "%{$value}%")
+                    ->orWhere('code', 'like', "%{$value}%");
+                }
+            });
+        })
+        ->latest()->paginate(config('default_pagination'));
         return view('admin-views.coupon.index', compact('coupons'));
     }
 
@@ -29,6 +39,7 @@ class CouponController extends Controller
             'restaurant_ids' => 'required_if:coupon_type,restaurant_wise'
         ]);
         $data  = '';
+        $customer_id  = $request->customer_ids ?? ['all'];
         if($request->coupon_type == 'zone_wise')
         {
             $data = $request->zone_ids;
@@ -50,7 +61,9 @@ class CouponController extends Controller
             'discount' => $request->discount_type == 'amount' ? $request->discount : $request['discount'],
             'discount_type' => $request->discount_type??'',
             'status' => 1,
+            'created_by' => 'admin',
             'data' => json_encode($data),
+            'customer_id' => json_encode($customer_id),
             'created_at' => now(),
             'updated_at' => now()
         ]);
@@ -86,7 +99,7 @@ class CouponController extends Controller
         {
             $data = $request->restaurant_ids;
         }
-
+        $customer_id  = $request->customer_ids ?? ['all'];
         DB::table('coupons')->where(['id' => $id])->update([
             'title' => $request->title,
             'code' => $request->code,
@@ -99,6 +112,7 @@ class CouponController extends Controller
             'discount' => $request->discount_type == 'amount' ? $request->discount : $request['discount'],
             'discount_type' => $request->discount_type??'',
             'data' => json_encode($data),
+            'customer_id' => json_encode($customer_id),
             'updated_at' => now()
         ]);
 
@@ -123,17 +137,17 @@ class CouponController extends Controller
         return back();
     }
 
-    public function search(Request $request){
-        $key = explode(' ', $request['search']);
-        $coupons=Coupon::where(function ($q) use ($key) {
-            foreach ($key as $value) {
-                $q->orWhere('title', 'like', "%{$value}%")
-                ->orWhere('code', 'like', "%{$value}%");
-            }
-        })->limit(50)->get();
-        return response()->json([
-            'view'=>view('admin-views.coupon.partials._table',compact('coupons'))->render(),
-            'count'=>$coupons->count()
-        ]);
-    }
+    // public function search(Request $request){
+    //     $key = explode(' ', $request['search']);
+    //     $coupons=Coupon::where(function ($q) use ($key) {
+    //         foreach ($key as $value) {
+    //             $q->orWhere('title', 'like', "%{$value}%")
+    //             ->orWhere('code', 'like', "%{$value}%");
+    //         }
+    //     })->where('created_by','admin')->limit(50)->get();
+    //     return response()->json([
+    //         'view'=>view('admin-views.coupon.partials._table',compact('coupons'))->render(),
+    //         'count'=>$coupons->count()
+    //     ]);
+    // }
 }

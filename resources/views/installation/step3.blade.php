@@ -30,25 +30,25 @@
                                 <div class="form-group">
                                     <label for="db_host">Database Host</label>
                                     <input type="text" class="form-control" id="db_host" name="DB_HOST" required
-                                           autocomplete="off" placeholder="{{ translate('messages.Ex :') }} localhost">
+                                           autocomplete="off" placeholder="{{ trans('messages.Ex :') }} localhost">
                                     <input type="hidden" name="types[]" value="DB_HOST">
                                 </div>
                                 <div class="form-group">
                                     <label for="db_name">Database Name</label>
                                     <input type="text" class="form-control" id="db_name" name="DB_DATABASE" required
-                                           autocomplete="off" placeholder="{{ translate('messages.Ex :') }} food_database">
+                                           autocomplete="off" placeholder="{{ trans('messages.Ex :') }} food_database">
                                     <input type="hidden" name="types[]" value="DB_DATABASE">
                                 </div>
                                 <div class="form-group">
                                     <label for="db_user">Database Username</label>
                                     <input type="text" class="form-control" id="db_user" name="DB_USERNAME" required
-                                           autocomplete="off" placeholder="{{ translate('messages.Ex :') }} root">
+                                           autocomplete="off" placeholder="{{ trans('messages.Ex :') }} root">
                                     <input type="hidden" name="types[]" value="DB_USERNAME">
                                 </div>
                                 <div class="form-group">
                                     <label for="db_pass">Database Password</label>
                                     <input type="password" class="form-control" id="db_pass" name="DB_PASSWORD"
-                                           autocomplete="off" placeholder="{{ translate('messages.Ex :') }} password">
+                                           autocomplete="off" placeholder="{{ trans('messages.Ex :') }} password">
                                     <input type="hidden" name="types[]" value="DB_PASSWORD">
                                 </div>
                                 <div class="text-center">

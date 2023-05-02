@@ -182,6 +182,7 @@
                         <th class="w-20p">{{translate('messages.name')}}</th>
                         <th class="w-20p">{{translate('messages.category')}}</th>
                         <th class="text-center">{{translate('messages.price')}}</th>
+                        <th class="text-center">{{translate('messages.Recommended')}}</th>
                         <th class="text-center">{{translate('messages.status')}}</th>
                         <th class="text-center">{{translate('messages.action')}}</th>
                     </tr>
@@ -214,7 +215,19 @@
                             <td>
                                 <div class="d-flex">
                                     <div class="mx-auto">
-                                        <label class="toggle-switch toggle-switch-sm mr-2" for="stocksCheckbox{{$food->id}}">
+                                        <label class="toggle-switch toggle-switch-sm mr-2"  data-toggle="tooltip" data-placement="top" title="{{ translate('messages.Recommend_to_customers') }}" for="stocksCheckbox{{$food->id}}">
+                                            <input type="checkbox" onclick="location.href='{{route('vendor.food.recommended',[$food['id'],$food->recommended?0:1])}}'"class="toggle-switch-input" id="stocksCheckbox{{$food->id}}" {{$food->recommended?'checked':''}}>
+                                            <span class="toggle-switch-label">
+                                                <span class="toggle-switch-indicator"></span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex">
+                                    <div class="mx-auto">
+                                        <label class="toggle-switch toggle-switch-sm mr-2" data-toggle="tooltip" data-placement="top" title="{{ translate('messages.Change_food_visibility_to_customers') }}" for="stocksCheckbox{{$food->id}}">
                                             <input type="checkbox" onclick="location.href='{{route('vendor.food.status',[$food['id'],$food->status?0:1])}}'"class="toggle-switch-input" id="stocksCheckbox{{$food->id}}" {{$food->status?'checked':''}}>
                                             <span class="toggle-switch-label">
                                                 <span class="toggle-switch-indicator"></span>

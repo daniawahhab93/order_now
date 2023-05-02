@@ -593,11 +593,26 @@
             });
         }
 
+
         function printDiv(divName) {
-            var printContents = document.getElementById(divName).innerHTML;
-            document.body.innerHTML = printContents;
-            window.print();
-            location.reload();
+
+            if($('html').attr('dir') === 'rtl') {
+                $('html').attr('dir', 'ltr')
+                var printContents = document.getElementById(divName).innerHTML;
+                document.body.innerHTML = printContents;
+                $('.initial-38-1').attr('dir', 'rtl')
+                window.print();
+                $('html').attr('dir', 'rtl')
+                location.reload();
+            }else{
+                var printContents = document.getElementById(divName).innerHTML;
+                document.body.innerHTML = printContents;
+                window.print();
+                location.reload();
+            }
+
         }
+
+
     </script>
 @endpush

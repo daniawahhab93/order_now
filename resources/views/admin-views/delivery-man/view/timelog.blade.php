@@ -64,6 +64,7 @@
                         <thead class="thead-light">
                             <tr>
                                 <th>{{translate('sl')}}</th>
+                                <th>{{translate('messages.Shift')}}</th>
                                 <th>{{translate('messages.date')}}</th>
                                 <th>{{translate('messages.active_time')}} ({{translate('H:M')}})</th>
                             </tr>
@@ -72,6 +73,7 @@
                         @foreach($timelogs as $key=>$timelog)
                             <tr>
                                 <td scope="row">{{$key+$timelogs->firstItem()}}</td>
+                                <td>{{ isset($timelog->shift) ? $timelog->shift->name : translate('no_shift_found')}}</td>
                                 <td>{{$timelog->date}}</td>
                                 <td>{{str_pad((int)($timelog->working_hour/60), 2, '0', STR_PAD_LEFT)}}:{{str_pad((int)($timelog->working_hour % 60), 2, '0', STR_PAD_LEFT)}}</td>
                             </tr>

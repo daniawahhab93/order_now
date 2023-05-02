@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Middleware;
-use App;
+use Illuminate\Support\Facades\App;
 use Closure;
 
 class LocalizationMiddleware

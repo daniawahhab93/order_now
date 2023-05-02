@@ -16,18 +16,18 @@
                 <i class="tio-shop"></i> <span>{{$restaurant->name}}</span>
             </h1>
             @if($restaurant->vendor->status)
-            <a href="{{route('admin.vendor.edit',[$restaurant->id])}}" class="btn btn--primary my-2">
+            <a href="{{route('admin.restaurant.edit',[$restaurant->id])}}" class="btn btn--primary my-2">
                 <i class="tio-edit mr-2"></i> {{translate('messages.edit')}} {{translate('messages.restaurant')}}
             </a>
             @else
                 <div>
                     @if(!isset($restaurant->vendor->status))
                     <a class="btn btn--danger text-capitalize my-2"
-                    onclick="request_alert('{{route('admin.vendor.application',[$restaurant['id'],0])}}','{{translate('messages.you_want_to_deny_this_application')}}')"
+                    onclick="request_alert('{{route('admin.restaurant.application',[$restaurant['id'],0])}}','{{translate('messages.you_want_to_deny_this_application')}}')"
                         href="javascript:">{{translate('messages.deny')}}</a>
                     @endif
                     <a class="btn btn--primary text-capitalize my-2"
-                    onclick="request_alert('{{route('admin.vendor.application',[$restaurant['id'],1])}}','{{translate('messages.you_want_to_approve_this_application')}}')"
+                    onclick="request_alert('{{route('admin.restaurant.application',[$restaurant['id'],1])}}','{{translate('messages.you_want_to_approve_this_application')}}')"
                         href="javascript:">{{translate('messages.approve')}}</a>
                 </div>
             @endif
@@ -38,29 +38,34 @@
             <!-- Nav -->
             <ul class="nav nav-tabs page-header-tabs">
                 <li class="nav-item">
-                    <a class="nav-link active" href="{{route('admin.vendor.view', $restaurant->id)}}">{{translate('messages.overview')}}</a>
+                    <a class="nav-link active" href="{{route('admin.restaurant.view', $restaurant->id)}}">{{translate('messages.overview')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'order'])}}"  aria-disabled="true">{{translate('messages.orders')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'order'])}}"  aria-disabled="true">{{translate('messages.orders')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'product'])}}"  aria-disabled="true">{{translate('messages.foods')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'product'])}}"  aria-disabled="true">{{translate('messages.foods')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'reviews'])}}"  aria-disabled="true">{{translate('messages.reviews')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'reviews'])}}"  aria-disabled="true">{{translate('messages.reviews')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'discount'])}}"  aria-disabled="true">{{translate('discounts')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'discount'])}}"  aria-disabled="true">{{translate('discounts')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'transaction'])}}"  aria-disabled="true">{{translate('messages.transactions')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'transaction'])}}"  aria-disabled="true">{{translate('messages.transactions')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'settings'])}}"  aria-disabled="true">{{translate('messages.settings')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'settings'])}}"  aria-disabled="true">{{translate('messages.settings')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'conversations'])}}"  aria-disabled="true">{{translate('messages.conversations')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'conversations'])}}"  aria-disabled="true">{{translate('messages.conversations')}}</a>
                 </li>
+                @if ($restaurant->restaurant_model != 'none' && $restaurant->restaurant_model != 'commission' )
+                <li class="nav-item">
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'subscriptions'])}}"  aria-disabled="true">{{translate('messages.subscription')}}</a>
+                </li>
+                @endif
             </ul>
             <!-- End Nav -->
         </div>
@@ -227,6 +232,7 @@
                     </div>
                 </div>
             </div>
+
             <div class="col-lg-6">
                 <div class="card h-100">
                     <div class="card-header">
@@ -258,6 +264,63 @@
                             </li>
                             @endif
                         </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title m-0 d-flex align-items-center">
+                            <span class="card-header-icon mr-2">
+                                <i class="tio-crown"></i>
+                            </span>
+                            <span class="ml-1">{{translate('messages.Restaurant')}} {{translate('messages.Model')}} : {{ translate($restaurant->restaurant_model ?? 'None') }}</span>
+                        </h5>
+                    </div>
+                    <div class="card-body d-flex flex-column justify-content-center">
+                        <div class="resturant--info-address">
+
+                            <ul class="address-info address-info-2 list-unstyled list-unstyled-py-3 text-dark">
+
+                                    @if (isset($restaurant->restaurant_sub) )
+                                    <li>
+                                        <span class="pl-1">
+                                           {{ translate('messages.Package Name') }} : {{$restaurant->restaurant_sub->package->package_name}}
+                                        </span>
+                                    </li>
+                                    <li>
+                                    <li>
+                                        <span class="pl-1">
+                                        {{ translate('messages.Package_price') }} : {{\App\CentralLogics\Helpers::format_currency($restaurant->restaurant_sub->package->price)}}
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span class="pl-1">
+                                            {{ translate('messages.Expire_Date') }} :   {{$restaurant->restaurant_sub->expiry_date->format('d M Y')}}
+                                        </span>
+                                    </li>
+                                    <li>
+                                        @if ($restaurant->restaurant_sub->status == 1)
+                                            <span class="badge badge-soft-success">
+                                                {{ translate('messages.Status') }} : {{ translate('messages.active') }}</span>
+                                            @else
+                                            <span class="badge badge-soft-danger">
+                                                {{ translate('messages.Status') }} : {{ translate('messages.inactive') }}</span>
+                                        @endif
+                                    </li>
+                                    @elseif(!isset($restaurant->restaurant_sub) && $restaurant->restaurant_model == 'unsubscribed'  )
+                                    <li>
+                                        <span class="pl-1">
+                                            {{ translate('messages.Not_subscribed_to_any_package') }}
+                                        </span>
+                                    </li>
+                                    @else
+
+
+                                    @endif
+
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -333,22 +396,22 @@
             });
         });
 
-    function request_alert(url, message) {
-        Swal.fire({
-            title: "{{translate('messages.are_you_sure')}}",
-            text: message,
-            type: 'warning',
-            showCancelButton: true,
-            cancelButtonColor: 'default',
-            confirmButtonColor: '#FC6A57',
-            cancelButtonText: "{{translate('messages.no')}}",
-            confirmButtonText: "{{translate('messages.yes')}}",
-            reverseButtons: true
-        }).then((result) => {
-            if (result.value) {
-                location.href = url;
-            }
-        })
-    }
+        function request_alert(url, message) {
+            Swal.fire({
+                title: "{{translate('messages.are_you_sure')}}",
+                text: message,
+                type: 'warning',
+                showCancelButton: true,
+                cancelButtonColor: 'default',
+                confirmButtonColor: '#FC6A57',
+                cancelButtonText: "{{translate('messages.no')}}",
+                confirmButtonText: "{{translate('messages.yes')}}",
+                reverseButtons: true
+            }).then((result) => {
+                if (result.value) {
+                    location.href = url;
+                }
+            })
+        }
     </script>
 @endpush

@@ -17,7 +17,7 @@ class OrderDetail extends Model
         'food_id'=> 'integer',
         'order_id'=> 'integer',
         'quantity'=>'integer',
-        'item_campaign_id'=>'integer'
+        'item_campaign_id'=>'integer',
     ];
 
     protected $primaryKey   = 'id';

@@ -545,7 +545,7 @@
 
                         <div class="card-body">
                             <a class="media align-items-center deco-none"
-                                href="{{ route('admin.vendor.view', [$order->restaurant['id']]) }}">
+                                href="{{ route('admin.restaurant.view', [$order->restaurant['id']]) }}">
                                 <div class="avatar avatar-circle mr-3">
                                     <img class="avatar-img w-75px"
                                         onerror="this.src='{{ asset('public/assets/admin/img/160x160/img1.jpg') }}'"
@@ -811,12 +811,27 @@
         }
 
         function printDiv(divName) {
-            var printContents = document.getElementById(divName).innerHTML;
-            var originalContents = document.body.innerHTML;
-            document.body.innerHTML = printContents;
-            window.print();
-            document.body.innerHTML = originalContents;
-            location.reload();
+
+            if($('html').attr('dir') === 'rtl') {
+                $('html').attr('dir', 'ltr')
+                var printContents = document.getElementById(divName).innerHTML;
+                var originalContents = document.body.innerHTML;
+                document.body.innerHTML = printContents;
+                $('.initial-38-1').attr('dir', 'rtl')
+                window.print();
+                document.body.innerHTML = originalContents;
+                $('html').attr('dir', 'rtl')
+                location.reload();
+            }else{
+                var printContents = document.getElementById(divName).innerHTML;
+                var originalContents = document.body.innerHTML;
+                document.body.innerHTML = printContents;
+                window.print();
+                document.body.innerHTML = originalContents;
+                location.reload();
+            }
+
         }
+
     </script>
 @endpush

@@ -33,7 +33,7 @@
                                 <div class="form-group form-check form--check">
                                     <input type="checkbox" name="tables[]" value="{{ $table }}"
                                     class="form-check-input" id="{{ $table }}">
-                                    <label class="form-check-label text-dark pl-2 flex-grow-1 {{ Session::get('direction') === 'rtl' ? 'mr-4' : '' }}"
+                                    <label class="form-check-label text-dark pl-2 flex-grow-1"
                                     for="{{ $table }}">{{ Str::limit($table, 20) }} <span class="badge-pill badge-secondary mx-2">{{ $rows[$key] }}</span></label>
                                 </div>
                             </div>

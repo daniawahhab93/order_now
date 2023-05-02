@@ -72,6 +72,8 @@ class DeliveryManController extends Controller
             'email' => 'required|unique:delivery_men',
             'phone' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10|unique:delivery_men',
             'password'=>'required|min:6',
+            'image' => 'nullable|max:2048',
+            'identity_image.*' => 'nullable|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -113,7 +115,7 @@ class DeliveryManController extends Controller
 
         return response()->json(['message' => translate('messages.deliveryman_added_successfully')], 200);
 
-        return redirect('vendor-panel/delivery-man/list');
+        return redirect('restaurant-panel/delivery-man/list');
     }
 
     public function edit($id)
@@ -183,6 +185,8 @@ class DeliveryManController extends Controller
             'email' => 'required|unique:delivery_men,email,'.$id,
             'phone' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10|unique:delivery_men,phone,'.$id,
             'password'=>'nullable|min:6',
+            'image' => 'nullable|max:2048',
+            'identity_image.*' => 'nullable|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -227,7 +231,7 @@ class DeliveryManController extends Controller
 
         return response()->json(['message' => translate('messages.deliveryman_updated_successfully')], 200);
 
-        return redirect('vendor-panel/delivery-man/list');
+        return redirect('restaurant-panel/delivery-man/list');
     }
 
     public function delete(Request $request)
@@ -242,7 +246,7 @@ class DeliveryManController extends Controller
                 Storage::disk('public')->delete('delivery-man/' . $img);
             }
         }
-        
+
         if($delivery_man->userinfo){
 
             $delivery_man->userinfo->delete();

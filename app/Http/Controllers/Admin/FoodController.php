@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use Carbon\Carbon;
+use App\Models\Tag;
 use App\Models\Food;
 use App\Models\Review;
 use App\Models\Category;
 use App\Models\Restaurant;
 use App\Models\Translation;
+use Illuminate\Support\Str;
 use App\Models\ItemCampaign;
 use Illuminate\Http\Request;
 use App\CentralLogics\Helpers;
@@ -25,7 +27,7 @@ class FoodController extends Controller
     public function index()
     {
         $categories = Category::where(['position' => 0])->get();
-        return view('admin-views.product.index', compact('categories'));
+    return view('admin-views.product.index', compact('categories'));
     }
 
     public function store(Request $request)
@@ -35,6 +37,7 @@ class FoodController extends Controller
             'name.*' => 'max:191',
             'category_id' => 'required',
             //'image' => 'required',
+            'image' => 'nullable|max:2048',
             'price' => 'required|numeric|between:.01,999999999999.99',
             'discount' => 'required|numeric|min:0',
             'restaurant_id' => 'required',
@@ -60,7 +63,19 @@ class FoodController extends Controller
         if ($request['price'] <= $dis || $validator->fails()) {
             return response()->json(['errors' => Helpers::error_processor($validator)]);
         }
-
+        $tag_ids = [];
+        if ($request->tags != null) {
+            $tags = explode(",", $request->tags);
+        }
+        if(isset($tags)){
+            foreach ($tags as $key => $value) {
+                $tag = Tag::firstOrNew(
+                    ['tag' => $value]
+                );
+                $tag->save();
+                array_push($tag_ids,$tag->id);
+            }
+        }
         $food = new Food;
         $food->name = $request->name[array_search('en', $request->lang)];
 
@@ -103,33 +118,45 @@ class FoodController extends Controller
             }
         }
         $food->choice_options = json_encode($choice_options);
+
         $variations = [];
-        $options = [];
-        if ($request->has('choice_no')) {
-            foreach ($request->choice_no as $key => $no) {
-                $name = 'choice_options_' . $no;
-                $my_str = implode('|', $request[$name]);
-                array_push($options, explode(',', $my_str));
-            }
-        }
-        //Generates the combinations of customer choice options
-        $combinations = Helpers::combinations($options);
-        if (count($combinations[0]) > 0) {
-            foreach ($combinations as $key => $combination) {
-                $str = '';
-                foreach ($combination as $k => $item) {
-                    if ($k > 0) {
-                        $str .= '-' . str_replace(' ', '', $item);
-                    } else {
-                        $str .= str_replace(' ', '', $item);
-                    }
+        if(isset($request->options))
+        {
+            foreach(array_values($request->options) as $key=>$option)
+            {
+
+                $temp_variation['name']= $option['name'];
+                $temp_variation['type']= $option['type'];
+                $temp_variation['min']= $option['min'] ?? 0;
+                $temp_variation['max']= $option['max'] ?? 0;
+                $temp_variation['required']= $option['required']??'off';
+                if($option['min'] > 0 &&  $option['min'] > $option['max']  ){
+                    $validator->getMessageBag()->add('name', translate('messages.minimum_value_can_not_be_greater_then_maximum_value'));
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
                 }
-                $item = [];
-                $item['type'] = $str;
-                $item['price'] = abs($request['price_' . str_replace('.', '_', $str)]);
-                array_push($variations, $item);
+                if(!isset($option['values'])){
+                    $validator->getMessageBag()->add('name', translate('messages.please_add_options_for').$option['name']);
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
+                }
+                if($option['max'] > count($option['values'])  ){
+                    $validator->getMessageBag()->add('name', translate('messages.please_add_more_options_or_change_the_max_value_for').$option['name']);
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
+                }
+                $temp_value = [];
+
+                foreach(array_values($option['values']) as $value)
+                {
+                    if(isset($value['label'])){
+                        $temp_option['label'] = $value['label'];
+                    }
+                    $temp_option['optionPrice'] = $value['optionPrice'];
+                    array_push($temp_value,$temp_option);
+                }
+                $temp_variation['values']= $temp_value;
+                array_push($variations,$temp_variation);
             }
         }
+
         //combinations end
         $food->variations = json_encode($variations);
         $food->price = $request->price;
@@ -144,6 +171,7 @@ class FoodController extends Controller
         $food->restaurant_id = $request->restaurant_id;
         $food->veg = $request->veg;
         $food->save();
+        $food->tags()->sync($tag_ids);
 
         $data = [];
         foreach ($request->lang as $index => $key) {
@@ -173,7 +201,7 @@ class FoodController extends Controller
 
     public function view($id)
     {
-        $product = Food::withoutGlobalScope(RestaurantScope::class)->where(['id' => $id])->first();
+        $product = Food::withoutGlobalScope(RestaurantScope::class)->findOrFail($id);
         $reviews=Review::where(['food_id'=>$id])->latest()->paginate(config('default_pagination'));
         return view('admin-views.product.view', compact('product','reviews'));
     }
@@ -181,6 +209,7 @@ class FoodController extends Controller
     public function edit($id)
     {
         $product = Food::withoutGlobalScope(RestaurantScope::class)->withoutGlobalScope('translate')->findOrFail($id);
+        // dd($product->toArray());
         if(!$product)
         {
             Toastr::error(translate('messages.food').' '.translate('messages.not_found'));
@@ -220,6 +249,7 @@ class FoodController extends Controller
             'description' => 'array',
             'description.*' => 'max:1000',
             'discount' => 'required|numeric|min:0',
+            'image' => 'nullable|max:2048',
         ], [
             'description.*.max' => translate('messages.description_length_warning'),
             'name.0.required' => translate('messages.item_name_required'),
@@ -239,6 +269,21 @@ class FoodController extends Controller
 
         if ($request['price'] <= $dis || $validator->fails()) {
             return response()->json(['errors' => Helpers::error_processor($validator)]);
+        }
+
+
+        $tag_ids = [];
+        if ($request->tags != null) {
+            $tags = explode(",", $request->tags);
+        }
+        if(isset($tags)){
+            foreach ($tags as $key => $value) {
+                $tag = Tag::firstOrNew(
+                    ['tag' => $value]
+                );
+                $tag->save();
+                array_push($tag_ids,$tag->id);
+            }
         }
 
         $p = Food::withoutGlobalScope(RestaurantScope::class)->find($id);
@@ -284,33 +329,48 @@ class FoodController extends Controller
             }
         }
         $p->choice_options = json_encode($choice_options);
+
+
+
         $variations = [];
-        $options = [];
-        if ($request->has('choice_no')) {
-            foreach ($request->choice_no as $key => $no) {
-                $name = 'choice_options_' . $no;
-                $my_str = implode('|', $request[$name]);
-                array_push($options, explode(',', $my_str));
-            }
-        }
-        //Generates the combinations of customer choice options
-        $combinations = Helpers::combinations($options);
-        if (count($combinations[0]) > 0) {
-            foreach ($combinations as $key => $combination) {
-                $str = '';
-                foreach ($combination as $k => $item) {
-                    if ($k > 0) {
-                        $str .= '-' . str_replace(' ', '', $item);
-                    } else {
-                        $str .= str_replace(' ', '', $item);
-                    }
+        if(isset($request->options))
+        {
+            foreach(array_values($request->options) as $key=>$option)
+            {
+                $temp_variation['name']= $option['name'];
+                $temp_variation['type']= $option['type'];
+                $temp_variation['min']= $option['min'] ?? 0;
+                $temp_variation['max']= $option['max'] ?? 0;
+                if($option['min'] > 0 &&  $option['min'] > $option['max']  ){
+                    $validator->getMessageBag()->add('name', translate('messages.minimum_value_can_not_be_greater_then_maximum_value'));
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
                 }
-                $item = [];
-                $item['type'] = $str;
-                $item['price'] = abs($request['price_' . str_replace('.', '_', $str)]);
-                array_push($variations, $item);
+                if(!isset($option['values'])){
+                    $validator->getMessageBag()->add('name', translate('messages.please_add_options_for').$option['name']);
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
+                }
+                if($option['max'] > count($option['values'])  ){
+                    $validator->getMessageBag()->add('name', translate('messages.please_add_more_options_or_change_the_max_value_for').$option['name']);
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
+                }
+                $temp_variation['required']= $option['required']??'off';
+                $temp_value = [];
+                foreach(array_values($option['values']) as $value)
+                {
+                    if(isset($value['label'])){
+                        $temp_option['label'] = $value['label'];
+                    }
+                    $temp_option['optionPrice'] = $value['optionPrice'];
+                    array_push($temp_value,$temp_option);
+                }
+                $temp_variation['values']= $temp_value;
+                array_push($variations,$temp_variation);
             }
         }
+
+
+        $slug = Str::slug($request->name[array_search('en', $request->lang)]);
+        $p->slug = $p->slug? $p->slug :"{$slug}{$p->id}";
         //combinations end
         $p->variations = json_encode($variations);
         $p->price = $request->price;
@@ -326,6 +386,7 @@ class FoodController extends Controller
         $p->restaurant_id = $request->restaurant_id;
         $p->veg = $request->veg;
         $p->save();
+        $p->tags()->sync($tag_ids);
 
         foreach ($request->lang as $index => $key) {
             if ($request->name[$index] && $key != 'en') {
@@ -444,7 +505,6 @@ class FoodController extends Controller
     }
     public function get_categories(Request $request)
     {
-        
         $cat = Category::where(['parent_id' => $request->parent_id])->get();
         $res = '<option value="' . 0 . '" disabled selected>---'.translate('messages.Select').'---</option>';
         foreach ($cat as $row) {
@@ -559,7 +619,9 @@ class FoodController extends Controller
 
     public function review_list(Request $request)
     {
-        $reviews = Review::with(['food','customer'])->latest()->paginate(config('default_pagination'));
+        $reviews = Review::with(['customer','food'=> function ($q) {
+            $q->withoutGlobalScope(RestaurantScope::class);
+        }])->latest()->paginate(config('default_pagination'));
         return view('admin-views.product.reviews-list', compact('reviews'));
     }
 
@@ -609,8 +671,8 @@ class FoodController extends Controller
                 'image' => $collection['image'],
                 'restaurant_id' => $collection['restaurant_id'],
                 'add_ons' => json_encode([]),
-                'attributes' => json_encode([]),
-                'choice_options' => json_encode([]),
+                // 'attributes' => json_encode([]),
+                // 'choice_options' => json_encode([]),
                 'variations' => json_encode([]),
                 'created_at'=>now(),
                 'updated_at'=>now()

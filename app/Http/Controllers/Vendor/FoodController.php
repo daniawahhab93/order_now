@@ -2,20 +2,25 @@
 
 namespace App\Http\Controllers\Vendor;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Http\Request;
-use App\Models\Category;
+use Carbon\Carbon;
+use App\Models\Tag;
 use App\Models\Food;
 use App\Models\Review;
-use Brian2694\Toastr\Facades\Toastr;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Storage;
-use App\CentralLogics\Helpers;
-use App\CentralLogics\ProductLogic;
-use Rap2hpoutre\FastExcel\FastExcel;
-use Illuminate\Support\Facades\DB;
+use App\Models\Category;
+use App\Models\Restaurant;
 use App\Models\Translation;
+use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use App\CentralLogics\Helpers;
+use App\Models\BusinessSetting;
+use Illuminate\Support\Facades\DB;
+use App\CentralLogics\ProductLogic;
+use App\Http\Controllers\Controller;
+use Brian2694\Toastr\Facades\Toastr;
+use Rap2hpoutre\FastExcel\FastExcel;
+use App\Models\RestaurantSubscription;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class FoodController extends Controller
 {
@@ -46,7 +51,7 @@ class FoodController extends Controller
             'name.0' => 'required',
             'name.*' => 'max:191',
             'category_id' => 'required',
-            //'image' => 'required',
+            'image' => 'nullable|max:2048',
             'price' => 'required|numeric|between:.01,999999999999.99',
             'description.*' => 'max:1000',
             'discount' => 'required|numeric|min:0',
@@ -69,6 +74,21 @@ class FoodController extends Controller
 
         if ($request['price'] <= $dis || $validator->fails()) {
             return response()->json(['errors' => Helpers::error_processor($validator)]);
+        }
+
+
+        $tag_ids = [];
+        if ($request->tags != null) {
+            $tags = explode(",", $request->tags);
+        }
+        if(isset($tags)){
+            foreach ($tags as $key => $value) {
+                $tag = Tag::firstOrNew(
+                    ['tag' => $value]
+                );
+                $tag->save();
+                array_push($tag_ids,$tag->id);
+            }
         }
 
         $food = new Food;
@@ -112,31 +132,42 @@ class FoodController extends Controller
             }
         }
         $food->choice_options = json_encode($choice_options);
+
         $variations = [];
-        $options = [];
-        if ($request->has('choice_no')) {
-            foreach ($request->choice_no as $key => $no) {
-                $name = 'choice_options_' . $no;
-                $my_str = implode('|', $request[$name]);
-                array_push($options, explode(',', $my_str));
-            }
-        }
-        //Generates the combinations of customer choice options
-        $combinations = Helpers::combinations($options);
-        if (count($combinations[0]) > 0) {
-            foreach ($combinations as $key => $combination) {
-                $str = '';
-                foreach ($combination as $k => $item) {
-                    if ($k > 0) {
-                        $str .= '-' . str_replace(' ', '', $item);
-                    } else {
-                        $str .= str_replace(' ', '', $item);
-                    }
+        if(isset($request->options))
+        {
+            foreach(array_values($request->options) as $key=>$option)
+            {
+
+                $temp_variation['name']= $option['name'];
+                $temp_variation['type']= $option['type'];
+                $temp_variation['min']= $option['min'] ?? 0;
+                $temp_variation['max']= $option['max'] ?? 0;
+                if($option['min'] > 0 &&  $option['min'] > $option['max']  ){
+                    $validator->getMessageBag()->add('name', translate('messages.minimum_value_can_not_be_greater_then_maximum_value'));
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
                 }
-                $item = [];
-                $item['type'] = $str;
-                $item['price'] = abs($request['price_' . str_replace('.', '_', $str)]);
-                array_push($variations, $item);
+                if(!isset($option['values'])){
+                    $validator->getMessageBag()->add('name', translate('messages.please_add_options_for').$option['name']);
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
+                }
+                if($option['max'] > count($option['values'])  ){
+                    $validator->getMessageBag()->add('name', translate('messages.please_add_more_options_or_change_the_max_value_for').$option['name']);
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
+                }
+                $temp_variation['required']= $option['required']??'off';
+
+                $temp_value = [];
+                foreach(array_values($option['values']) as $value)
+                {
+                    if(isset($value['label'])){
+                        $temp_option['label'] = $value['label'];
+                    }
+                    $temp_option['optionPrice'] = $value['optionPrice'];
+                    array_push($temp_value,$temp_option);
+                }
+                $temp_variation['values']= $temp_value;
+                array_push($variations,$temp_variation);
             }
         }
         //combinations end
@@ -151,7 +182,35 @@ class FoodController extends Controller
         $food->attributes = $request->has('attribute_id') ? json_encode($request->attribute_id) : json_encode([]);
         $food->add_ons = $request->has('addon_ids') ? json_encode($request->addon_ids) : json_encode([]);
         $food->restaurant_id = Helpers::get_restaurant_id();
+
+        $restaurant= Helpers::get_restaurant_data();
+        if ( $restaurant->restaurant_model == 'subscription' ) {
+            $rest_sub = $restaurant->restaurant_sub;
+            if (isset($rest_sub)) {
+                if ($rest_sub->max_product != "unlimited" && $rest_sub->max_product > 0 ) {
+                    $total_food= Food::where('restaurant_id', $restaurant->id)->count()+1;
+                    if ( $total_food >= $rest_sub->max_product){
+                        $restaurant->food_section = 0;
+                        $restaurant->save();
+                    }
+                }
+            } else{
+                return response()->json([
+                    'errors'=>[
+                        ['code'=>'unauthorized', 'message'=>translate('messages.you_are_not_subscribed_to_any_package')]
+                    ]
+                ]);
+            }
+        }elseif( $restaurant->restaurant_model == 'unsubscribed'){
+            return response()->json([
+                'errors'=>[
+                    ['code'=>'unauthorized', 'message'=>translate('messages.you_are_not_subscribed_to_any_package')]
+                ]
+            ]);
+        }
+
         $food->save();
+        $food->tags()->sync($tag_ids);
 
         $data = [];
         foreach ($request->lang as $index => $key) {
@@ -215,6 +274,19 @@ class FoodController extends Controller
         Toastr::success(translate('Food status updated!'));
         return back();
     }
+    public function recommended(Request $request)
+    {
+        if(!Helpers::get_restaurant_data()->food_section)
+        {
+            Toastr::warning(translate('messages.permission_denied'));
+            return back();
+        }
+        $product = Food::find($request->id);
+        $product->recommended = $request->status;
+        $product->save();
+        Toastr::success(translate('Food recommendation updated!'));
+        return back();
+    }
 
     public function update(Request $request, $id)
     {
@@ -235,6 +307,7 @@ class FoodController extends Controller
             'price' => 'required|numeric|between:0.01,999999999999.99',
             'description.*' => 'max:1000',
             'discount' => 'required|numeric|min:0',
+            'image' => 'nullable|max:2048',
         ], [
             'name.0.required' => translate('messages.item_name_required'),
             'category_id.required' => translate('messages.category_required'),
@@ -256,9 +329,26 @@ class FoodController extends Controller
             return response()->json(['errors' => Helpers::error_processor($validator)]);
         }
 
+        $tag_ids = [];
+        if ($request->tags != null) {
+            $tags = explode(",", $request->tags);
+        }
+        if(isset($tags)){
+            foreach ($tags as $key => $value) {
+                $tag = Tag::firstOrNew(
+                    ['tag' => $value]
+                );
+                $tag->save();
+                array_push($tag_ids,$tag->id);
+            }
+        }
+
         $p = Food::find($id);
 
         $p->name = $request->name[array_search('en', $request->lang)];
+
+        $slug = Str::slug($request->name[array_search('en', $request->lang)]);
+        $p->slug = $p->slug? $p->slug :"{$slug}-{$p->id}";
 
         $category = [];
         if ($request->category_id != null) {
@@ -299,33 +389,46 @@ class FoodController extends Controller
             }
         }
         $p->choice_options = json_encode($choice_options);
+
         $variations = [];
-        $options = [];
-        if ($request->has('choice_no')) {
-            foreach ($request->choice_no as $key => $no) {
-                $name = 'choice_options_' . $no;
-                $my_str = implode('|', $request[$name]);
-                array_push($options, explode(',', $my_str));
-            }
-        }
-        //Generates the combinations of customer choice options
-        $combinations = Helpers::combinations($options);
-        if (count($combinations[0]) > 0) {
-            foreach ($combinations as $key => $combination) {
-                $str = '';
-                foreach ($combination as $k => $item) {
-                    if ($k > 0) {
-                        $str .= '-' . str_replace(' ', '', $item);
-                    } else {
-                        $str .= str_replace(' ', '', $item);
-                    }
+        if(isset($request->options))
+        {
+            foreach(array_values($request->options) as $key=>$option)
+            {
+
+                $temp_variation['name']= $option['name'];
+                $temp_variation['type']= $option['type'];
+                $temp_variation['min']= $option['min'] ?? 0;
+                $temp_variation['max']= $option['max'] ?? 0;
+                if($option['min'] > 0 &&  $option['min'] > $option['max']  ){
+                    $validator->getMessageBag()->add('name', translate('messages.minimum_value_can_not_be_greater_then_maximum_value'));
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
                 }
-                $item = [];
-                $item['type'] = $str;
-                $item['price'] = abs($request['price_' . str_replace('.', '_', $str)]);
-                array_push($variations, $item);
+                if(!isset($option['values'])){
+                    $validator->getMessageBag()->add('name', translate('messages.please_add_options_for').$option['name']);
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
+                }
+                if($option['max'] > count($option['values'])  ){
+                    $validator->getMessageBag()->add('name', translate('messages.please_add_more_options_or_change_the_max_value_for').$option['name']);
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
+                }
+                $temp_variation['required']= $option['required']??'off';
+                $temp_value = [];
+
+                foreach(array_values($option['values']) as $value)
+                {
+                    if(isset($value['label'])){
+                        $temp_option['label'] = $value['label'];
+                    }
+                    $temp_option['optionPrice'] = $value['optionPrice'];
+                    array_push($temp_value,$temp_option);
+                }
+                $temp_variation['values']= $temp_value;
+                array_push($variations,$temp_variation);
             }
         }
+
+
         //combinations end
         $p->variations = json_encode($variations);
         $p->price = $request->price;
@@ -339,7 +442,7 @@ class FoodController extends Controller
         $p->add_ons = $request->has('addon_ids') ? json_encode($request->addon_ids) : json_encode([]);
 
         $p->save();
-
+        $p->tags()->sync($tag_ids);
         foreach ($request->lang as $index => $key) {
             if ($request->name[$index] && $key != 'en') {
                 Translation::updateOrInsert(
@@ -508,6 +611,63 @@ class FoodController extends Controller
         try
         {
             DB::beginTransaction();
+        $total_food= count($data);
+
+        $restaurant= Helpers::get_restaurant_data();
+            if ( $restaurant->restaurant_model == 'subscription' ) {
+                $rest_sub = RestaurantSubscription::where('restaurant_id',$restaurant->id)->where('status', 1)->latest()->first();
+
+                if (isset($rest_sub)) {
+                    if ($rest_sub->max_product != "unlimited" && $rest_sub->max_product > 0  &&  $rest_sub->max_product >= $total_food ) {
+                        $rest_sub->decrement('max_product' , $total_food);
+                        if (  $rest_sub->max_product <= 0 ){
+                            $restaurant->update(['food_section' => 0]);
+                        }
+                    } else{
+                        Toastr::error(translate('messages.you_have_reached_the_maximum_limit_of_food'));
+                        return back();
+                    }
+
+                } else{
+                    return response()->json([
+                        'errors'=>[
+                            ['code'=>'unauthorized', 'message'=>translate('messages.you_are_not_subscribed_to_any_package')]
+                        ]
+                    ]);
+                }
+            }
+
+
+
+            if ( $restaurant->restaurant_model == 'subscription' ) {
+                $rest_sub = $restaurant->restaurant_sub;
+                if (isset($rest_sub)) {
+                    if ($rest_sub->max_product != "unlimited" && $rest_sub->max_product > 0 ) {
+                        $total_all_foods= Food::where('restaurant_id', $restaurant->id)->count();
+
+                        $available_food_uploads= $total_all_foods + $total_food;
+                        if ($available_food_uploads > $rest_sub->max_product){
+                            Toastr::error(translate('messages.you_have_reached_the_maximum_limit_of_food'));
+                            return back();
+                        }
+                        // if ( $total_food >= $rest_sub->max_product){
+                        //     $restaurant->food_section = 0;
+                        //     $restaurant->save();
+                        // }
+                    }
+                } else{
+                    return response()->json([
+                        'errors'=>[
+                            ['code'=>'unauthorized', 'message'=>translate('messages.you_are_not_subscribed_to_any_package')]
+                        ]
+                    ]);
+                }
+            }
+
+
+
+
+
             DB::table('food')->insert($data);
             DB::commit();
         }catch(\Exception $e){

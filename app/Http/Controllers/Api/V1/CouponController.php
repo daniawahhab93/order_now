@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Models\Order;
+use App\Models\Coupon;
+use App\Models\Restaurant;
+use Illuminate\Http\Request;
 use App\CentralLogics\Helpers;
 use App\CentralLogics\CouponLogic;
 use App\Http\Controllers\Controller;
-use App\Models\Coupon;
-use App\Models\Order;
-use App\Models\Restaurant;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class CouponController extends Controller
@@ -22,17 +23,16 @@ class CouponController extends Controller
                 'errors' => $errors
             ], 403);
         }
-
+        $customer_id=Auth::user()->id;
         $zone_id= json_decode($request->header('zoneId'), true);
         $data = [];
-        // try {
-            $coupons = Coupon::active()->whereDate('expire_date', '>=', date('Y-m-d'))->whereDate('start_date', '<=', date('Y-m-d'))->get();
+            $coupons = Coupon::with('restaurant:id,name')->active()->whereDate('expire_date', '>=', date('Y-m-d'))->whereDate('start_date', '<=', date('Y-m-d'))->get();
             foreach($coupons as $key=>$coupon)
             {
                 if($coupon->coupon_type == 'restaurant_wise')
                 {
                     $temp = Restaurant::active()->whereIn('zone_id', $zone_id)->whereIn('id', json_decode($coupon->data, true))->first();
-                    if($temp)
+                    if($temp && (in_array("all", json_decode($coupon->customer_id, true)) || in_array($customer_id,json_decode($coupon->customer_id, true))))
                     {
                         $coupon->data = $temp->name;
                         $data[] = $coupon;
@@ -47,18 +47,17 @@ class CouponController extends Controller
                             break;
                         }
                     }
-
                 }
                 else{
-                    $data[] = $coupon;
+                    if((in_array("all", json_decode($coupon->customer_id, true)) || in_array($customer_id,json_decode($coupon->customer_id, true))) ){
+                        $data[] = $coupon;
+                    }
                 }
             }
-
             return response()->json($data, 200);
-        // } catch (\Exception $e) {
-        //     return response()->json(['errors' => $e], 403);
-        // }
     }
+
+
 
     public function apply(Request $request)
     {
@@ -92,6 +91,12 @@ class CouponController extends Controller
                             ['code' => 'coupon', 'message' => translate('messages.coupon_expire')]
                         ]
                     ], 407);
+                case 408:
+                    return response()->json([
+                        'errors' => [
+                            ['code' => 'coupon', 'message' => translate('messages.You_are_not_eligible_for_this_coupon')]
+                        ]
+                    ], 403);
                 default:
                     return response()->json([
                         'errors' => [

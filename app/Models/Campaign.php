@@ -33,14 +33,15 @@ class Campaign extends Model
     }
     public function restaurants()
     {
-        return $this->belongsToMany(Restaurant::class);
+        
+        return $this->belongsToMany(Restaurant::class)->withPivot('campaign_status');
     }
 
     public function scopeActive($query)
     {
         return $query->where('status', 1);
     }
-    
+
     public function scopeRunning($query)
     {
         return $query->where(function($q){
@@ -51,7 +52,7 @@ class Campaign extends Model
                 $q->whereTime('start_time', '<=', date('H:i:s'))->orWhereNull('start_time');
             })->where(function($q){
                 $q->whereTime('end_time', '>=', date('H:i:s'))->orWhereNull('end_time');
-            });       
+            });
     }
 
     protected static function booted()

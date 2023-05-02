@@ -16,6 +16,7 @@
             $discount = 0;
             $discount_type = 'amount';
             $discount_on_product = 0;
+            $variation_price  = 0;
             ?>
             @if (session()->has('cart') && count(session()->get('cart')) > 0)
                 <?php
@@ -31,7 +32,8 @@
                 @foreach (session()->get('cart') as $key => $cartItem)
                     @if (is_array($cartItem))
                         <?php
-                        $product_subtotal = $cartItem['price'] * $cartItem['quantity'];
+                        $variation_price += $cartItem['variation_price'];
+                        $product_subtotal = ($cartItem['price'] * $cartItem['quantity'] );
                         $discount_on_product += $cartItem['discount'] * $cartItem['quantity'];
                         $subtotal += $product_subtotal;
                         $addon_price += $cartItem['addon_price'];
@@ -78,19 +80,28 @@ if(session()->get('address') && count(session()->get('address'))>0){
 }else{
     $delivery_fee = 0;
 }
-$total = $subtotal + $addon_price;
+$total = $subtotal + $addon_price ;
 
 $total = $total - $discount_on_product;
+$tax_included = \App\Models\BusinessSetting::where(['key'=>'tax_included'])->first() ?  \App\Models\BusinessSetting::where(['key'=>'tax_included'])->first()->value : 0;
 $total_tax_amount = $tax > 0 ? ($total * $tax) / 100 : 0;
 $total = $total + $delivery_fee;
 ?>
 <div class="box p-3">
     <dl class="row">
-
+{{--
+        <dt class="col-6">{{ translate('messages.Variation') }}:</dt>
+        <dd class="col-6 text-right">{{ \App\CentralLogics\Helpers::format_currency($variation_price ) }}</dd> --}}
         <dt class="col-6">{{ translate('messages.addon') }}:</dt>
         <dd class="col-6 text-right">{{ \App\CentralLogics\Helpers::format_currency($addon_price) }}</dd>
 
-        <dt class="col-6">{{ translate('messages.subtotal') }}:</dt>
+        <dt class="col-6">{{ translate('messages.subtotal') }}
+            @php($tax_a=$total_tax_amount)
+            @if ($tax_included ==  1)
+            ({{ translate('messages.TAX_Included') }})
+            @php($tax_a=0)
+            @endif
+            :</dt>
         <dd class="col-6 text-right">{{ \App\CentralLogics\Helpers::format_currency($subtotal + $addon_price) }}</dd>
 
         <dt class="col-6">{{ translate('messages.discount') }} :</dt>
@@ -99,16 +110,18 @@ $total = $total + $delivery_fee;
         <dt class="col-6">{{ translate('messages.delivery_fee') }} :</dt>
         <dd class="col-6 text-right" id="delivery_price">
             {{ \App\CentralLogics\Helpers::format_currency($delivery_fee, 2) }}</dd>
-
+        @if ($tax_included !=  1)
         <dt class="col-6">{{ translate('messages.tax') }} : </dt>
         <dd class="col-6 text-right">
-            {{ \App\CentralLogics\Helpers::format_currency(round($total_tax_amount, 2)) }}
+           + {{ \App\CentralLogics\Helpers::format_currency(round($total_tax_amount, 2)) }}
         </dd>
+
+    @endif
         <dt class="col-6 pr-0"><hr class="mt-0" /></dt>
         <dt class="col-6 pl-0"><hr class="mt-0" /></dt>
         <dt class="col-6">{{ translate('Total') }}: </dt>
         <dd class="col-6 text-right h4 b">
-            {{ \App\CentralLogics\Helpers::format_currency(round($total + $total_tax_amount, 2)) }} </dd>
+            {{ \App\CentralLogics\Helpers::format_currency(round($total + $tax_a, 2)) }} </dd>
     </dl>
     <!-- Static Data -->
     <form action="{{ route('admin.pos.order') }}?restaurant_id={{ isset($restaurant_data) ? $restaurant_data->id : '' }}"
@@ -127,12 +140,6 @@ $total = $total + $delivery_fee;
                 </label>
             </li>
             @endif
-            {{-- <li>
-                <label>
-                    <input type="radio" name="type" value="card" hidden>
-                    <span>{{ translate('Card') }}</span>
-                </label>
-            </li> --}}
             @php($wallet=\App\CentralLogics\Helpers::get_business_settings('wallet_status'))
             @if ($wallet)
             <li>
@@ -144,21 +151,6 @@ $total = $total + $delivery_fee;
             @endif
         </ul>
     </div>
-    {{-- <div class="mt-4 d-flex justify-content-between pos--payable-amount">
-        <label class="m-0">{{ translate('Paid Amount') }} :</label>
-        <div>
-            <span  data-toggle="modal" data-target="#insertPayableAmount" class="text-body"><i class="tio-edit"></i></span>
-            <span>{{ \App\CentralLogics\Helpers::format_currency($paid) }}</span>
-            <input type="hidden" name="amount" value="{{ $paid }}">
-        </div>
-    </div>
-    <div class="mt-4 d-flex justify-content-between pos--payable-amount">
-        <label class="m-0">{{ translate('Change Amount') }} :</label>
-        <div>
-            <span>{{ \App\CentralLogics\Helpers::format_currency($change) }}</span>
-            <input type="hidden" name="amount" value="{{ $change }}">
-        </div>
-    </div> --}}
     <!-- Static Data -->
     <div class="row button--bottom-fixed g-1 bg-white">
         <div class="col-sm-6">
@@ -308,6 +300,7 @@ $total = $total + $delivery_fee;
                                     {{ translate('* pin the address in the map to calculate delivery fee') }}
                                 </span>
                                 <div>
+                                    <input type="hidden" name="distance" id="distance">
                                     <span>{{ translate('Delivery fee') }} :</span>
                                     <input type="hidden" name="delivery_fee" id="delivery_fee" value="{{ $old ? $old['delivery_fee'] : '' }}">
                                     <strong>{{ $old ? $old['delivery_fee'] : 0 }} {{ \App\CentralLogics\Helpers::currency_symbol() }}</strong>
@@ -332,44 +325,6 @@ $total = $total + $delivery_fee;
     </div>
 </div>
 
-{{-- <div class="modal fade" id="insertPayableAmount" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-light border-bottom py-3">
-                <h5 class="modal-title">{{ translate('messages.payment') }}</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id='payable_store_amount'>
-                    @csrf
-                    <div class="row">
-                        <div class="form-group col-12">
-                            <label class="input-label"
-                                for="">{{ translate('messages.amount') }}({{ \App\CentralLogics\Helpers::currency_symbol() }})</label>
-                            <input type="number" class="form-control" name="paid" min="0" step="0.01" value="{{ $paid }}">
-                        </div>
-                    </div>
-                    <div class="form-group col-12 mb-0">
-                        <div class="btn--container justify-content-end">
-                            <button class="btn btn-sm btn--primary" type="button" onclick="payableAmount()">
-                                {{ translate('messages.submit') }}
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div> --}}
-
-{{-- <script>
-    $('#delivery_address').on('shown.bs.collapse', function() {
-        console.log('delivery_address clicked');
-        initMap();
-    });
-</script> --}}
 <script>
     var form = document.getElementById('order_place');
     form.addEventListener('submit', (event) => {
@@ -382,13 +337,4 @@ $total = $total + $delivery_fee;
         }
         form.submit();
     })
-            // $('#order_place').submit(function(event) {
-            // event.preventDefault();
-            //     if($('#customer').val())
-            //     {
-            //         console.log($('#customer').val());
-            //         $(this).append('<input type="hidden" name="user_id" value="'+$('#customer').val()+'" /> ');
-            //     }
-            //     return true;
-            // });
 </script>

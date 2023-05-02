@@ -32,7 +32,7 @@
         </td>
         <td>
             <label class="m-0">
-                <a href="{{route('admin.vendor.view', $order->restaurant_id)}}" class="text--title" alt="view restaurant">
+                <a href="{{route('admin.restaurant.view', $order->restaurant_id)}}" class="text--title" alt="view restaurant">
                     {{Str::limit($order->restaurant?$order->restaurant->name:translate('messages.Restaurant deleted!'),20,'...')}}
                 </a>
             </label>
@@ -53,6 +53,11 @@
                 @endif
             </div>
         </td>
+        @if (isset($order->subscription)  && $order->subscription->status != 'canceled' )
+            @php
+                $order->order_status = $order->subscription_log ? $order->subscription_log->order_status : $order->order_status;
+            @endphp
+        @endif
         <td class="text-capitalize text-center">
             @if($order['order_status']=='pending')
                 <span class="badge badge-soft-info mb-1">

@@ -204,7 +204,7 @@
                             </center>
                             <hr class="non-printable">
                         </div>
-                        <div class="row m-auto" id="printableArea">
+                        <div id="printableArea" class="col-12">
                             @include('admin-views.pos.order.invoice')
                         </div>
 
@@ -329,6 +329,7 @@
     <script src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=places&callback=initMap&v=3.49">
     </script>
     <script>
+        var extra_charge =0;
         function initMap() {
             let map = new google.maps.Map(document.getElementById("map"), {
                 zoom: 13,
@@ -495,19 +496,57 @@
                                             var distanceMile = distancMeter/1000;
                                             var distancMileResult = Math.round((distanceMile + Number.EPSILON) * 100) / 100;
                                             console.log(distancMileResult);
+                                            document.getElementById('distance').value = distancMileResult;
                                             <?php
-                                            $per_km_shipping_charge = (float)\App\Models\BusinessSetting::where(['key' => 'per_km_shipping_charge'])->first()->value;
-                                            $minimum_shipping_charge = (float)\App\Models\BusinessSetting::where(['key' => 'minimum_shipping_charge'])->first()->value;
-                                            // $original_delivery_charge = ($request->distance * $per_km_shipping_charge > $minimum_shipping_charge) ? $request->distance * $per_km_shipping_charge : $minimum_shipping_charge;
+                                            $rest_sub=$restaurant_data->restaurant_sub;
+                                                if(($restaurant_data->restaurant_model == 'commission' && $restaurant_data->self_delivery_system == 1)
+                                                    || ($restaurant_data->restaurant_model == 'subscription' && isset($rest_sub) && $rest_sub->self_delivery == 1) ){
+                                                    $per_km_shipping_charge = (float) $restaurant_data->per_km_shipping_charge;
+                                                    $minimum_shipping_charge =(float) $restaurant_data->minimum_shipping_charge;
+                                                    $maximum_shipping_charge = (float) $restaurant_data->maximum_shipping_charge;
+                                                    $increased = 0;
+                                                    $self_delivery_status =1;
+                                                }else{
+                                                    $per_km_shipping_charge = $restaurant_data->zone->per_km_shipping_charge ?? 0;
+                                                    $minimum_shipping_charge = $restaurant_data->zone->minimum_shipping_charge ?? 0;
+                                                    $maximum_shipping_charge = $restaurant_data->zone->maximum_shipping_charge ?? 0;
+                                                    $increased = 0;
+                                                    if($restaurant_data->zone->increased_delivery_fee_status == 1){
+                                                            $increased=$restaurant_data->zone->increased_delivery_fee ?? 0;
+                                                        }
+                                                        $self_delivery_status= 0;
 
+                                                }
                                             ?>
 
-                                            var original_delivery_charge = (distancMileResult * {{$per_km_shipping_charge}} > {{$minimum_shipping_charge}}) ? distancMileResult * {{$per_km_shipping_charge}} : {{$minimum_shipping_charge}};
-                                            var delivery_charge =Math.round((original_delivery_charge + Number.EPSILON) * 100) / 100;
-                                            document.getElementById('delivery_fee').value = delivery_charge;
-                                            $('#delivery_fee').siblings('strong').html(delivery_charge + '{{ \App\CentralLogics\Helpers::currency_symbol() }}');
+                                            $.get({
+                                                url: '{{ route('admin.pos.extra_charge') }}',
+                                                dataType: 'json',
+                                                data: {
+                                                    distancMileResult: distancMileResult,
+                                                    self_delivery_status: {{ $self_delivery_status }},
+                                                },
+                                                success: function(data) {
+                                                    extra_charge = data;
+                                                    var original_delivery_charge =  (distancMileResult * {{$per_km_shipping_charge}} > {{$minimum_shipping_charge}}) ? distancMileResult * {{$per_km_shipping_charge}} : {{$minimum_shipping_charge}};
+                                                    var delivery_amount = ({{ $maximum_shipping_charge }} > {{ $minimum_shipping_charge }} && original_delivery_charge + extra_charge > {{ $maximum_shipping_charge }} ? {{ $maximum_shipping_charge }} : original_delivery_charge + extra_charge);
+                                                    var with_increased_fee  = (delivery_amount * {{ $increased }}) /100 ;
+                                                    var delivery_charge =Math.round(( delivery_amount + with_increased_fee + Number.EPSILON) * 100) / 100;
+                                                document.getElementById('delivery_fee').value = delivery_charge;
+                                                $('#delivery_fee').siblings('strong').html(delivery_charge + '{{ \App\CentralLogics\Helpers::currency_symbol() }}');
 
-                                            console.log(Math.round((original_delivery_charge + Number.EPSILON) * 100) / 100);
+                                                },
+                                                error:function(){
+                                                    var original_delivery_charge =  (distancMileResult * {{$per_km_shipping_charge}} > {{$minimum_shipping_charge}}) ? distancMileResult * {{$per_km_shipping_charge}} : {{$minimum_shipping_charge}};
+
+                                                    var delivery_charge =Math.round((
+                                                ({{ $maximum_shipping_charge }} > {{ $minimum_shipping_charge }} && original_delivery_charge  > {{ $maximum_shipping_charge }} ? {{ $maximum_shipping_charge }} : original_delivery_charge)
+                                                + Number.EPSILON) * 100) / 100;
+                                                document.getElementById('delivery_fee').value = delivery_charge;
+                                                $('#delivery_fee').siblings('strong').html(delivery_charge + '{{ \App\CentralLogics\Helpers::currency_symbol() }}');
+                                                }
+                                            });
+
                                         });
 
                                     }
@@ -557,12 +596,26 @@
         }
 
         function printDiv(divName) {
-            var printContents = document.getElementById(divName).innerHTML;
-            var originalContents = document.body.innerHTML;
-            document.body.innerHTML = printContents;
-            window.print();
-            document.body.innerHTML = originalContents;
-            location.reload();
+
+            if($('html').attr('dir') === 'rtl') {
+                $('html').attr('dir', 'ltr')
+                var printContents = document.getElementById(divName).innerHTML;
+                var originalContents = document.body.innerHTML;
+                document.body.innerHTML = printContents;
+                $('.initial-38-1').attr('dir', 'rtl')
+                window.print();
+                document.body.innerHTML = originalContents;
+                $('html').attr('dir', 'rtl')
+                location.reload();
+            }else{
+                var printContents = document.getElementById(divName).innerHTML;
+                var originalContents = document.body.innerHTML;
+                document.body.innerHTML = printContents;
+                window.print();
+                document.body.innerHTML = originalContents;
+                location.reload();
+            }
+
         }
 
         function set_category_filter(id) {
@@ -670,16 +723,23 @@
         }
 
         function checkAddToCartValidity() {
-            var names = {};
-            $('#add-to-cart-form input:radio').each(function() { // find unique names
-                names[$(this).attr('name')] = true;
-            });
-            var count = 0;
-            $.each(names, function() { // then count them
-                count++;
-            });
+            // var names = {};
+            // $('#add-to-cart-form input:radio').each(function() { // find unique names
+            //     names[$(this).attr('name')] = true;
+            // });
 
-            if ($('#add-to-cart-form input:radio:checked').length == count) {
+            // var count = 0;
+            // $.each(names, function() { // then count them
+            //     count++;
+            // });
+
+            // if ($('#add-to-cart-form input:radio:checked').length == count || $('#add-to-cart-form input:checkbox:checked').length == count ) {
+            //     return true;
+            // }
+            var numberNotChecked = $('#add-to-cart-form input:checkbox:checked').length;
+            var numberNotChecked2 = $('#add-to-cart-form input:radio:checked').length;
+
+            if( numberNotChecked> 0 || numberNotChecked2 > 0){
                 return true;
             }
             return false;
@@ -779,71 +839,74 @@
                     url: '{{ route('admin.pos.variant_price') }}',
                     data: $('#add-to-cart-form').serializeArray(),
                     success: function(data) {
+                        if(data.error == 'quantity_error'){
+                            toastr.error(data.message);
+                        }
+                            else{
                         $('#add-to-cart-form #chosen_price_div').removeClass('d-none');
                         $('#add-to-cart-form #chosen_price_div #chosen_price').html(data.price);
+                    }
                     }
                 });
             }
         }
 
         function addToCart(form_id = 'add-to-cart-form') {
-            if (checkAddToCartValidity()) {
-                $.ajaxSetup({
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="_token"]').attr('content')
-                    }
-                });
-                $.post({
-                    url: '{{ route('admin.pos.add-to-cart') }}',
-                    data: $('#' + form_id).serializeArray(),
-                    beforeSend: function() {
-                        $('#loading').show();
-                    },
-                    success: function(data) {
-                        if (data.data == 1) {
-                            Swal.fire({
-                                icon: 'info',
-                                title: 'Cart',
-                                text: "{{ translate('messages.product_already_added_in_cart') }}"
-                            });
-                            return false;
-                        } else if (data.data == 2) {
-                            updateCart();
-                            Swal.fire({
-                                icon: 'info',
-                                title: 'Cart',
-                                text: "{{ translate('messages.product_has_been_updated_in_cart') }}"
-                            });
-
-                            return false;
-                        } else if (data.data == 0) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Cart',
-                                text: 'Sorry, product out of stock.'
-                            });
-                            return false;
-                        }
-                        $('.call-when-done').click();
-
-                        toastr.success('{{ translate('messages.product_has_been_added_in_cart') }}', {
-                            CloseButton: true,
-                            ProgressBar: true
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="_token"]').attr('content')
+                }
+            });
+            $.post({
+                url: '{{ route('admin.pos.add-to-cart') }}',
+                data: $('#' + form_id).serializeArray(),
+                beforeSend: function() {
+                    $('#loading').show();
+                },
+                success: function(data) {
+                    if (data.data == 1) {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Cart',
+                            text: "{{ translate('messages.product_already_added_in_cart') }}"
                         });
-
+                        return false;
+                    } else if (data.data == 2) {
                         updateCart();
-                    },
-                    complete: function() {
-                        $('#loading').hide();
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Cart',
+                            text: "{{ translate('messages.product_has_been_updated_in_cart') }}"
+                        });
+                        return false;
+                    } else if (data.data == 0) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Cart',
+                            text: 'Sorry, product out of stock.'
+                        });
+                        return false;
                     }
-                });
-            } else {
-                Swal.fire({
-                    type: 'info',
-                    title: 'Cart',
-                    text: 'Please choose all the options'
-                });
-            }
+                    else if (data.data == 'variation_error') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Cart',
+                            text: data.message
+                        });
+                        return false;
+                    }
+                    $('.call-when-done').click();
+                    toastr.success('{{ translate('messages.product_has_been_added_in_cart') }}', {
+                        CloseButton: true,
+                        ProgressBar: true
+                    });
+
+                    updateCart();
+                },
+                complete: function() {
+                    $('#loading').hide();
+                }
+            });
         }
         function deliveryAdressStore(form_id = 'delivery_address_store') {
             $.ajaxSetup({

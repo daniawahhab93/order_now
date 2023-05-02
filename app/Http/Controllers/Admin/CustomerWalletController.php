@@ -80,6 +80,7 @@ class CustomerWalletController extends Controller
         ->when($request->customer_id, function($query)use($request){
             $query->where('user_id',$request->customer_id);
         })
+        ->whereNull('delivery_man_id')
         ->latest()
         ->paginate(config('default_pagination'));
 

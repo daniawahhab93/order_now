@@ -2,23 +2,25 @@
 
 namespace App\Http\Controllers\Admin;
 
+use Carbon\Carbon;
 use App\Models\Food;
 use App\Models\User;
 use App\Models\Zone;
 use App\Models\Order;
+use App\Models\Vehicle;
 use App\Models\Category;
 use App\Models\Restaurant;
 use App\Models\OrderDetail;
-use App\CentralLogics\CustomerLogic;
 use Illuminate\Http\Request;
 use App\CentralLogics\Helpers;
+use App\Models\BusinessSetting;
 use App\Scopes\RestaurantScope;
 use Illuminate\Support\Facades\DB;
+use App\CentralLogics\CustomerLogic;
 use App\Http\Controllers\Controller;
 use Brian2694\Toastr\Facades\Toastr;
-use Illuminate\Support\Facades\Validator;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
 
 class POSController extends Controller
 {
@@ -28,7 +30,7 @@ class POSController extends Controller
         $zone_id = $request->query('zone_id', null);
         $restaurant_id = $request->query('restaurant_id', null);
         $zone = is_numeric($zone_id) ? Zone::findOrFail($zone_id) : null;
-        $restaurant_data = Restaurant::active()->where('zone_id', $zone_id)->find($restaurant_id);
+        $restaurant_data = Restaurant::active()->with('restaurant_sub')->where('zone_id', $zone_id)->find($restaurant_id);
         $category = $request->query('category_id', 0);
         $categories = Category::active()->get();
         $keyword = $request->query('keyword', false);
@@ -66,12 +68,12 @@ class POSController extends Controller
     public function quick_view(Request $request)
     {
         $product = Food::withoutGlobalScope(RestaurantScope::class)->with('restaurant')->findOrFail($request->product_id);
-        //dd($product);
         return response()->json([
             'success' => 1,
             'view' => view('admin-views.pos._quick-view-data', compact('product'))->render(),
         ]);
     }
+
 
     public function quick_view_card_item(Request $request)
     {
@@ -89,83 +91,68 @@ class POSController extends Controller
     public function variant_price(Request $request)
     {
         $product = Food::withoutGlobalScope(RestaurantScope::class)->with('restaurant')->where(['id' => $request->id])->first();
-        $str = '';
-        $quantity = 0;
-        $price = 0;
+        $price = $product->price;
         $addon_price = 0;
-
-        foreach (json_decode($product->choice_options) as $key => $choice) {
-            if ($str != null) {
-                $str .= '-' . str_replace(' ', '', $request[$choice->name]);
-            } else {
-                $str .= str_replace(' ', '', $request[$choice->name]);
-            }
-        }
 
         if ($request['addon_id']) {
             foreach ($request['addon_id'] as $id) {
                 $addon_price += $request['addon-price' . $id] * $request['addon-quantity' . $id];
             }
         }
+        $product_variations = json_decode($product->variations, true);
+        if ($request->variations && count($product_variations)) {
 
-        if ($str != null) {
-            $count = count(json_decode($product->variations));
-            for ($i = 0; $i < $count; $i++) {
-                if (json_decode($product->variations)[$i]->type == $str) {
-                    $price = json_decode($product->variations)[$i]->price - Helpers::product_discount_calculate($product, json_decode($product->variations)[$i]->price, $product->restaurant);
-                }
-            }
+            $price_total =  $price + Helpers::variation_price($product_variations, $request->variations);
+            $price= $price_total - Helpers::product_discount_calculate($product, $price_total, $product->restaurant);
         } else {
             $price = $product->price - Helpers::product_discount_calculate($product, $product->price, $product->restaurant);
         }
-
         return array('price' => Helpers::format_currency(($price * $request->quantity) + $addon_price));
     }
 
     public function addToCart(Request $request)
     {
         $product = Food::with('restaurant')->withoutGlobalScope(RestaurantScope::class)->where(['id' => $request->id])->first();
-        //dd($product);
         $data = array();
         $data['id'] = $product->id;
         $str = '';
         $variations = [];
         $price = 0;
         $addon_price = 0;
-        //Gets all the choice values of customer choice option and generate a string like Black-S-Cotton
-        foreach (json_decode($product->choice_options) as $key => $choice) {
-            $data[$choice->name] = $request[$choice->name];
-            $variations[$choice->title] = $request[$choice->name];
-            if ($str != null) {
-                $str .= '-' . str_replace(' ', '', $request[$choice->name]);
-            } else {
-                $str .= str_replace(' ', '', $request[$choice->name]);
+        $variation_price=0;
+
+        $product_variations = json_decode($product->variations, true);
+        if ($request->variations && count($product_variations)) {
+            foreach($request->variations  as $key=> $value ){
+
+                if($value['required'] == 'on' &&  isset($value['values']) == false){
+                    return response()->json([
+                        'data' => 'variation_error',
+                        'message' => translate('Please select items from') . ' ' . $value['name'],
+                    ]);
+                }
+                if(isset($value['values'])  && $value['min'] != 0 && $value['min'] > count($value['values']['label'])){
+                    return response()->json([
+                        'data' => 'variation_error',
+                        'message' => translate('Please select minimum ').$value['min'].translate(' For ').$value['name'].'.',
+                    ]);
+                }
+                if(isset($value['values']) && $value['max'] != 0 && $value['max'] < count($value['values']['label'])){
+                    return response()->json([
+                        'data' => 'variation_error',
+                        'message' => translate('Please select maximum ').$value['max'].translate(' For ').$value['name'].'.',
+                    ]);
+                }
             }
+            $variation_data = Helpers::get_varient($product_variations, $request->variations);
+            $variation_price = $variation_data['price'];
+            $variations = $request->variations;
         }
         $data['variations'] = $variations;
         $data['variant'] = $str;
-        if ($request->session()->has('cart') && !isset($request->cart_item_key)) {
-            if (count($request->session()->get('cart')) > 0) {
-                foreach ($request->session()->get('cart') as $key => $cartItem) {
-                    if (is_array($cartItem) && $cartItem['id'] == $request['id'] && $cartItem['variant'] == $str) {
-                        return response()->json([
-                            'data' => 1
-                        ]);
-                    }
-                }
-            }
-        }
-        //Check the string and decreases quantity for the stock
-        if ($str != null) {
-            $count = count(json_decode($product->variations));
-            for ($i = 0; $i < $count; $i++) {
-                if (json_decode($product->variations)[$i]->type == $str) {
-                    $price = json_decode($product->variations)[$i]->price;
-                }
-            }
-        } else {
-            $price = $product->price;
-        }
+
+        $price = $product->price + $variation_price;
+        $data['variation_price'] = $variation_price;
         $data['quantity'] = $request['quantity'];
         $data['price'] = $price;
         $data['name'] = $product->name;
@@ -228,6 +215,7 @@ class POSController extends Controller
             'road' => $request->road,
             'house' => $request->house,
             'delivery_fee' => $request->delivery_fee,
+            'distance' => $request->distance,
             'longitude' => (string)$request->longitude,
             'latitude' => (string)$request->latitude,
         ];
@@ -323,7 +311,6 @@ class POSController extends Controller
 
     public function place_order(Request $request)
     {
-
         if(!$request->user_id){
             Toastr::error(translate('messages.no_customer_selected'));
             return back();
@@ -356,6 +343,22 @@ class POSController extends Controller
             Toastr::error(translate('messages.customer_wallet_disable_warning'));
         }
         $restaurant = Restaurant::find($request->restaurant_id);
+        if(!$restaurant){
+            Toastr::error(translate('messages.Sorry_the_restaurant_is_not_available'));
+            return back();
+        }
+
+        $rest_sub=$restaurant->restaurant_sub;
+        if (  $restaurant->restaurant_model == 'subscription' && isset($rest_sub)) {
+            if($rest_sub->max_order != "unlimited" && $rest_sub->max_order <= 0){
+                Toastr::error(translate('messages.The_restaurant_has_reached_the_maximum_number_of_orders'));
+                return back();
+            }
+        } elseif($restaurant->restaurant_model == 'unsubscribed'){
+            Toastr::error(translate('messages.The_restaurant_is_not_subscribed_or_subscription_has_expired'));
+            return back();
+        }
+
         $cart = $request->session()->get('cart');
         $total_addon_price = 0;
         $product_price = 0;
@@ -367,6 +370,7 @@ class POSController extends Controller
         if (Order::find($order->id)) {
             $order->id = Order::latest()->first()->id + 1;
         }
+        $order->distance = isset($address) ? $address['distance'] : 0;
         $order->payment_status = $request->type == 'wallet'?'paid':'unpaid';
         $order->order_status = $request->type == 'wallet'?'confirmed':'pending';
         $order->order_type = 'delivery';
@@ -383,12 +387,15 @@ class POSController extends Controller
         foreach ($cart as $c) {
             if (is_array($c)) {
                 $product = Food::withoutGlobalScope(RestaurantScope::class)->with('restaurant')->find($c['id']);
-                //dd($product);
+                // dd($product->variations);
                 if ($product) {
                     $price = $c['price'];
                     $product->tax = $product->restaurant->tax;
                     $product = Helpers::product_data_formatting($product);
-                    $addon_data = Helpers::calculate_addon_price(\App\Models\AddOn::whereIn('id', $c['add_ons'])->get(), $c['add_on_qtys']);
+                    $addon_data = Helpers::calculate_addon_price(\App\Models\AddOn::withOutGlobalScope(App\Scopes\RestaurantScope::class)->whereIn('id', $c['add_ons'])->get(), $c['add_on_qtys']);
+
+                    $variation_data = Helpers::get_varient($product->variations, $c['variations']);
+                    $variations = $variation_data['variations'];
                     $or_d = [
                         'food_id' => $c['id'],
                         'item_campaign_id' => null,
@@ -398,8 +405,9 @@ class POSController extends Controller
                         'tax_amount' => Helpers::tax_calculate($product, $price),
                         'discount_on_food' => Helpers::product_discount_calculate($product, $price, $product->restaurant),
                         'discount_type' => 'discount_on_product',
-                        'variant' => json_encode($c['variant']),
-                        'variation' => json_encode(count($c['variations']) ? Helpers::get_varient($product->variations,$c['variations']) : []),
+                        // 'variant' => json_encode($c['variant']),
+                        'variation' => json_encode($variations),
+                        // 'variation' => json_encode(count($c['variations']) ? $c['variations'] : []),
                         'add_ons' => json_encode($addon_data['addons']),
                         'total_add_on_price' => $addon_data['total_add_on_price'],
                         'created_at' => now(),
@@ -414,20 +422,56 @@ class POSController extends Controller
         }
 
 
+        $order->discount_on_product_by = 'vendor';
+        $restaurant_discount = Helpers::get_restaurant_discount($restaurant);
+        if(isset($restaurant_discount)){
+            $order->discount_on_product_by = 'admin';
+        }
+
         if (isset($cart['discount'])) {
             $restaurant_discount_amount += $cart['discount_type'] == 'percent' && $cart['discount'] > 0 ? ((($product_price + $total_addon_price - $restaurant_discount_amount) * $cart['discount']) / 100) : $cart['discount'];
         }
 
         $total_price = $product_price + $total_addon_price - $restaurant_discount_amount;
         $tax = isset($cart['tax']) ? $cart['tax'] : $restaurant->tax;
-        $total_tax_amount = ($tax > 0) ? (($total_price * $tax) / 100) : 0;
+        // $total_tax_amount = ($tax > 0) ? (($total_price * $tax) / 100) : 0;
+
+
+        $order->tax_status = 'excluded';
+
+        $tax_included =BusinessSetting::where(['key'=>'tax_included'])->first() ?  BusinessSetting::where(['key'=>'tax_included'])->first()->value : 0;
+        if ($tax_included ==  1){
+            $order->tax_status = 'included';
+        }
+
+        $total_tax_amount=Helpers::product_tax($total_price,$tax,$order->tax_status =='included');
+        $tax_a=$order->tax_status =='included'?0:$total_tax_amount;
 
         try {
             $order->restaurant_discount_amount = $restaurant_discount_amount;
             $order->total_tax_amount = $total_tax_amount;
-            $order->order_amount = $total_price + $total_tax_amount + $order->delivery_charge;
+
+            // $tax_a=$total_tax_amount;
+            // $order->tax_status = 'excluded' ;
+            // $tax_included =BusinessSetting::where(['key'=>'tax_included'])->first() ?  BusinessSetting::where(['key'=>'tax_included'])->first()->value : 0;
+            // if ($tax_included ==  1){
+            //     $tax_a=0;
+            //     $order->tax_status = 'included';
+            // }
+
+            $order->order_amount = $total_price + $tax_a + $order->delivery_charge;
+
+
             $order->payment_method = $request->type == 'wallet'?'wallet':'cash_on_delivery';
             $order->adjusment = $order->order_amount;
+
+            $max_cod_order_amount = BusinessSetting::where('key', 'max_cod_order_amount')->first();
+            $max_cod_order_amount_value=  $max_cod_order_amount ? $max_cod_order_amount->value : 0;
+            if( $max_cod_order_amount_value > 0 && $order->payment_method == 'cash_on_delivery' && $order->order_amount > $max_cod_order_amount_value){
+            Toastr::error(translate('messages.You can not Order more then ').$max_cod_order_amount_value .Helpers::currency_symbol().' '. translate('messages.on COD order.')  );
+            return back();
+            }
+
             if($request->type == 'wallet'){
                 if($request->user_id){
 
@@ -443,6 +487,10 @@ class POSController extends Controller
                     return back();
                 }
             };
+
+
+
+
             $order->save();
             foreach ($order_details as $key => $item) {
                 $order_details[$key]['order_id'] = $order->id;
@@ -451,6 +499,15 @@ class POSController extends Controller
             session()->forget('cart');
             session()->forget('address');
             session(['last_order' => $order->id]);
+
+            if ($restaurant->restaurant_model == 'subscription' && isset($rest_sub)) {
+                if ($rest_sub->max_order != "unlimited" && $rest_sub->max_order > 0 ) {
+                    $rest_sub->decrement('max_order' , 1);
+                        // if ( $rest_sub->max_order <= 0 ){
+                        //     $restaurant->update(['status' => 0]);
+                        // }
+                    }
+            }
             Toastr::success(translate('messages.order_placed_successfully'));
             return back();
         } catch (\Exception $e) {
@@ -541,5 +598,33 @@ class POSController extends Controller
         }
         Toastr::success(translate('customer_added_successfully'));
         return back();
+    }
+
+
+    public function extra_charge(Request $request)
+    {
+        $distance_data = $request->distancMileResult ?? 1;
+        $self_delivery_status = $request->self_delivery_status;
+
+        // $data= Vehicle::where('starting_coverage_area','<=' , $distance )->where('maximum_coverage_area','>=', $distance)->first();
+        // if(!$data){
+        //     $data= Vehicle::where('maximum_coverage_area','>=', $distance)->first();
+        //         if(!$data){
+        //         $data= Vehicle::orderBy('maximum_coverage_area','DESC')->first();
+        //         }
+        // }
+        if($self_delivery_status != 1){
+            $data =  Vehicle::active()->
+            where(function ($query) use ($distance_data) {
+                $query->where('starting_coverage_area', '<=', $distance_data)->where('maximum_coverage_area', '>=', $distance_data)
+                ->orWhere(function ($query) use ($distance_data) {
+                    $query->where('starting_coverage_area', '>=', $distance_data);
+                });
+            })
+                ->orderBy('starting_coverage_area')->first();
+        }
+
+            $extra_charges = (float) (isset($data) ? $data->extra_charges  : 0);
+            return response()->json($extra_charges,200);
     }
 }

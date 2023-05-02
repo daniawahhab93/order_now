@@ -145,11 +145,21 @@
                 processData: false,
                 success: function(data) {
                     if (data.errors && data.errors.length > 0) {
-                        $('button[type=submit], input[type=submit]').prop('disabled',false);
-                        toastr.error('{{ translate('Write something to send massage!') }}', {
-                            CloseButton: true,
-                            ProgressBar: true
-                        });
+
+                        if (data.errors[1] && data.errors[1].code == 'images') {
+                            toastr.error(data.errors[1].message, {
+                                CloseButton: true,
+                                ProgressBar: true
+                            });
+                        } else {
+
+                            $('button[type=submit], input[type=submit]').prop('disabled',false);
+                            toastr.error('{{ translate('Write something to send massage!') }}', {
+                                CloseButton: true,
+                                ProgressBar: true
+                            });
+                        }
+
                     }else{
 
                         toastr.success('Message sent', {

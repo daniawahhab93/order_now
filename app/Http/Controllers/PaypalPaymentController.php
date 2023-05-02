@@ -38,8 +38,9 @@ class PaypalPaymentController extends Controller
 
     public function payWithpaypal(Request $request)
     {
-        $order = Order::with(['details'])->where(['id' => $request->order_id])->first();
+        $order = Order::with(['details','subscription'])->where(['id' => $request->order_id])->first();
         $tr_ref = Str::random(6) . '-' . rand(1, 1000);
+        $quantity = $order->subscription ? $order->subscription->quantity : 1;
 
         $payer = new Payer();
         $payer->setPaymentMethod('paypal');
@@ -48,7 +49,7 @@ class PaypalPaymentController extends Controller
         $item = new Item();
         $item->setName($order->customer['f_name'])
             ->setCurrency(Helpers::currency_code())
-            ->setQuantity(1)
+            ->setQuantity($quantity)
             ->setPrice($order['order_amount']);
         array_push($items_array, $item);
 
@@ -57,7 +58,7 @@ class PaypalPaymentController extends Controller
 
         $amount = new Amount();
         $amount->setCurrency(Helpers::currency_code())
-            ->setTotal($order['order_amount']);
+        ->setTotal($order['order_amount'] * $quantity);
 
         \session()->put('transaction_reference', $tr_ref);
         $transaction = new Transaction();

@@ -26,7 +26,7 @@ class EmployeeController extends Controller
             'f_name' => 'required',
             'l_name' => 'nullable|max:100',
             'role_id' => 'required',
-            'image' => 'required',
+            'image' => 'required|max:2048',
             'email' => 'required|unique:vendor_employees',
             'phone' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|max:20|unique:vendor_employees',
             'password' => 'required|min:8',
@@ -59,6 +59,10 @@ class EmployeeController extends Controller
     public function edit($id)
     {
         $e = VendorEmployee::where('restaurant_id', Helpers::get_restaurant_id())->where(['id' => $id])->first();
+        if (auth('vendor_employee')->id()  == $e['id']){
+            Toastr::error(translate('messages.You_can_not_edit_your_own_info'));
+            return redirect()->route('vendor.employee.list');
+        }
         $rls = EmployeeRole::where('restaurant_id',Helpers::get_restaurant_id())->get();
         return view('vendor-views.employee.edit', compact('rls', 'e'));
     }
@@ -71,11 +75,18 @@ class EmployeeController extends Controller
             'role_id' => 'required',
             'email' => 'required|unique:vendor_employees,email,'.$id,
             'phone' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|max:20|unique:vendor_employees,phone,'.$id,
+            'image' => 'nullable|max:2048',
         ], [
             'f_name.required' => translate('messages.first_name_is_required'),
         ]);
 
         $e = VendorEmployee::where('restaurant_id', Helpers::get_restaurant_id())->find($id);
+
+        if (auth('vendor_employee')->id()  == $e['id']){
+            Toastr::error(translate('messages.You_can_not_edit_your_own_info'));
+            return redirect()->route('vendor.employee.list');
+        }
+
         if ($request['password'] == null) {
             $pass = $e['password'];
         } else {
@@ -109,7 +120,12 @@ class EmployeeController extends Controller
 
     public function distroy($id)
     {
-        $role=VendorEmployee::where('restaurant_id', Helpers::get_restaurant_id())->where(['id'=>$id])->delete();
+        $role=VendorEmployee::where('restaurant_id', Helpers::get_restaurant_id())->where(['id'=>$id])->first();
+        if (auth('vendor_employee')->id()  == $role['id']){
+            Toastr::error(translate('messages.You_can_not_edit_your_own_info'));
+            return redirect()->route('vendor.employee.list');
+        }
+        $role->delete();
         Toastr::info(translate('messages.employee_deleted_successfully'));
         return back();
     }
@@ -132,11 +148,11 @@ class EmployeeController extends Controller
     }
 
     public function list_export(Request $request){
-        $em = VendorEmployee::where('restaurant_id', Helpers::get_restaurant_id())->with(['role'])->get();
+        $em = VendorEmployee::where('restaurant_id', Helpers::get_restaurant_id())->with(['role'])->latest()->get();
         if($request->type == 'excel'){
-            return (new FastExcel($em))->download('Employee.xlsx');
+            return (new FastExcel(Helpers::vendor_employee_list_export($em)))->download('Employee.xlsx');
         }elseif($request->type == 'csv'){
-            return (new FastExcel($em))->download('Employee.csv');
+            return (new FastExcel(Helpers::vendor_employee_list_export($em)))->download('Employee.csv');
         }
     }
 }

@@ -41,32 +41,44 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-sm-6 col-lg-3">
-                            <div class="form-group" id="restaurant_wise" style="display: {{$coupon['coupon_type']=='restaurant_wise'?'block':'none'}}">
-                                    <label class="input-label" for="exampleFormControlSelect1">{{translate('messages.restaurant')}}<span
-                                            class="input-label-secondary"></span></label>
-                                    <select name="restaurant_ids[]" class="js-data-example-ajax form-control"  title="Select Restaurant">
-                                    @if($coupon->coupon_type == 'restaurant_wise')
-                                    @php($restaurant=\App\Models\Restaurant::find(json_decode($coupon->data)[0]))
-                                        @if($restaurant)
-                                        <option value="{{$restaurant->id}}">{{$restaurant->name}}</option>
-                                        @endif
-                                    @else
-                                    <option selected>{{translate('select_restaurant')}}</option>
-                                    @endif
-                                    </select>
-                                </div>
-                                <div class="form-group" id="zone_wise" style="display: {{$coupon['coupon_type']=='zone_wise'?'block':'none'}}">
-                                    <label class="input-label" for="exampleFormControlInput1">{{translate('messages.select')}} {{translate('messages.zone')}}</label>
-                                    <select name="zone_ids[]" id="choice_zones"
-                                        class="form-control js-select2-custom"
-                                        multiple="multiple" placeholder="{{translate('messages.select_zone')}}">
-                                    @foreach(\App\Models\Zone::all() as $zone)
-                                        <option value="{{$zone->id}}" {{($coupon->coupon_type=='zone_wise'&&json_decode($coupon->data))?(in_array($zone->id, json_decode($coupon->data))?'selected':''):''}}>{{$zone->name}}</option>
-                                    @endforeach
-                                    </select>
-                                </div>
+
+                        <div class="form-group col-sm-6 col-lg-3" id="restaurant_wise" style="display: {{$coupon['coupon_type']=='restaurant_wise'?'block':'none'}}">
+                            <label class="input-label" for="exampleFormControlSelect1">{{translate('messages.restaurant')}}<span
+                                    class="input-label-secondary"></span></label>
+                            <select name="restaurant_ids[]" class="js-data-example-ajax form-control"  title="Select Restaurant">
+                            @if($coupon->coupon_type == 'restaurant_wise')
+                            @php($restaurant=\App\Models\Restaurant::find(json_decode($coupon->data)[0]))
+                                @if($restaurant)
+                                <option value="{{$restaurant->id}}">{{$restaurant->name}}</option>
+                                @endif
+                            @else
+                            <option selected>{{translate('select_restaurant')}}</option>
+                            @endif
+                            </select>
                         </div>
+                        <div class="form-group col-sm-6 col-lg-3" id="zone_wise" style="display: {{$coupon['coupon_type']=='zone_wise'?'block':'none'}}">
+                            <label class="input-label" for="exampleFormControlInput1">{{translate('messages.select')}} {{translate('messages.zone')}}</label>
+                            <select name="zone_ids[]" id="choice_zones"
+                                class="form-control js-select2-custom"
+                                multiple="multiple" placeholder="{{translate('messages.select_zone')}}">
+                            @foreach(\App\Models\Zone::where('status',1)->get(['id','name']) as $zone)
+                                <option value="{{$zone->id}}" {{($coupon->coupon_type=='zone_wise'&&json_decode($coupon->data))?(in_array($zone->id, json_decode($coupon->data))?'selected':''):''}}>{{$zone->name}}</option>
+                            @endforeach
+                            </select>
+                        </div>
+                        <div class="col-sm-6 col-lg-3" >
+                            <div class="form-group" id="customer_wise" style="display: {{$coupon['coupon_type'] =='zone_wise' || $coupon['coupon_type'] =='first_order' ?'none':'block'}}">
+                                <label class="input-label" for="select_customer">{{translate('messages.select_customer')}}</label>
+                                <select name="customer_ids[]" id="select_customer"
+                                    class="form-control js-select2-custom"
+                                    multiple="multiple" placeholder="{{translate('messages.select_customer')}}">
+                                    <option value="all" {{in_array('all', json_decode($coupon->customer_id))?'selected':''}}>{{translate('messages.all')}} </option>
+                                    @foreach(\App\Models\User::get(['id','f_name','l_name']) as $user)
+                                    <option value="{{$user->id}}" {{in_array($user->id, json_decode($coupon->customer_id))?'selected':''}}>{{$user->f_name.' '.$user->l_name}}</option>
+                                @endforeach
+                                </select>
+                            </div>
+                            </div>
                     </div>
                     <div class="row">
                         <div class="col-sm-6 col-lg-3">
@@ -101,18 +113,26 @@
                         <div class="col-sm-6 col-lg-3">
                             <div class="form-group">
                                 <label class="input-label" for="discount_type">{{translate('messages.discount')}} {{translate('messages.type')}}</label>
-                                <select name="discount_type" id="discount_type" class="form-control" {{$coupon['coupon_type']=='free_delivery'?'disabled':''}}>
-                                    <option value="amount" {{$coupon['discount_type']=='amount'?'selected':''}}>{{translate('messages.amount')}}
+                                <select name="discount_type"  required id="discount_type" class="form-control" {{$coupon['coupon_type']=='free_delivery'?'disabled':''}}>
+                                    <option value="amount" {{$coupon['discount_type']=='amount'?'selected':''}}>
+                                        {{ translate('messages.amount').' ('.\App\CentralLogics\Helpers::currency_symbol().')'  }}
+
                                     </option>
                                     <option value="percent" {{$coupon['discount_type']=='percent'?'selected':''}}>
-                                        {{translate('messages.percent')}}
+                                       {{ translate('messages.percent').' (%)' }}
                                     </option>
                                 </select>
                             </div>
                         </div>
                         <div class="col-sm-6 col-lg-3">
                             <div class="form-group">
-                                <label class="input-label" for="discount">{{translate('messages.discount')}}</label>
+                                <label class="input-label" for="discount">{{translate('messages.discount')}}
+                                    {{-- <span class="input-label-secondary text--title" data-toggle="tooltip"
+                                        data-placement="right"
+                                        data-original-title="{{ translate('Currently you need to manage discount with the Restaurant.') }}">
+                                        <i class="tio-info-outined"></i>
+                                    </span> --}}
+                                </label>
                                 <input type="number" id="discount" min="1" max="999999999999.99" step="0.01" value="{{$coupon['discount']}}"
                                         name="discount" class="form-control" required {{$coupon['coupon_type']=='free_delivery'?'readonly':''}}>
                             </div>
@@ -158,7 +178,7 @@
             $('#date_to').attr('min','{{date("Y-m-d",strtotime($coupon["start_date"]))}}');
             $('.js-data-example-ajax').select2({
             ajax: {
-                url: '{{url('/')}}/admin/vendor/get-restaurants',
+                url: '{{url('/')}}/admin/restaurant/get-restaurants',
                 data: function (params) {
                     return {
                         q: params.term, // search term
@@ -191,12 +211,16 @@
            if(coupon_type=='zone_wise')
             {
                 $('#restaurant_wise').hide();
+                $('#customer_wise').hide();
+                $('#select_customer').val(null).trigger('change');
                 $('#zone_wise').show();
             }
             else if(coupon_type=='restaurant_wise')
             {
                 $('#restaurant_wise').show();
                 $('#zone_wise').hide();
+                $('#customer_wise').show();
+
             }
             else if(coupon_type=='first_order')
             {
@@ -204,12 +228,17 @@
                 $('#restaurant_wise').hide();
                 $('#coupon_limit').val(1);
                 $('#coupon_limit').attr("readonly","true");
+                $('#select_customer').val(null).trigger('change');
+                $('#customer_wise').hide();
+
             }
             else{
                 $('#zone_wise').hide();
                 $('#restaurant_wise').hide();
                 $('#coupon_limit').val('');
                 $('#coupon_limit').removeAttr("readonly");
+                $('#customer_wise').show();
+
             }
 
             if(coupon_type=='free_delivery')
@@ -217,6 +246,7 @@
                 $('#discount_type').attr("disabled","true");
                 $('#discount_type').val("").trigger( "change" );
                 $('#max_discount').val(0);
+                $('#discount_type').attr("required","false");
                 $('#max_discount').attr("readonly","true");
                 $('#discount').val(0);
                 $('#discount').attr("readonly","true");

@@ -1,5 +1,15 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<?php
+        $site_direction = session()->get('site_direction');
+        // if (env('APP_MODE') == 'demo') {
+        // $site_direction = session()->get('site_direction');
+    // }else{
+    //     $site_direction = \App\Models\BusinessSetting::where('key', 'site_direction')->first();
+    //     $site_direction = $site_direction->value ?? 'ltr';
+    // }
+?>
+
+<html dir="{{ $site_direction }}" lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="{{ $site_direction === 'rtl'?'active':'' }}">
 
 <head>
     <meta charset="utf-8">
@@ -30,8 +40,13 @@
 </head>
 
 <body class="footer-offset">
-    <!-- <div class="pre--loader">
-    </div> -->
+
+    @if(env('APP_MODE')=='demo')
+    <div id="direction-toggle" class="direction-toggle">
+        <i class="tio-settings"></i>
+        <span></span>
+    </div>
+    @endif
 
     <div class="container">
         <div class="row">
@@ -108,7 +123,7 @@
 
     <!-- ========== END SECONDARY CONTENTS ========== -->
     <script src="{{ asset('public/assets/admin') }}/js/custom.js"></script>
-    <!-- JS Implementing Plugins -->
+    <!-- JS Implementing Plugins -->custom
     <!-- The core Firebase JS SDK is always required and must be listed first -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.3.2/firebase.js"></script>
@@ -132,6 +147,50 @@
         </script>
     @endif
     <!-- JS Plugins Init. -->
+    <!-- Direction Script -->
+    <script>
+
+        $(document).on('ready', function(){
+            $(".direction-toggle").on("click", function () {
+                if($('html').hasClass('active')){
+                    $('html').removeClass('active')
+                    setDirection(1);
+                }else {
+                    setDirection(0);
+                    $('html').addClass('active')
+                }
+            });
+            if ($('html').attr('dir') == "rtl") {
+                $(".direction-toggle").find('span').text('Toggle LTR')
+            } else {
+                $(".direction-toggle").find('span').text('Toggle RTL')
+            }
+
+            function setDirection(status) {
+                if (status == 1) {
+                    $("html").attr('dir', 'ltr');
+                    $(".direction-toggle").find('span').text('Toggle RTL')
+                } else {
+                    $("html").attr('dir', 'rtl');
+                    $(".direction-toggle").find('span').text('Toggle LTR')
+                }
+                $.get({
+                        url: '{{ route('admin.business-settings.site_direction') }}',
+                        dataType: 'json',
+                        data: {
+                            status: status,
+                        },
+                        success: function() {
+                            // alert(ok);
+                        },
+
+                    });
+                }
+            });
+
+
+    </script>
+    <!-- Direction Script -->
     <script>
         $(document).on('ready', function() {
             // ONLY DEV
@@ -271,32 +330,32 @@
         }
     </script>
     <script>
-        @if (\App\CentralLogics\Helpers::module_permission_check('order'))
-            @php($admin_order_notification = \App\Models\BusinessSetting::where('key', 'admin_order_notification')->first())
-            @php($admin_order_notification = $admin_order_notification ? $admin_order_notification->value : 0)
-            @if ($admin_order_notification)
-                setInterval(function() {
-                    $.get({
-                        url: '{{ route('admin.get-restaurant-data') }}',
-                        dataType: 'json',
-                        success: function(response) {
-                            let data = response.data;
-                            if (data.new_order > 0) {
-                                playAudio();
-                                $('#popup-modal').appendTo("body").modal('show');
-                            }
-                        },
-                    });
-                }, 10000);
+        // @if (\App\CentralLogics\Helpers::module_permission_check('order'))
+        //     @php($admin_order_notification = \App\Models\BusinessSetting::where('key', 'admin_order_notification')->first())
+        //     @php($admin_order_notification = $admin_order_notification ? $admin_order_notification->value : 0)
+        //     @if ($admin_order_notification)
+        //         setInterval(function() {
+        //             $.get({
+        //                 url: '{{ route('admin.get-restaurant-data') }}',
+        //                 dataType: 'json',
+        //                 success: function(response) {
+        //                     let data = response.data;
+        //                     if (data.new_order > 0) {
+        //                         playAudio();
+        //                         $('#popup-modal').appendTo("body").modal('show');
+        //                     }
+        //                 },
+        //             });
+        //         }, 10000);
 
-                function check_order() {
-                    location.href = '{{ route('admin.order.list', ['status' => 'all']) }}';
-                }
-            @endif
-        @endif
-        function check_message() {
-            location.href = '{{ route('admin.message.list') }}';
-        }
+        //         function check_order() {
+        //             location.href = '{{ route('admin.order.list', ['status' => 'all']) }}';
+        //         }
+        //     @endif
+        // @endif
+
+
+
 
         function route_alert(route, message, title = "{{ translate('messages.are_you_sure') }}", processing = false) {
             if (processing) {
@@ -361,6 +420,7 @@
             // {
             var nurl = new URL(url);
             nurl.searchParams.set('zone_id', id);
+            nurl.searchParams.set('page', '');
 
             location.href = nurl;
             // }
@@ -377,12 +437,26 @@
             location.href = nurl;
         }
 
+        function set_time_filter(url, id) {
+            var nurl = new URL(url);
+            nurl.searchParams.set('filter', id);
+            location.href = nurl;
+        }
+        function set_category_filter(url, id) {
+        var nurl = new URL(url);
+        nurl.searchParams.set('category_id', id);
+        location.href = nurl;
+        }
         function set_filter(url, id, filter_by) {
             var nurl = new URL(url);
             nurl.searchParams.set(filter_by, id);
             location.href = nurl;
         }
-
+        function set_customer_filter(url, id) {
+        var nurl = new URL(url);
+        nurl.searchParams.set('customer_id', id);
+        location.href = nurl;
+    }
         function copy_text(copyText) {
             /* Copy the text inside the text field */
             navigator.clipboard.writeText(copyText);
@@ -479,7 +553,7 @@
         function vendorConversationView() {
             var conversation_id = getUrlParameter('conversation');
             var user_id = getUrlParameter('user');
-            var url= '{{url('/')}}/admin/vendor/message/'+conversation_id+'/' + user_id;
+            var url= '{{url('/')}}/admin/restaurant/message/'+conversation_id+'/' + user_id;
             $.ajax({
                 url: url,
                 success: function(data) {
@@ -500,40 +574,54 @@
             })
         }
 
-
+        var new_order_type='restaurant_order';
         messaging.onMessage(function(payload) {
             console.log(payload.data);
-            var conversation_id = getUrlParameter('conversation');
-            var user_id = getUrlParameter('user');
-            var url= '{{url('/')}}/admin/message/view/'+conversation_id+'/' + user_id;
-            console.log(url);
-            $.ajax({
-                url: url,
-                success: function(data) {
-                    $('#view-conversation').html(data.view);
+            if(payload.data.order_id && payload.data.type == "order_request"){
+                @php($admin_order_notification = \App\Models\BusinessSetting::where('key', 'admin_order_notification')->first())
+                @php($admin_order_notification = $admin_order_notification ? $admin_order_notification->value : 0)
+                @if (\App\CentralLogics\Helpers::module_permission_check('order') && $admin_order_notification)
+                new_order_type = payload.data.order_type
+                playAudio();
+                $('#popup-modal').appendTo("body").modal('show');
+                @endif
+
+            }else if(payload.data.type == 'message'){
+                var conversation_id = getUrlParameter('conversation');
+                var user_id = getUrlParameter('user');
+                var url= '{{url('/')}}/admin/message/view/'+conversation_id+'/' + user_id;
+                console.log(url);
+                $.ajax({
+                    url: url,
+                    success: function(data) {
+                        $('#view-conversation').html(data.view);
+                    }
+                })
+                toastr.success('{{ translate('New message arrived') }}', {
+                    CloseButton: true,
+                    ProgressBar: true
+                });
+
+                if($('#conversation-list').scrollTop() == 0){
+                    conversationList();
                 }
-            })
-            toastr.success('{{ translate('New message arrived') }}', {
-                CloseButton: true,
-                ProgressBar: true
-            });
-            if($('#conversation-list').scrollTop() == 0){
-                conversationList();
             }
-            // playAudio();
-            //         $('#popup-modal-msg').appendTo("body").modal('show');
-            // const title = payload.notification.title;
-            // const options = {
-            //     body: payload.notification.body,
-            //     icon: payload.notification.icon,
-            // };
-            // new Notification(title, options);
         });
+        function check_message() {
+            location.href = '{{ route('admin.message.list') }}';
+        }
+        function check_order() {
+                    location.href = '{{ route('admin.order.list', ['status' => 'all']) }}';
+                }
         startFCM();
         conversationList();
-        conversationView();
-        vendorConversationView();
-        dmConversationView();
+
+        if(getUrlParameter('conversation')){
+
+            conversationView();
+            vendorConversationView();
+            dmConversationView();
+        }
     </script>
 
     <script>

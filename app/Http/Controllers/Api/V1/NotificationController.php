@@ -23,7 +23,7 @@ class NotificationController extends Controller
         try {
             $notifications = Notification::active()->where('tergat', 'customer')->where(function($q)use($zone_id){
                 $q->whereNull('zone_id')->orWhereIn('zone_id', $zone_id);
-            })->where('created_at', '>=', \Carbon\Carbon::today()->subDays(15))->orWhere('updated_at', '>=', \Carbon\Carbon::today()->subDays(15))->get();
+            })->where('created_at', '>=', \Carbon\Carbon::today()->subDays(15))->get();
             $notifications->append('data');
 
             $user_notifications = UserNotification::where('user_id', $request->user()->id)->where('created_at', '>=', \Carbon\Carbon::today()->subDays(15))->get();

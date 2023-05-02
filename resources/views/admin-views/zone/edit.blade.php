@@ -52,34 +52,16 @@
                         <div class="col-md-6 col-xl-7 zone-setup">
                             <div class="form-group mb-3">
                                 <label class="input-label"
-                                       for="exampleFormControlInput1">{{translate('messages.zone')}} {{translate('messages.name')}}</label>
+                                        for="exampleFormControlInput1">{{translate('messages.zone')}} {{translate('messages.name')}}</label>
                                 <input id="zone_name" type="text" name="name" class="form-control" placeholder="{{translate('messages.new_zone')}}" value="{{$zone->name}}" required>
                             </div>
                             <div class="form-group mb-3 initial-hidden">
                                 <label class="input-label"
-                                       for="exampleFormControlInput1">{{translate('messages.Coordinates')}}<span
+                                        for="exampleFormControlInput1">{{translate('messages.Coordinates')}}<span
                                         class="input-label-secondary" title="{{translate('messages.draw_your_zone_on_the_map')}}">{{translate('messages.draw_your_zone_on_the_map')}}</span></label>
-                                       <textarea  type="text" name="coordinates"  id="coordinates" class="form-control">@foreach($zone->coordinates[0] as $key=>$coords)<?php if(count($zone->coordinates[0]) != $key+1) {if($key != 0) echo(','); ?>({{$coords->getLat()}}, {{$coords->getLng()}})<?php } ?>@endforeach
-                                </textarea>
+                                        <textarea  type="text" name="coordinates"  id="coordinates" class="form-control">@foreach($zone->coordinates[0] as $key=>$coords)<?php if(count($zone->coordinates[0]) != $key+1) {if($key != 0) echo(','); ?>({{$coords->getLat()}}, {{$coords->getLng()}})<?php } ?>@endforeach</textarea>
                             </div>
-                            <div class="row">
-                                <div class="col-sm-6">
-                                    <div class="form-group">
-                                        <label class="input-label">
-                                            {{translate('messages.minimum_delivery_charge')}}  ({{\App\CentralLogics\Helpers::currency_symbol()}})
-                                        </label>
-                                        <input id="min_delivery_charge" name="minimum_delivery_charge" type="number" class="form-control h--45px" placeholder="{{ translate('messages.Ex :') }} 10" value="{{$zone->minimum_shipping_charge}}" required>
-                                    </div>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div class="form-group">
-                                        <label class="input-label">
-                                            {{translate('messages.delivery_charge_per_km')}} ({{\App\CentralLogics\Helpers::currency_symbol()}})
-                                        </label>
-                                        <input id="delivery_charge_per_km" name="per_km_delivery_charge" type="number" class="form-control h--45px" placeholder="{{ translate('messages.Ex :') }} 10" value="{{$zone->per_km_shipping_charge}}" required>
-                                    </div>
-                                </div>
-                            </div>
+
                             <div class="initial-60">
                                 <input id="pac-input" class="controls rounded initial-8" title="{{translate('messages.search_your_location_here')}}" type="text" placeholder="{{translate('messages.search_here')}}"/>
                                 <div id="map-canvas" class="h-100 m-0 p-0"></div>
@@ -94,6 +76,9 @@
             </div>
             <!-- End Table -->
         </div>
+
+
+
     </div>
 
 @endsection
@@ -309,7 +294,25 @@
         // $('#delivery_charge_per_km').val('');
         location.reload(true);
     })
+    $(document).on('ready', function() {
 
+$("#maximum_shipping_charge_status").on('change', function() {
+    if ($("#maximum_shipping_charge_status").is(':checked')) {
+        $('#maximum_shipping_charge').removeAttr('readonly');
+    } else {
+        $('#maximum_shipping_charge').attr('readonly', true);
+        $('#maximum_shipping_charge').val('Ex : 0');
+    }
+});
+$("#max_cod_order_amount_status").on('change', function() {
+    if ($("#max_cod_order_amount_status").is(':checked')) {
+        $('#max_cod_order_amount').removeAttr('readonly');
+    } else {
+        $('#max_cod_order_amount').attr('readonly', true);
+        $('#max_cod_order_amount').val('Ex : 0');
+    }
+});
+});
 </script>
 
 

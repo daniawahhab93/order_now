@@ -32,16 +32,13 @@
             </form>
         </td>
         <td>
-            <div class="pl-1">
+            <div class="btn--container justify-content-center">
+                <a class="btn action-btn btn-light btn-outline-dark"
+                href="{{route('admin.zone.settings',['id'=>$zone['id']])}}" title="{{translate('messages.zone_settings')}}"><i class="tio-settings"></i>
+                </a>
                 <a class="btn btn-sm btn--primary btn-outline-primary action-btn"
                     href="{{route('admin.zone.edit',[$zone['id']])}}" title="{{translate('messages.edit')}} {{translate('messages.zone')}}"><i class="tio-edit"></i>
                 </a>
-                {{--<a class="btn btn-sm btn-white" href="javascript:"
-                onclick="form_alert('zone-{{$zone['id']}}','Want to delete this zone ?')" title="{{translate('messages.delete')}} {{translate('messages.zone')}}"><i class="tio-delete-outlined"></i>
-                </a>
-                <form action="{{route('admin.zone.delete',[$zone['id']])}}" method="post" id="zone-{{$zone['id']}}">
-                    @csrf @method('delete')
-                </form>--}}
             </div>
         </td>
     </tr>

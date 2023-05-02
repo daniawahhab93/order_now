@@ -246,9 +246,7 @@
                         <th class="w-90px table-column-pl-0">{{translate('messages.Order ID')}}</th>
                         <th class="w-140px">{{translate('messages.order')}} {{translate('messages.date')}}</th>
                         <th class="w-140px">{{translate('messages.customer_information')}}</th>
-                        <th class="w-120px">{{translate('messages.total')}} {{translate('messages.amount')}}</th>
-                        <th class="w-120px">{{translate('messages.item')}} {{translate('messages.amount')}}</th>
-                        <th class="w-120px">{{translate('messages.delivery')}} {{translate('messages.amount')}}</th>
+                        <th class="w-100px">{{translate('messages.total')}} {{translate('messages.amount')}}</th>
                         <th class="w-100px text-center">{{translate('messages.order')}} {{translate('messages.status')}}</th>
                         <th class="w-100px text-center">{{translate('messages.actions')}}</th>
                     </tr>
@@ -288,79 +286,56 @@
                                 @endif
                             </td>
                             <td>
+
+
                                 <div class="text-right mw-85px">
                                     <div>
                                         {{\App\CentralLogics\Helpers::format_currency($order['order_amount'])}}
                                     </div>
                                     @if($order->payment_status=='paid')
-                                        <strong class="text-success">
+                                    <strong class="text-success">
                                         {{translate('messages.paid')}}
-                                        </strong>
+                                    </strong>
                                     @else
                                         <strong class="text-danger">
-                                        {{translate('messages.unpaid')}}
+                                            {{translate('messages.unpaid')}}
                                         </strong>
                                     @endif
                                 </div>
-                            </td>
-                             <td>
-                                <div class="text-right mw-85px">
-                                    <div>
-                                        {{\App\CentralLogics\Helpers::format_currency($order['order_amount'] - $order['delivery_charge'])}}
-                                    </div>
-                                    @if($order->payment_status=='paid')
-                                        <strong class="text-success">
-                                        {{translate('messages.paid')}}
-                                        </strong>
-                                    @else
-                                        <strong class="text-danger">
-                                        {{translate('messages.unpaid')}}
-                                        </strong>
-                                    @endif
-                                </div>
-                            </td>
-                            <td>
-                                <div class="text-right mw-85px">
-                                    <div>
-                                        {{\App\CentralLogics\Helpers::format_currency($order['delivery_charge'])}}
-                                    </div>
-                                    @if($order->payment_status=='paid')
-                                        <strong class="text-success">
-                                        {{translate('messages.paid')}}
-                                        </strong>
-                                    @else
-                                        <strong class="text-danger">
-                                        {{translate('messages.unpaid')}}
-                                        </strong>
-                                    @endif
-                                </div>
+
                             </td>
                             <td class="text-capitalize text-center">
-                                @if($order['order_status']=='pending')
-                                    <span class="badge badge-soft-info mb-1">
-                                        {{translate('messages.pending')}}
-                                    </span>
-                                @elseif($order['order_status']=='confirmed')
-                                    <span class="badge badge-soft-info mb-1">
-                                      {{translate('messages.confirmed')}}
-                                    </span>
-                                @elseif($order['order_status']=='processing')
-                                    <span class="badge badge-soft-warning mb-1">
-                                      {{translate('messages.processing')}}
-                                    </span>
-                                @elseif($order['order_status']=='picked_up')
-                                    <span class="badge badge-soft-warning mb-1">
-                                      {{translate('messages.out_for_delivery')}}
-                                    </span>
-                                @elseif($order['order_status']=='delivered')
-                                    <span class="badge badge-soft-success mb-1">
-                                      {{translate('messages.delivered')}}
-                                    </span>
-                                @else
-                                    <span class="badge badge-soft-danger mb-1">
-                                        {{translate(str_replace('_',' ',$order['order_status']))}}
-                                    </span>
+                                @if (isset($order->subscription)  && $order->subscription->status != 'canceled' )
+                                    @php
+                                        $order->order_status = $order->subscription_log ? $order->subscription_log->order_status : $order->order_status;
+                                    @endphp
                                 @endif
+                                    @if($order['order_status']=='pending')
+                                        <span class="badge badge-soft-info mb-1">
+                                            {{translate('messages.pending')}}
+                                        </span>
+                                    @elseif($order['order_status']=='confirmed')
+                                        <span class="badge badge-soft-info mb-1">
+                                        {{translate('messages.confirmed')}}
+                                        </span>
+                                    @elseif($order['order_status']=='processing')
+                                        <span class="badge badge-soft-warning mb-1">
+                                        {{translate('messages.processing')}}
+                                        </span>
+                                    @elseif($order['order_status']=='picked_up')
+                                        <span class="badge badge-soft-warning mb-1">
+                                        {{translate('messages.out_for_delivery')}}
+                                        </span>
+                                    @elseif($order['order_status']=='delivered')
+                                        <span class="badge badge-soft-success mb-1">
+                                        {{translate('messages.delivered')}}
+                                        </span>
+                                    @else
+                                        <span class="badge badge-soft-danger mb-1">
+                                            {{translate(str_replace('_',' ',$order['order_status']))}}
+                                        </span>
+                                    @endif
+
 
                                 <div class="text-capitalze opacity-7">
                                     @if($order['order_type']=='take_away')

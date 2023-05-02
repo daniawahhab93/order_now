@@ -70,7 +70,7 @@
                             <div class="modal fade" id="recaptcha-modal" data-backdrop="static" data-keyboard="false"
                                  tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
                                 <div class="modal-dialog">
-                                    <div class="modal-content {{Session::get('direction') === 'rtl' ? 'text-right' : 'text-left'}}">
+                                    <div class="modal-content">
                                         <div class="modal-header">
                                             <h5 class="modal-title"
                                                 id="staticBackdropLabel">{{translate('messages.reCaptcha credential Set up Instructions')}}</h5>

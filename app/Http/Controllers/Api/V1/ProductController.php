@@ -72,29 +72,18 @@ class ProductController extends Controller
         ->when($request->restaurant_id, function($query) use($request){
             return $query->where('restaurant_id', $request->restaurant_id);
         })
-        // ->where(function ($q) use ($key) {
-        //     foreach ($key as $value) {
-        //         $q->orWhere('name', 'like', "%{$value}%");
-        //     }
-        // })
         ->where(function ($q) use ($key) {
             foreach ($key as $value) {
                 $q->orWhere('name', 'like', "%{$value}%");
             }
-            $q->orWhereHas('translations',function($query)use($key){
+            $q->orWhereHas('tags',function($query)use($key){
                 $query->where(function($q)use($key){
                     foreach ($key as $value) {
-                        $q->where('value', 'like', "%{$value}%");
+                        $q->where('tag', 'like', "%{$value}%");
                     };
                 });
             });
         })
-
-
-
-
-
-
         ->paginate($limit, ['*'], 'page', $offset);
 
         $data =  [
@@ -225,6 +214,7 @@ class ProductController extends Controller
             'order_id' => 'required',
             'comment' => 'required',
             'rating' => 'required|numeric|max:5',
+            'attachment.*' => 'nullable|max:2048',
         ]);
 
         $product = Food::find($request->food_id);
@@ -280,5 +270,30 @@ class ProductController extends Controller
         $product->increment('rating_count');
 
         return response()->json(['message' => translate('messages.review_submited_successfully')], 200);
+    }
+
+
+    public function get_recommended(Request $request)
+    {
+        if (!$request->hasHeader('zoneId')) {
+            $errors = [];
+            array_push($errors, ['code' => 'zoneId', 'message' => translate('messages.zone_id_required')]);
+            return response()->json([
+                'errors' => $errors
+            ], 403);
+        }
+        $validator = Validator::make($request->all(), [
+            'restaurant_id' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => Helpers::error_processor($validator)], 403);
+        }
+        $type = $request->query('type', 'all');
+
+        $zone_id= json_decode($request->header('zoneId'), true);
+        $products = ProductLogic::recommended_products($zone_id, $request->restaurant_id,$request['limit'], $request['offset'], $type);
+        $products['products'] = Helpers::product_data_formatting($products['products'], true, false, app()->getLocale());
+        return response()->json($products, 200);
     }
 }

@@ -39,7 +39,7 @@
                         </div>
                     </div>
                 </div>
-                <form class="product-form" action="{{route('admin.vendor.bulk-export')}}" method="POST"
+                <form class="product-form" action="{{route('admin.restaurant.bulk-export')}}" method="POST"
                         enctype="multipart/form-data">
                     @csrf
                     <div class="row">
@@ -58,7 +58,7 @@
                             <div class="form-group id_wise">
                                 <label class="form-label" for="exampleFormControlSelect1">{{translate('messages.start')}} {{translate('messages.id')}}<span
                                         class="input-label-secondary"></span></label>
-                                <input type="number" name="start_id" class="form-control">
+                                <input type="number" min="0" name="start_id" class="form-control">
                             </div>
                             <div class="form-group date_wise">
                                 <label class="form-label" for="exampleFormControlSelect1">{{translate('messages.from')}} {{translate('messages.date')}}<span
@@ -70,7 +70,7 @@
                             <div class="form-group id_wise">
                                 <label class="form-label" for="exampleFormControlSelect1">{{translate('messages.end')}} {{translate('messages.id')}}<span
                                         class="input-label-secondary"></span></label>
-                                <input type="number" name="end_id" class="form-control">
+                                <input type="number" min="0" name="end_id" class="form-control">
                             </div>
                             <div class="form-group date_wise">
                                 <label class="form-label text-capitalize" for="exampleFormControlSelect1">{{translate('messages.to')}} {{translate('messages.date')}}<span

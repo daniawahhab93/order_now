@@ -181,6 +181,23 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                {{-- <div class="col-sm-6 col-md-4 align-self-end">
+                                    @php($site_direction = \App\Models\BusinessSetting::where('key', 'site_direction')->first())
+                                    @php($site_direction = $site_direction->value ?? '')
+                                    <div class="form-group mb-3">
+                                        <label class="input-label mt-2">{{ translate('messages.Site Direction') }}</label>
+                                        <select id="site_direction" name="site_direction" class="form-control  js-select2-custom">
+                                            <option value="ltr" {{ $site_direction == 'ltr'? 'selected' : '' }} >{{  translate('Left_to_Right') }}</option>
+                                            <option  value="rtl" {{ $site_direction == 'rtl'? 'selected' : '' }} >{{  translate('Right_to_Left') }}</option>
+                                        </select>
+                                    </div>
+                                </div> --}}
+
+
+
+
+
                             </div>
                             <div class="row">
                                 <div class="col-md-4 col-sm-6 col-12">
@@ -444,7 +461,7 @@
                                     @php($currency_code = \App\Models\BusinessSetting::where('key', 'currency')->first())
                                     <div class="form-group">
                                         <label class="input-label"
-                                            for="exampleFormControlInput1">{{ translate('messages.currency') }}</label>
+                                            for="exampleFormControlInput1">{{ translate('messages.currency') }} ({{ \App\CentralLogics\Helpers::currency_symbol() }})</label>
                                         <select name="currency" class="form-control js-select2-custom">
                                             @foreach (\App\Models\Currency::orderBy('currency_code')->get() as $currency)
                                                 <option value="{{ $currency['currency_code'] }}"
@@ -475,7 +492,7 @@
                                         </select>
                                     </div>
                                 </div>
-                                <div class="col-md-4 col-sm-6 col-12">
+                                {{-- <div class="col-md-4 col-sm-6 col-12">
                                     <div class="form-group language--setup">
                                         <label class="input-label"
                                             for="exampleFormControlInput1">{{ translate('messages.language') }} </label>
@@ -626,7 +643,7 @@
                                             <option value="zu">Zulu - isiZulu</option>
                                         </select>
                                     </div>
-                                </div>
+                                </div> --}}
                                 <div class="col-md-4 col-sm-6 col-12">
                                     @php($tz = \App\Models\BusinessSetting::where('key', 'timezone')->first())
                                     @php($tz = $tz ? $tz->value : 0)
@@ -918,7 +935,7 @@
                                     @php($admin_commission = \App\Models\BusinessSetting::where('key', 'admin_commission')->first())
                                     <div class="form-group">
                                         <label class="input-label text-capitalize d-flex alig-items-center"
-                                            for="admin_commission">{{ translate('messages.admin_commission') }}</label>
+                                            for="admin_commission">{{ translate('messages.admin_commission') }} (%)</label>
                                         <input type="number" name="admin_commission" class="form-control" id="admin_commission"
                                             value="{{ $admin_commission ? $admin_commission->value : 0 }}" min="0" max="100"
                                             required>
@@ -939,7 +956,7 @@
                                     @php($delivery_charge_comission = \App\Models\BusinessSetting::where('key', 'delivery_charge_comission')->first())
                                     <div class="form-group">
                                         <label class="input-label text-capitalize d-flex alig-items-center"
-                                        for="admin_comission_in_delivery_charge">{{translate('Admin Comission in Delivery Charge')}}</label>
+                                        for="admin_comission_in_delivery_charge">{{translate('Admin Comission in Delivery Charge')}} (%)</label>
                                             <input type="number" name="admin_comission_in_delivery_charge" class="form-control" id="admin_comission_in_delivery_charge"
                                             min="0" max="100" step="0.01" value="{{ $delivery_charge_comission ? $delivery_charge_comission->value: 0 }}">
                                     </div>
@@ -954,443 +971,7 @@
                             <h4 class="card-title m-0 d-flex align-items-center"> <span class="card-header-icon mr-2"><i class="tio-settings-outlined"></i></span> <span>{{translate('messages.business')}} {{translate('messages.setting')}}</span></h4>
                         </div>
                         <div class="card-body">
-                            <!-- This is Previous Business Setting Which is Commented -->
-                            {{--
-                            <div class="row">
-                                <div class="col-sm-4 col-12">
-                                    @php($schedule_order = \App\Models\BusinessSetting::where('key', 'schedule_order')->first())
-                                    @php($schedule_order = $schedule_order ? $schedule_order->value : 0)
-                                    <div class="form-group">
-                                        <label class="input-label d-inline">{{ translate('messages.scheduled') }}
-                                            {{ translate('messages.orders') }}</label><small class="text-danger">
-                                            <!-- <span class="input-label-secondary" title="{{ translate('messages.customer_varification_toggle') }}"><img src="{{ asset('/public/assets/admin/img/info-circle.svg') }}" alt="{{ translate('messages.customer_varification_toggle') }}"></span> -->
-                                            *
-                                        </small>
-                                        <div class="input-group input-group-md-down-break">
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="1" name="schedule_order"
-                                                        id="schedule_order" {{ $schedule_order == 1 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="schedule_order">{{ translate('on') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
 
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="0" name="schedule_order"
-                                                        id="schedule_order2" {{ $schedule_order == 0 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="schedule_order2">{{ translate('off') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-sm-4 col-12">
-                                    @php($order_confirmation_model = \App\Models\BusinessSetting::where('key', 'order_confirmation_model')->first())
-                                    @php($order_confirmation_model = $order_confirmation_model ? $order_confirmation_model->value : 'deliveryman')
-                                    <div class="form-group">
-                                        <label
-                                            class="input-label d-inline">{{ translate('messages.order_confirmation_model') }}</label><small class="text-danger">
-                                            <span class="input-label-secondary"
-                                                title="{{ translate('messages.order_confirmation_model_hint') }}"><img
-                                                    src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"></span>
-                                            *</small>
-                                        <div class="input-group input-group-md-down-break">
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="restaurant"
-                                                        name="order_confirmation_model" id="order_confirmation_model"
-                                                        {{ $order_confirmation_model == 'restaurant' ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="order_confirmation_model">{{ translate('messages.restaurant') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="deliveryman"
-                                                        name="order_confirmation_model" id="order_confirmation_model2"
-                                                        {{ $order_confirmation_model == 'deliveryman' ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="order_confirmation_model2">{{ translate('messages.deliveryman') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-sm-4 col-12">
-                                    @php($dm_tips_status = \App\Models\BusinessSetting::where('key', 'dm_tips_status')->first())
-                                    @php($dm_tips_status = $dm_tips_status ? $dm_tips_status->value : 'deliveryman')
-                                    <div class="form-group">
-                                        <label class="input-label d-inline">{{ translate('dm_tips_status') }}</label><small class="text-danger">
-                                            <span class="input-label-secondary"
-                                                title="{{ translate('messages.dm_tips_model_hint') }}"><img
-                                                    src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"></span>
-                                            *</small>
-                                        <div class="input-group input-group-md-down-break">
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="1"
-                                                        name="dm_tips_status" id="dm_tips_status"
-                                                        {{ $dm_tips_status == '1' ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="dm_tips_status">{{ translate('on') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="0"
-                                                        name="dm_tips_status" id="dm_tips_manage2"
-                                                        {{ $dm_tips_status == '0' ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="dm_tips_manage2">{{ translate('off') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </div>
-                            <div class="row">
-                                <div class="col-md-4 col-12">
-                                    @php($canceled_by_restaurant = \App\Models\BusinessSetting::where('key', 'canceled_by_restaurant')->first())
-                                    @php($canceled_by_restaurant = $canceled_by_restaurant ? $canceled_by_restaurant->value : 0)
-                                    <div class="form-group">
-                                        <label
-                                            class="input-label d-inline">{{ translate('messages.restaurant_cancellation_toggle') }}</label><small class="text-danger">
-                                            <!-- <span class="input-label-secondary" title="{{ translate('messages.customer_varification_toggle') }}"><img src="{{ asset('/public/assets/admin/img/info-circle.svg') }}" alt="{{ translate('messages.customer_varification_toggle') }}"></span> -->
-                                            *
-                                        </small>
-                                        <div class="input-group input-group-md-down-break">
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="1"
-                                                        name="canceled_by_restaurant" id="canceled_by_restaurant"
-                                                        {{ $canceled_by_restaurant == 1 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="canceled_by_restaurant">{{ translate('yes') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="0"
-                                                        name="canceled_by_restaurant" id="canceled_by_restaurant2"
-                                                        {{ $canceled_by_restaurant == 0 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="canceled_by_restaurant2">{{ translate('no') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 col-12">
-                                    @php($canceled_by_deliveryman = \App\Models\BusinessSetting::where('key', 'canceled_by_deliveryman')->first())
-                                    @php($canceled_by_deliveryman = $canceled_by_deliveryman ? $canceled_by_deliveryman->value : 0)
-                                    <div class="form-group">
-                                        <label
-                                            class="input-label d-inline">{{ translate('messages.deliveryman_cancellation_toggle') }}</label><small class="text-danger">
-                                            <!-- <span class="input-label-secondary" title="{{ translate('messages.customer_varification_toggle') }}"><img src="{{ asset('/public/assets/admin/img/info-circle.svg') }}" alt="{{ translate('messages.customer_varification_toggle') }}"></span> -->
-                                            *
-                                        </small>
-                                        <div class="input-group input-group-md-down-break">
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="1"
-                                                        name="canceled_by_deliveryman" id="canceled_by_deliveryman"
-                                                        {{ $canceled_by_deliveryman == 1 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="canceled_by_deliveryman">{{ translate('yes') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="0"
-                                                        name="canceled_by_deliveryman" id="canceled_by_deliveryman2"
-                                                        {{ $canceled_by_deliveryman == 0 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="canceled_by_deliveryman2">{{ translate('no') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 col-12">
-                                    @php($show_dm_earning = \App\Models\BusinessSetting::where('key', 'show_dm_earning')->first())
-                                    @php($show_dm_earning = $show_dm_earning ? $show_dm_earning->value : 0)
-                                    <div class="form-group">
-                                        <label
-                                            class="input-label d-inline">{{ translate('messages.show_earning_for_each_order') }}</label><small class="text-danger">
-                                            <!-- <span class="input-label-secondary" title="{{ translate('messages.customer_varification_toggle') }}"><img src="{{ asset('/public/assets/admin/img/info-circle.svg') }}" alt="{{ translate('messages.customer_varification_toggle') }}"></span> -->
-                                            *
-                                        </small>
-                                        <div class="input-group input-group-md-down-break">
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="1"
-                                                        name="show_dm_earning" id="show_dm_earning"
-                                                        {{ $show_dm_earning == 1 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="show_dm_earning">{{ translate('yes') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="0"
-                                                        name="show_dm_earning" id="show_dm_earning2"
-                                                        {{ $show_dm_earning == 0 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="show_dm_earning2">{{ translate('no') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-4 col-12">
-                                    @php($admin_order_notification = \App\Models\BusinessSetting::where('key', 'admin_order_notification')->first())
-                                    @php($admin_order_notification = $admin_order_notification ? $admin_order_notification->value : 0)
-                                    <div class="form-group">
-                                        <label class="input-label d-inline">{{ translate('messages.admin') }}
-                                            {{ translate('messages.order') }} {{ translate('messages.notification') }}</label><small class="text-danger">*</small>
-                                        <div class="input-group input-group-md-down-break">
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="1"
-                                                        name="admin_order_notification" id="aon1"
-                                                        {{ $admin_order_notification == 1 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="aon1">{{ translate('on') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="0"
-                                                        name="admin_order_notification" id="aon2"
-                                                        {{ $admin_order_notification == 0 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="aon2">{{ translate('off') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 col-12">
-                                    @php($ev = \App\Models\BusinessSetting::where('key', 'customer_verification')->first())
-                                    @php($ev = $ev ? $ev->value : 0)
-                                    <div class="form-group">
-                                        <label class="input-label d-inline">{{ translate('messages.customer') }}
-                                            {{ translate('messages.verification') }}</label><small class="text-danger"><span
-                                                class="input-label-secondary"
-                                                title="{{ translate('messages.customer_varification_toggle') }}"><img
-                                                    src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
-                                                    alt="{{ translate('messages.customer_varification_toggle') }}"></span> *</small>
-                                        <div class="input-group input-group-md-down-break">
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="1"
-                                                        name="customer_verification" id="ev1" {{ $ev == 1 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="ev1">{{ translate('on') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="0"
-                                                        name="customer_verification" id="ev2" {{ $ev == 0 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="ev2">{{ translate('off') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 col-12">
-                                    @php($odc = \App\Models\BusinessSetting::where('key', 'order_delivery_verification')->first())
-                                    @php($odc = $odc ? $odc->value : 0)
-                                    <div class="form-group">
-                                        <label class="input-label d-inline"> {{ translate('messages.order') }}
-                                            {{ translate('messages.delivery') }} {{ translate('messages.verification') }} </label><small class="text-danger"><span class="input-label-secondary"
-                                                title="{{ translate('messages.order_varification_toggle') }}"><img
-                                                    src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
-                                                    alt="{{ translate('messages.order_varification_toggle') }}"></span> *</small>
-                                        <div class="input-group input-group-md-down-break">
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="1" name="odc" id="odc1"
-                                                        {{ $odc == 1 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="odc1">{{ translate('on') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="0" name="odc" id="odc2"
-                                                        {{ $odc == 0 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="odc2">{{ translate('off') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-4 col-12">
-                                    @php($vnv = \App\Models\BusinessSetting::where('key', 'toggle_veg_non_veg')->first())
-                                    @php($vnv = $vnv ? $vnv->value : 0)
-                                    <div class="form-group">
-                                        <label
-                                            class="input-label d-inline">{{ translate('messages.veg') }}/{{ translate('messages.non_veg') }}</label><small class="text-danger"><span class="input-label-secondary"
-                                                title="{{ translate('messages.veg_non_veg') }}"><img
-                                                    src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
-                                                    alt="{{ translate('messages.order_varification_toggle') }}"></span> *</small>
-                                        <div class="input-group input-group-md-down-break">
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="1" name="vnv" id="vnv1"
-                                                        {{ $vnv == 1 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="vnv1">{{ translate('on') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="0" name="vnv" id="vnv2"
-                                                        {{ $vnv == 0 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="vnv2">{{ translate('off') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-4 col-12">
-                                    @php($restaurant_self_registration = \App\Models\BusinessSetting::where('key', 'toggle_restaurant_registration')->first())
-                                    @php($restaurant_self_registration = $restaurant_self_registration ? $restaurant_self_registration->value : 0)
-                                    <div class="form-group">
-                                        <label
-                                            class="input-label d-inline">{{ translate('messages.restaurant_self_registration') }}</label><small class="text-danger"><span class="input-label-secondary"
-                                                title="{{ translate('messages.restaurant_self_registration') }}"><img
-                                                    src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
-                                                    alt="{{ translate('messages.restaurant_self_registration') }}"></span> *</small>
-                                        <div class="input-group input-group-md-down-break">
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="1"
-                                                        name="restaurant_self_registration" id="restaurant_self_registration1"
-                                                        {{ $restaurant_self_registration == 1 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="restaurant_self_registration1">{{ translate('on') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="0"
-                                                        name="restaurant_self_registration" id="restaurant_self_registration2"
-                                                        {{ $restaurant_self_registration == 0 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="restaurant_self_registration2">{{ translate('off') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-4 col-12">
-                                    @php($dm_self_registration = \App\Models\BusinessSetting::where('key', 'toggle_dm_registration')->first())
-                                    @php($dm_self_registration = $dm_self_registration ? $dm_self_registration->value : 0)
-                                    <div class="form-group">
-                                        <label
-                                            class="input-label d-inline">{{ translate('messages.dm_self_registration') }}</label><small class="text-danger"><span class="input-label-secondary"
-                                                title="{{ translate('messages.dm_self_registration') }}"><img
-                                                    src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
-                                                    alt="{{ translate('messages.dm_self_registration') }}"></span> *</small>
-                                        <div class="input-group input-group-md-down-break">
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="1"
-                                                        name="dm_self_registration" id="dm_self_registration1"
-                                                        {{ $dm_self_registration == 1 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="dm_self_registration1">{{ translate('on') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-
-                                            <!-- Custom Radio -->
-                                            <div class="form-control">
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" class="custom-control-input" value="0"
-                                                        name="dm_self_registration" id="dm_self_registration2"
-                                                        {{ $dm_self_registration == 0 ? 'checked' : '' }}>
-                                                    <label class="custom-control-label"
-                                                        for="dm_self_registration2">{{ translate('off') }}</label>
-                                                </div>
-                                            </div>
-                                            <!-- End Custom Radio -->
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </div>
-                            --}}
-                            <!-- This is Previous Business Setting Which is Commented -->
 
                             <!-- This is Latest Desgin of Business Setting -->
                             <div class="row">
@@ -1552,6 +1133,81 @@
                                         </label>
                                     </div>
                                 </div>
+
+
+                                <div class="col-xl-4 col-lg-4 col-sm-6">
+                                    @php($business_model = \App\Models\BusinessSetting::where('key', 'business_model')->first())
+                                    @php($business_model = $business_model->value ? json_decode($business_model->value, true) : 0)
+                                    <div class="form-group">
+                                        <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border rounded px-3 px-xl-4 form-control">
+                                        <span class="pr-2 d-flex align-items-center"><span class="line--limit-1">{{ translate('Commission') }}</span><span class="input-label-secondary text--title" data-toggle="tooltip" data-placement="right"
+                                        data-original-title="{{translate('This option will changes the Restaurant Business to Commission Based')}}">
+                                        <i class="tio-info-outined"></i>
+                                            </span></span>
+                                            <input type="checkbox" class="toggle-switch-input" value="1" name="commission" id="commission_id"
+                                            {{  $business_model['commission'] == 1 ? 'checked' : '' }}>
+                                            <span class="toggle-switch-label text">
+                                                <span class="toggle-switch-indicator"></span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-xl-4 col-lg-4 col-sm-6">
+                                    <div class="form-group">
+                                        <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border rounded px-3 px-xl-4 form-control">
+                                        <span class="pr-2 d-flex align-items-center"><span class="line--limit-1">{{ translate('subscription') }}</span><span class="input-label-secondary text--title" data-toggle="tooltip" data-placement="right"
+                                        data-original-title="{{translate('This option will changes the Restaurant Business to Package Based Subscription Model')}}">
+                                        <i class="tio-info-outined"></i>
+                                            </span></span>
+                                            <input type="checkbox" class="toggle-switch-input" value="1" name="subscription" id='subscription_id'
+                                            {{-- onclick="form_alert('Business_Model_change','{{ translate('messages.You_want_to_Change_the_Business_Model_for ') }}  {{ translate('messages.This_will_expire_the_current_package') }}')" --}}
+                                            {{-- onclick='function_f()' --}}
+                                            {{  $business_model['subscription'] == 1 ? 'checked' : '' }}>
+                                            <span class="toggle-switch-label text">
+                                                <span class="toggle-switch-indicator"></span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="col-xl-4 col-lg-4 col-sm-6">
+                                    @php($tax_included = \App\Models\BusinessSetting::where('key', 'tax_included')->first())
+                                    @php($tax_included = $tax_included ? $tax_included->value : 0)
+                                    <div class="form-group">
+                                        <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border rounded px-3 px-xl-4 form-control">
+                                        <span class="pr-2 d-flex align-items-center"><span class="line--limit-1">{{ translate('messages.include_tax_amount') }}</span><span class="input-label-secondary text--title" data-toggle="tooltip" data-placement="right" data-original-title="{{translate('messages.tax_include_exclude_hint')}}">
+                                            <i class="tio-info-outined"></i>
+                                            </span></span>
+                                            <input type="checkbox" class="toggle-switch-input" value="1" name="tax_included"
+                                            {{ $tax_included == 1 ? 'checked' : '' }}>
+                                            <span class="toggle-switch-label text">
+                                                <span class="toggle-switch-indicator"></span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="col-xl-4 col-lg-4 col-sm-6">
+                                    @php($order_subscription = \App\Models\BusinessSetting::where('key', 'order_subscription')->first())
+                                    @php($order_subscription = $order_subscription ? $order_subscription->value : 0)
+                                    <div class="form-group">
+                                        <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border rounded px-3 px-xl-4 form-control">
+                                        <span class="pr-2 d-flex align-items-center">
+                                            <span class="line--limit-1">{{ translate('order_subscription') }}</span><span class="input-label-secondary text--title" data-toggle="tooltip" data-placement="right"
+                                        data-original-title="{{translate('order_subscription_hint')}}">
+                                        <i class="tio-info-outined"></i>
+                                            </span></span>
+                                            <input type="checkbox" class="toggle-switch-input" value="1" name="order_subscription"
+                                            {{  $order_subscription == 1 ? 'checked' : '' }}>
+                                            <span class="toggle-switch-label text">
+                                                <span class="toggle-switch-indicator"></span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
                                 <div class="col-xl-4 col-lg-4 col-sm-6">
                                     @php($order_confirmation_model = \App\Models\BusinessSetting::where('key', 'order_confirmation_model')->first())
                                     @php($order_confirmation_model = $order_confirmation_model ? $order_confirmation_model->value : 'deliveryman')
@@ -1579,6 +1235,7 @@
                                         </div>
                                     </div>
                                 </div>
+
                                 <div class="col-xl-4 col-lg-4 col-sm-6">
                                     @php($canceled_by_deliveryman = \App\Models\BusinessSetting::where('key', 'canceled_by_deliveryman')->first())
                                     @php($canceled_by_deliveryman = $canceled_by_deliveryman ? $canceled_by_deliveryman->value : 0)
@@ -1659,7 +1316,6 @@
                                     <div class="form-group">
                                         <label class="input-label text-capitalize d-flex alig-items-center"
                                             for="dm_maximum_orders"><span class="line--limit-1">{{ translate('messages.dm_maximum_order') }}</span>
-
                                         <span data-toggle="tooltip" data-placement="right" data-original-title="{{translate('The given number will be the maximum ongoing orders for a delivery man.') }}"
                                     class="input-label-secondary"><img
                                         src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
@@ -1672,80 +1328,96 @@
                                 <div class="col-md-4 col-12">
                                     @php($free_delivery_over = \App\Models\BusinessSetting::where('key', 'free_delivery_over')->first())
                                     <div class="form-group">
-                                        <label class="input-label text-capitalize d-inline-flex alig-items-center"
-                                            for="free_delivery_over">
-                                            <span class="line--limit-1">{{ translate('messages.free_delivery_over') }} ({{ \App\CentralLogics\Helpers::currency_symbol() }})</span>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <label class="input-label text-capitalize d-inline-flex alig-items-center"
+                                                for="free_delivery_over">
+                                                <span class="line--limit-1">{{ translate('messages.free_delivery_over') }} ({{ \App\CentralLogics\Helpers::currency_symbol() }})</span>
 
-                                            <span data-toggle="tooltip" data-placement="right" data-original-title="{{translate(' If the order amount exceeds this amount the delivery fee will be free and the delivery fee will be deducted from the admin’s commission.')}}" class="input-label-secondary"><img src="{{ asset('/public/assets/admin/img/info-circle.svg') }}" alt="{{ translate('messages.dm_maximum_order_hint') }}"></span>
-                                        </label>
-                                        <label class="switch ml-3 float-right">
-                                            <input type="checkbox" class="status" name="free_delivery_over_status"
-                                                id="free_delivery_over_status" value="1"
-                                                {{ isset($free_delivery_over->value) ? 'checked' : '' }}>
-                                            <span class="slider round"></span>
-                                        </label>
+                                                <span data-toggle="tooltip" data-placement="right" data-original-title="{{translate(' If the order amount exceeds this amount the delivery fee will be free and the delivery fee will be deducted from the admin’s commission.')}}" class="input-label-secondary"><img src="{{ asset('/public/assets/admin/img/info-circle.svg') }}" alt="{{ translate('messages.dm_maximum_order_hint') }}"></span>
+                                            </label>
+                                            <label class="switch ml-3 float-right">
+                                                <input type="checkbox" class="status" name="free_delivery_over_status"
+                                                    id="free_delivery_over_status" value="1"
+                                                    {{ isset($free_delivery_over->value) ? 'checked' : '' }}>
+                                                <span class="slider round"></span>
+                                            </label>
+                                        </div>
                                         <input type="number" name="free_delivery_over" class="form-control"
                                             id="free_delivery_over"
                                             value="{{ $free_delivery_over ? $free_delivery_over->value : 0 }}" min="0"
                                             step=".01" placeholder="{{ translate('messages.Ex :') }} 100" required {{ isset($free_delivery_over->value) ? '' : 'readonly' }}>
                                     </div>
                                 </div>
-                                <div class="col-md-4 col-12">
-                                    @php($minimum_shipping_charge = \App\Models\BusinessSetting::where('key', 'minimum_shipping_charge')->first())
-                                    <div class="form-group">
-                                        <label class="input-label text-capitalize d-flex alig-items-center"
-                                            for="minimum_shipping_charge">{{ translate('messages.minimum_shipping_charge') }}</label>
-                                        <input type="number" name="minimum_shipping_charge" class="form-control"
-                                            id="minimum_shipping_charge" min="0" step=".01"
-                                            value="{{ $minimum_shipping_charge ? $minimum_shipping_charge->value : 0 }}" placeholder="{{ translate('messages.Ex :') }} 50"
-                                            required>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 col-12">
-                                    @php($per_km_shipping_charge = \App\Models\BusinessSetting::where('key', 'per_km_shipping_charge')->first())
-                                    <div class="form-group">
-                                        <label class="input-label text-capitalize d-flex alig-items-center"
-                                            for="per_km_shipping_charge">{{ translate('messages.per_km_shipping_charge') }}
-                                        </label>
-                                        <input type="number" name="per_km_shipping_charge" class="form-control"
-                                            id="per_km_shipping_charge" min="0" step=".01"
-                                            value="{{ $per_km_shipping_charge ? $per_km_shipping_charge->value : 0 }}" placeholder="{{ translate('messages.Ex :') }} 50" required>
-                                    </div>
-                                </div>
+
                                 <div class="col-md-4 col-12">
                                     @php($dm_max_cash_in_hand = \App\Models\BusinessSetting::where('key', 'dm_max_cash_in_hand')->first())
                                     <div class="form-group">
                                         <label class="input-label d-flex text-capitalize"
                                             for="dm_max_cash_in_hand">
-
                                             <span class="line--limit-1">
                                                 {{translate('Delivery Man Maximum Cash in Hand')}} ({{ \App\CentralLogics\Helpers::currency_symbol() }})
                                             </span>
-
                                             <span data-toggle="tooltip" data-placement="right" data-original-title="{{translate('If the cash in hand for a delivery man exceeds this amount the delivery man cannot accept new orders before depositing the amount to admin.')}}" class="input-label-secondary"><img src="{{ asset('/public/assets/admin/img/info-circle.svg') }}" alt="{{ translate('messages.dm_maximum_order_hint') }}"></span>
-
                                         </label>
                                         <input type="number" name="dm_max_cash_in_hand" class="form-control"
-                                            id="dm_max_cash_in_hand" min="0" step=".01"
-                                             value="{{ $dm_max_cash_in_hand ? $dm_max_cash_in_hand->value : 0 }}" required>
+                                            id="dm_max_cash_in_hand" min="0" step=".001"
+                                            value="{{ $dm_max_cash_in_hand ? $dm_max_cash_in_hand->value : 0 }}" required>
                                     </div>
                                 </div>
+                                {{-- <div class="col-md-4 col-12">
+                                    @php($max_otp_hit = \App\Models\BusinessSetting::where('key', 'max_otp_hit')->first())
+                                    <div class="form-group">
+                                        <label class="input-label d-flex text-capitalize"
+                                            for="max_otp_hit">
+                                            <span class="line--limit-1">
+                                                {{translate('messages.Max_Number_of_Otp_Hits_in_a_Row')}}
+                                            </span>
+                                            <span data-toggle="tooltip" data-placement="right" data-original-title="{{translate('If the cash in hand for a delivery man exceeds this amount the delivery man cannot accept new orders before depositing the amount to admin.')}}" class="input-label-secondary"><img src="{{ asset('/public/assets/admin/img/info-circle.svg') }}" alt="{{ translate('messages.dm_maximum_order_hint') }}"></span>
+                                        </label>
+                                        <input type="number" name="max_otp_hit" class="form-control"
+                                            id="max_otp_hit" min="0" step="1"
+                                            value="{{ $max_otp_hit ? $max_otp_hit->value : 10 }}">
+                                    </div>
+                                </div> --}}
+                                {{-- <div class="col-md-4 col-12">
+                                    @php($max_otp_hit_time = \App\Models\BusinessSetting::where('key', 'max_otp_hit_time')->first())
+                                    <div class="form-group">
+                                        <label class="input-label d-flex text-capitalize"
+                                            for="max_otp_hit_time">
+                                            <span class="line--limit-1">
+                                                {{translate('messages.max_otp_hit_time')}}
+                                            </span>
+                                            <span data-toggle="tooltip" data-placement="right" data-original-title="{{translate('If the cash in hand for a delivery man exceeds this amount the delivery man cannot accept new orders before depositing the amount to admin.')}}" class="input-label-secondary"><img src="{{ asset('/public/assets/admin/img/info-circle.svg') }}" alt="{{ translate('messages.dm_maximum_order_hint') }}"></span>
+                                        </label>
+                                        <input type="number" name="max_otp_hit_time" class="form-control"
+                                            id="max_otp_hit_time" min="0" step="1"
+                                            value="{{ $max_otp_hit_time ? $max_otp_hit_time->value : 10 }}">
+                                    </div>
+                                </div> --}}
+                                {{-- <div class="col-md-4 col-12">
+                                    @php($otp_interval_time = \App\Models\BusinessSetting::where('key', 'otp_interval_time')->first())
+                                    <div class="form-group">
+                                        <label class="input-label d-flex text-capitalize"
+                                            for="otp_interval_time">
+                                            <span class="line--limit-1">
+                                                {{translate('messages.otp_resend_interval_time')}} ({{ translate('messages.seconds') }})
+                                            </span>
+                                            <span data-toggle="tooltip" data-placement="right" data-original-title="{{translate('If the cash in hand for a delivery man exceeds this amount the delivery man cannot accept new orders before depositing the amount to admin.')}}" class="input-label-secondary"><img src="{{ asset('/public/assets/admin/img/info-circle.svg') }}" alt="{{ translate('messages.dm_maximum_order_hint') }}"></span>
+                                        </label>
+                                        <input type="number" name="otp_interval_time" class="form-control"
+                                            id="otp_interval_time" min="0" step="1"
+                                            value="{{ $otp_interval_time ? $otp_interval_time->value : 30 }}">
+                                    </div>
+                                </div> --}}
+
+
                             </div>
 
                             <!-- Footer Text Commented Out For Removing Purpose -->
-                            {{--
-                            @php($footer_text = \App\Models\BusinessSetting::where('key', 'footer_text')->first())
-                            <div class="form-group">
-                                <label class="input-label"
-                                    for="exampleFormControlInput1">{{ translate('messages.footer') }}
-                                    {{ translate('messages.text') }}</label>
-                                <textarea type="text" value="" name="footer_text" class="form-control" placeholder="{{ translate('messages.Ex :') }} House#94, Road#8, Abc City"
-                                    required>{{ $footer_text->value ?? '' }}</textarea>
-                            </div>
-                            --}}
+
                             <!-- Footer Text Commented Out For Removing Purpose -->
                             <div class="btn--container justify-content-end">
-                                <button type="reset" id="reset_btn" class="btn btn--reset">Reset</button>
+                                <button type="reset" id="reset_btn" class="btn btn--reset">{{ translate('messages.Reset') }} </button>
                                 <button type="{{ env('APP_MODE') != 'demo' ? 'submit' : 'button' }}"
                                 onclick="{{ env('APP_MODE') != 'demo' ? '' : 'call_demo()' }}"
                                 class="btn btn--primary mb-2"><i class="tio-save-outlined mr-2"></i>{{ translate('messages.save') }} {{translate('messages.info')}}</button>
@@ -1762,10 +1434,94 @@
 
 @push('script_2')
     <script>
-        @php($language = \App\Models\BusinessSetting::where('key', 'language')->first())
-        @php($language = $language->value ?? null)
-        let language = <?php echo $language; ?>;
-        $('[id=language]').val(language);
+
+
+
+        $(document).ready(function () {
+                $('body').on('change','#subscription_id', function(){
+                if(this.checked){
+                var status = 1;
+                Swal.fire({
+                    title: '{{ translate('messages.are_you_sure') }}',
+                    text: '{{ translate('messages.You_want_to_active_subscription_model') }}',
+                    type: 'warning',
+                    showCancelButton: false,
+                    cancelButtonColor: 'default',
+                    confirmButtonColor: '#377dff',
+                    // cancelButtonText: 'No',
+                    confirmButtonText: 'OK ',
+                    // reverseButtons: true
+                })
+                }else{
+                var status = 0;
+                Swal.fire({
+                    title: '{{ translate('messages.are_you_sure') }}',
+                    text: '{{ translate('messages.You_want_to_deactive_subscription_model_current_subscribed_restaurants_still_be_subscribed_untill_their_package_expires') }}',
+                    type: 'warning',
+                    showCancelButton: false,
+                    cancelButtonColor: 'default',
+                    confirmButtonColor: '#377dff',
+                    // cancelButtonText: 'No',
+                    confirmButtonText: 'OK',
+                    // reverseButtons: true
+                })
+                }
+
+            // url= '{{ url('admin/business-settings/pages/shipping-policy') }}/'+status;
+            // $.ajax({
+            //     url: url,
+            //     method: 'get',
+            //     success: function(result) {
+            //         toastr.success('{{ translate('messages.status updated!') }}', {
+            //         CloseButton: true,
+            //         ProgressBar: true
+            //         });
+            //     }
+            // });
+
+            });
+        });
+
+
+
+        $(document).ready(function () {
+                $('body').on('change','#commission_id', function(){
+                if(this.checked){
+                var status = 1;
+                Swal.fire({
+                    title: '{{ translate('messages.are_you_sure_?') }}',
+                    text: '{{ translate('messages.You_want_to_active_commission_model') }}',
+                    type: 'warning',
+                    showCancelButton: false,
+                    cancelButtonColor: 'default',
+                    confirmButtonColor: '#377dff',
+                    // cancelButtonText: 'No',
+                    confirmButtonText: 'OK ',
+                    // reverseButtons: true
+                })
+                }else{
+                var status = 0;
+                Swal.fire({
+                    title: '{{ translate('messages.are_you_sure_?') }}',
+                    text: '{{ translate('messages.You_want_to_deactive_commission_model') }}',
+                    type: 'warning',
+                    showCancelButton: false,
+                    cancelButtonColor: 'default',
+                    confirmButtonColor: '#377dff',
+                    // cancelButtonText: 'No',
+                    confirmButtonText: 'OK',
+                    // reverseButtons: true
+                })
+                }
+
+
+            });
+        });
+
+        // @php($language = \App\Models\BusinessSetting::where('key', 'language')->first())
+        // @php($language = $language->value ?? null)
+        // let language = <?php echo $language; ?>;
+        // $('[id=language]').val(language);
 
         function maintenance_mode() {
             @if (env('APP_MODE') == 'demo')
@@ -1935,6 +1691,23 @@
                 } else {
                     $('#free_delivery_over').attr('readonly', true);
                     $('#free_delivery_over').val('Ex : 0');
+                }
+            });
+
+            $("#maximum_shipping_charge_status").on('change', function() {
+                if ($("#maximum_shipping_charge_status").is(':checked')) {
+                    $('#maximum_shipping_charge').removeAttr('readonly');
+                } else {
+                    $('#maximum_shipping_charge').attr('readonly', true);
+                    $('#maximum_shipping_charge').val('Ex : 0');
+                }
+            });
+            $("#max_cod_order_amount_status").on('change', function() {
+                if ($("#max_cod_order_amount_status").is(':checked')) {
+                    $('#max_cod_order_amount').removeAttr('readonly');
+                } else {
+                    $('#max_cod_order_amount').attr('readonly', true);
+                    $('#max_cod_order_amount').val('Ex : 0');
                 }
             });
         });

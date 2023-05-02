@@ -113,13 +113,13 @@
                                         <label class="form-check-label input-label qcont" for="chat">{{ translate('messages.chat')}}</label>
                                     </div>
                                 </div>
-                                <div class="check-item">
+                                {{-- <div class="check-item">
                                     <div class="form-group form-check form--check">
                                         <input type="checkbox" name="modules[]" value="custom_role" class="form-check-input"
                                             id="custom_role">
                                         <label class="form-check-label input-label qcont" for="custom_role">{{translate('messages.custom_role')}}</label>
                                     </div>
-                                </div>
+                                </div> --}}
                                 <div class="check-item">
                                     <div class="form-group form-check form--check">
                                         <input type="checkbox" name="modules[]" value="campaign" class="form-check-input"
@@ -139,6 +139,31 @@
                                         <input type="checkbox" name="modules[]" value="pos" class="form-check-input"
                                             id="pos">
                                         <label class="form-check-label input-label qcont" for="pos">{{translate('messages.pos')}}</label>
+                                    </div>
+                                </div>
+                                @php($restaurant_data = \App\CentralLogics\Helpers::get_restaurant_data())
+                                @if ($restaurant_data->restaurant_model != 'commission')
+                                <div class="check-item">
+                                    <div class="form-group form-check form--check">
+                                        <input type="checkbox" name="modules[]" value="subscription" class="form-check-input"
+                                        id="subscription">
+                                        <label class="form-check-label input-label qcont" for="subscription">{{translate('messages.subscription')}}</label>
+                                    </div>
+                                </div>
+                                @endif
+
+                                <div class="check-item">
+                                    <div class="form-group form-check form--check">
+                                        <input type="checkbox" name="modules[]" value="coupon" class="form-check-input"
+                                            id="coupon">
+                                        <label class="form-check-label input-label qcont" for="coupon">{{translate('messages.coupon')}}</label>
+                                    </div>
+                                </div>
+                                <div class="check-item">
+                                    <div class="form-group form-check form--check">
+                                        <input type="checkbox" name="modules[]" value="report" class="form-check-input"
+                                            id="report">
+                                        <label class="form-check-label input-label qcont" for="report">{{translate('messages.report')}}</label>
                                     </div>
                                 </div>
                             </div>

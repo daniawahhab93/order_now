@@ -2,27 +2,30 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\CentralLogics\CouponLogic;
-use App\CentralLogics\CustomerLogic;
-use App\CentralLogics\Helpers;
-use App\CentralLogics\OrderLogic;
-use App\Http\Controllers\Controller;
-use App\Models\Order;
-use App\Models\OrderDetail;
-use App\Models\Zone;
-use App\Models\DeliveryManWallet;
-use App\Models\DeliveryMan;
-use App\Models\Category;
 use App\Models\Food;
-use App\Models\BusinessSetting;
+use App\Models\Zone;
+use App\Models\Order;
 use App\Models\Coupon;
+use App\Models\Category;
+use App\Models\DeliveryMan;
+use App\Models\OrderDetail;
 use App\Models\ItemCampaign;
-use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Http\Request;
-use Grimzy\LaravelMysqlSpatial\Types\Point;
-use Illuminate\Support\Facades\DB;
+use App\CentralLogics\Helpers;
+use App\Models\BusinessSetting;
 use App\Scopes\RestaurantScope;
+use App\CentralLogics\OrderLogic;
+use App\Models\DeliveryManWallet;
+use App\CentralLogics\CouponLogic;
+use Illuminate\Support\Facades\DB;
+use App\CentralLogics\CustomerLogic;
+use App\Http\Controllers\Controller;
+use App\Models\Refund;
+use App\Models\RefundReason;
+use Brian2694\Toastr\Facades\Toastr;
 use Rap2hpoutre\FastExcel\FastExcel;
+use Illuminate\Support\Facades\Route;
+use Grimzy\LaravelMysqlSpatial\Types\Point;
 
 class OrderController extends Controller
 {
@@ -71,6 +74,12 @@ class OrderController extends Controller
             ->when($status == 'failed', function ($query) {
                 return $query->failed();
             })
+            ->when($status == 'requested', function ($query) {
+                return $query->Refund_requested();
+            })
+            ->when($status == 'rejected', function ($query) {
+                return $query->Refund_request_canceled();
+            })
             ->when($status == 'refunded', function ($query) {
                 return $query->Refunded();
             })
@@ -100,7 +109,8 @@ class OrderController extends Controller
             ->when(isset($request->from_date) && isset($request->to_date) && $request->from_date != null && $request->to_date != null, function ($query) use ($request) {
                 return $query->whereBetween('created_at', [$request->from_date . " 00:00:00", $request->to_date . " 23:59:59"]);
             })
-            // ->Notpos()
+            ->Notpos()
+            ->hasSubscriptionToday()
             ->orderBy('schedule_at', 'desc')
             ->paginate(config('default_pagination'));
         $orderstatus = isset($request->orderStatus) ? $request->orderStatus : [];
@@ -159,8 +169,20 @@ class OrderController extends Controller
             ->when($status == 'failed', function ($query) {
                 return $query->failed();
             })
+            ->when($status == 'requested', function ($query) {
+                return $query->Refund_requested();
+            })
+            ->when($status == 'rejected', function ($query) {
+                return $query->Refund_request_canceled();
+            })
             ->when($status == 'refunded', function ($query) {
                 return $query->Refunded();
+            })
+            ->when($status == 'requested', function ($query) {
+                return $query->Refund_requested();
+            })
+            ->when($status == 'rejected', function ($query) {
+                return $query->Refund_request_canceled();
             })
             ->when($status == 'scheduled', function ($query) {
                 return $query->Scheduled();
@@ -206,6 +228,7 @@ class OrderController extends Controller
             $request = json_decode(session('order_filter'));
             $zone_ids = isset($request->zone) ? $request->zone : 0;
         }
+        $key = explode(' ', $request['search']);
 
         Order::where(['checked' => 0])->update(['checked' => 1]);
 
@@ -226,9 +249,19 @@ class OrderController extends Controller
                     return $query->whereIn('id', $request->vendor);
                 });
             })
+            ->when(isset($key),function($query) use($key){
+                $query->where(function ($q) use ($key) {
+                    foreach ($key as $value) {
+                        $q->orWhere('id', 'like', "%{$value}%")
+                            ->orWhere('order_status', 'like', "%{$value}%")
+                            ->orWhere('transaction_reference', 'like', "%{$value}%");
+                    }
+                });
+            })
             ->when(isset($request->from_date) && isset($request->to_date) && $request->from_date != null && $request->to_date != null, function ($query) use ($request) {
                 return $query->whereBetween('created_at', [$request->from_date . " 00:00:00", $request->to_date . " 23:59:59"]);
             })
+
             ->Notpos()
             ->OrderScheduledIn(30)
             ->orderBy('schedule_at', 'desc')
@@ -245,9 +278,114 @@ class OrderController extends Controller
         return view('admin-views.order.distaptch_list', compact('orders', 'status', 'orderstatus', 'scheduled', 'vendor_ids', 'zone_ids', 'from_date', 'to_date', 'total'));
     }
 
+    public function refund_settings()
+    {
+        $refund_active_status = BusinessSetting::where(['key'=>'refund_active_status'])->first();
+        $reasons=RefundReason::orderBy('id', 'desc')
+        ->paginate(config('default_pagination'));
+
+        return view('admin-views.refund.index', compact('refund_active_status','reasons'));
+    }
+
+    public function refund_reason(Request $request)
+    {
+
+        $request->validate([
+            'reason' => 'required|string|max:191',
+        ]);
+        RefundReason::create([
+            'reason' => $request->reason,
+        ]);
+
+        Toastr::success(translate('Refund Reason Added Successfully'));
+        return back();
+    }
+    public function reason_edit(Request $request)
+    {
+        $request->validate([
+            'reason' => 'required|max:100',
+        ]);
+        $refund_reason = RefundReason::findOrFail($request->reason_id);
+        $refund_reason->reason = $request->reason;
+        $refund_reason->save();
+
+        Toastr::success(translate('Refund Reason Updated Successfully'));
+        return back();
+    }
+    public function reason_status(Request $request)
+    {
+        $refund_reason = RefundReason::findOrFail($request->id);
+        $refund_reason->status = $request->status;
+        $refund_reason->save();
+        Toastr::success(translate('messages.status_updated'));
+        return back();
+    }
+    public function reason_delete(Request $request)
+    {
+        $refund_reason = RefundReason::findOrFail($request->id);
+        $refund_reason->delete();
+        Toastr::success(translate('Refund Reason Deleted Successfully'));
+        return back();
+    }
+
+    public function order_refund_rejection(Request $request){
+
+        $request->validate([
+            'order_id' => 'required',
+            'admin_note' => 'nullable|string|max:65535',
+        ]);
+            Refund::where('order_id', $request->order_id)->update([
+                'order_status' => 'refund_request_canceled',
+                'admin_note'=>$request->admin_note ?? null,
+                'refund_status'=>'rejected',
+                'refund_method'=>'canceled',
+            ]);
+
+            $order = Order::Notpos()->find($request->order_id);
+            $order->order_status = 'refund_request_canceled';
+            $order->refund_request_canceled = now();
+            $order->save();
+
+            Toastr::success(translate('Refund Rejection Successfully'));
+
+            if (!Helpers::send_order_notification($order)) {
+                Toastr::warning(translate('messages.push_notification_faild'));
+            }
+            return back();
+
+    }
+
+
+    public function refund_mode()
+    {
+        $refund_mode = BusinessSetting::where('key', 'refund_active_status')->first();
+        if (isset($refund_mode) == false) {
+            DB::table('business_settings')->insert([
+                'key' => 'refund_active_status',
+                'value' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } else {
+            DB::table('business_settings')->where(['key' => 'refund_active_status'])->update([
+                'key' => 'refund_active_status',
+                'value' => $refund_mode->value == 1 ? 0 : 1,
+                'updated_at' => now(),
+            ]);
+        }
+
+        if (isset($refund_mode) && $refund_mode->value){
+            return response()->json(['message'=>'Order Refund Request Mode is off.']);
+        }
+        return response()->json(['message'=>'Order Refund Request Mode is on.']);
+    }
+
+
+
     public function details(Request $request, $id)
     {
-        $order = Order::with(['details', 'restaurant' => function ($query) {
+        // OrderLogic::create_subscription_log($id);
+        $order = Order::with(['subscription','subscription.schedule_today','details', 'refund','restaurant' => function ($query) {
             return $query->withCount('orders');
         }, 'customer' => function ($query) {
             return $query->withCount('orders');
@@ -259,13 +397,18 @@ class OrderController extends Controller
             return $query->withoutGlobalScope(RestaurantScope::class);
         }])->where(['id' => $id])->Notpos()->first();
         if (isset($order)) {
-            if (isset($order->restaurant) && $order->restaurant->self_delivery_system) {
+            if (isset($order->restaurant) && (($order->restaurant->self_delivery_system && $order->restaurant->restaurant_model == 'commission') ||
+            ($order->restaurant->restaurant_model == 'subscription' &&  isset($order->restaurant->restaurant_sub) && $order->restaurant->restaurant_sub->self_delivery == 1) ) ) {
                 $deliveryMen = DeliveryMan::where('restaurant_id', $order->restaurant_id)->available()->active()->get();
+
             } else {
                 if($order->restaurant !== null){
-                    $deliveryMen = DeliveryMan::where('zone_id', $order->restaurant->zone_id)->available()->active()->get();
+                    $deliveryMen = DeliveryMan::where('zone_id', $order->restaurant->zone_id)->where(function($query)use($order){
+                            $query->where('vehicle_id',$order->vehicle_id)->orWhereNull('vehicle_id');
+                    })
+                    ->available()->active()->get();
                 } else{
-                    $deliveryMen = DeliveryMan::where('zone_id', '=', NULL )->active()->get();
+                    $deliveryMen = DeliveryMan::where('zone_id', '=', NULL)->where('vehicle_id',$order->vehicle_id)->active()->get();
                 }
             }
 
@@ -324,9 +467,18 @@ class OrderController extends Controller
 
     public function status(Request $request)
     {
+        $request->validate([
+            'reason'=>'required_if:order_status,canceled'
+        ]);
         $order = Order::Notpos()->find($request->id);
-        if (in_array($order->order_status, ['delivered', 'refunded', 'failed'])) {
+        if (in_array($order->order_status, ['refunded', 'failed'])) {
             Toastr::warning(translate('messages.you_can_not_change_the_status_of_a_completed_order'));
+            return back();
+        }
+
+
+        if (in_array($order->order_status, ['refund_requested']) && BusinessSetting::where(['key'=>'refund_active_status'])->first()->value == false)  {
+            Toastr::warning(translate('Refund Option is not active. Please active it from Refund Settings'));
             return back();
         }
 
@@ -342,7 +494,7 @@ class OrderController extends Controller
 
         if ($request->order_status == 'delivered') {
 
-            if ($order->transaction  == null) {
+            if ($order->transaction  == null || isset($order->subscription_id)) {
                 if ($order->payment_method == "cash_on_delivery") {
                     if ($order->order_type == 'take_away') {
                         $ol = OrderLogic::create_transaction($order, 'restaurant', null);
@@ -374,41 +526,83 @@ class OrderController extends Controller
                     $item->food->increment('order_count');
                 }
             });
-            $order->customer->increment('order_count');
+            $order->customer ?  $order->customer->increment('order_count') : '';
             $order->restaurant->increment('order_count');
-        } else if ($request->order_status == 'refunded') {
-            if ($order->payment_method == "cash_on_delivery" || $order->payment_status == "unpaid") {
-                Toastr::warning(translate('messages.you_can_not_refund_a_cod_order'));
-                return back();
-            }
-            if (isset($order->delivered)) {
-                $rt = OrderLogic::refund_order($order);
-
-                if (!$rt) {
-                    Toastr::warning(translate('messages.faield_to_create_order_transaction'));
-                    return back();
-                }
             }
 
-            if ($order->payment_status == "paid" && BusinessSetting::where('key', 'wallet_add_refund')->first()->value == 1) {
-                CustomerLogic::create_wallet_transaction($order->user_id, $order->order_amount, 'order_refund', $order->id);
+
+            else if ($request->order_status == 'refunded' && BusinessSetting::where('key', 'refund_active_status')->first()->value == 1) {
+                    if ($order->payment_status == "unpaid") {
+                        Toastr::warning(translate('messages.you_can_not_refund_a_cod_order'));
+                        return back();
+                    }
+                    if (isset($order->delivered)) {
+                        $rt = OrderLogic::refund_order($order);
+
+                        if (!$rt) {
+                            Toastr::warning(translate('messages.faield_to_create_order_transaction'));
+                            return back();
+                        }
+                    }
+                    $refund_method= $request->refund_method  ?? 'manual';
+                    $wallet_status= BusinessSetting::where('key','wallet_status')->first()->value;
+                $refund_to_wallet= BusinessSetting::where('key', 'wallet_add_refund')->first()->value;
+
+                if ($order->payment_status == "paid" && $wallet_status == 1 && $refund_to_wallet==1) {
+                    $refund_amount = round($order->order_amount - $order->delivery_charge - $order->dm_tips, config('round_up_to_digit'));
+                    CustomerLogic::create_wallet_transaction($order->user_id, $refund_amount, 'order_refund', $order->id);
+                    Toastr::info(translate('Refunded amount added to customer wallet'));
+                    $refund_method='wallet';
+                }else{
+                        Toastr::warning(translate('Customer Wallet Refund is not active.Plase Manage the Refund Amount Manually'));
+                        $refund_method=$request->refund_method  ?? 'manual';
+                    }
+
+                    Refund::where('order_id', $order->id)->update([
+                        'order_status' => 'refunded',
+                        'admin_note'=>$request->admin_note ?? null,
+                        'refund_status'=>'approved',
+                        'refund_method'=>$refund_method,
+                    ]);
+
+                    Helpers::increment_order_count($order->restaurant);
+
+                    if ($order->delivery_man) {
+                        $dm = $order->delivery_man;
+                        $dm->current_orders = $dm->current_orders > 1 ? $dm->current_orders - 1 : 0;
+                        $dm->save();
+                    }
             }
 
-            if ($order->delivery_man) {
-                $dm = $order->delivery_man;
-                $dm->current_orders = $dm->current_orders > 1 ? $dm->current_orders - 1 : 0;
-                $dm->save();
-            }
-        } else if ($request->order_status == 'canceled') {
-            if (in_array($order->order_status, ['delivered', 'canceled', 'refund_requested', 'refunded', 'failed'])) {
+        else if ($request->order_status == 'canceled') {
+            if (in_array($order->order_status, ['delivered', 'canceled', 'refund_requested', 'refunded', 'failed', 'picked_up']) || $order->picked_up) {
                 Toastr::warning(translate('messages.you_can_not_cancel_a_completed_order'));
                 return back();
             }
+            // if(isset($order->confirmed) && isset($order->subscription_id)){
+            //     Toastr::warning(translate('messages.you_can_not_cancel_this_subscription_order_because_it_is_already_confirmed'));
+            //     return back();
+            // }
+            if(isset($order->subscription_id)){
+                $order->subscription()->update(['status' => 'canceled']);
+                if($order->subscription->log){
+                    $order->subscription->log()->update([
+                        'order_status' => $request->status,
+                        'canceled' => now(),
+                        ]);
+                }
+            }
+            $order->cancellation_reason = $request->reason;
+            $order->canceled_by = 'admin';
+
             if ($order->delivery_man) {
                 $dm = $order->delivery_man;
                 $dm->current_orders = $dm->current_orders > 1 ? $dm->current_orders - 1 : 0;
                 $dm->save();
             }
+
+            Helpers::increment_order_count($order->restaurant);
+            OrderLogic::refund_before_delivered($order);
         }
         $order->order_status = $request->order_status;
         if($request->order_status == 'processing') {
@@ -417,10 +611,10 @@ class OrderController extends Controller
         $order[$request->order_status] = now();
         $order->save();
 
+        OrderLogic::update_subscription_log($order);
         if (!Helpers::send_order_notification($order)) {
             Toastr::warning(translate('messages.push_notification_faild'));
         }
-
         Toastr::success(translate('messages.order') . translate('messages.status_updated'));
         return back();
     }
@@ -430,8 +624,7 @@ class OrderController extends Controller
         if ($delivery_man_id == 0) {
             return response()->json(['message' => translate('messages.deliveryman') . ' ' . translate('messages.not_found')], 404);
         }
-        $order = Order::Notpos()->find($order_id);
-
+        $order = Order::Notpos()->with(['subscription.schedule_today'])->find($order_id);
         $deliveryman = DeliveryMan::where('id', $delivery_man_id)->available()->active()->first();
         if ($order->delivery_man_id == $delivery_man_id) {
             return response()->json(['message' => translate('messages.order_already_assign_to_this_deliveryman')], 400);
@@ -440,31 +633,16 @@ class OrderController extends Controller
             if ($deliveryman->current_orders >= config('dm_maximum_orders')) {
                 return response()->json(['message' => translate('messages.dm_maximum_order_exceed_warning')], 400);
             }
-
-            //check here
-
             $cash_in_hand = isset($deliveryman->wallet) ? $deliveryman->wallet->collected_cash : 0;
-
             $dm_max_cash=BusinessSetting::where('key','dm_max_cash_in_hand')->first();
-
             $value= $dm_max_cash ? $dm_max_cash->value : 0;
-
             if($order->payment_method == "cash_on_delivery" && (($cash_in_hand+$order->order_amount) >= $value)){
                 return response()->json(['message'=>translate('delivery man max cash in hand exceeds')], 400);
             }
-            $order->delivery_man_id = $delivery_man_id;
-            $order->order_status = in_array($order->order_status, ['pending', 'confirmed']) ? 'accepted' : $order->order_status;
-            $order->accepted = now();
-            $order->save();
-
-            $deliveryman->current_orders = $deliveryman->current_orders + 1;
-            $deliveryman->save();
-            $deliveryman->increment('assigned_order_count');
-
-
             if ($order->delivery_man) {
                 $dm = $order->delivery_man;
                 $dm->current_orders = $dm->current_orders > 1 ? $dm->current_orders - 1 : 0;
+                // $dm->decrement('assigned_order_count');
                 $dm->save();
 
                 $data = [
@@ -487,7 +665,7 @@ class OrderController extends Controller
             $order->order_status = in_array($order->order_status, ['pending', 'confirmed']) ? 'accepted' : $order->order_status;
             $order->accepted = now();
             $order->save();
-
+            OrderLogic::update_subscription_log($order);
             $deliveryman->current_orders = $deliveryman->current_orders + 1;
             $deliveryman->save();
             $deliveryman->increment('assigned_order_count');
@@ -537,7 +715,6 @@ class OrderController extends Controller
         }
         return response()->json(['message' => translate('Deliveryman not available!')], 400);
     }
-
     public function update_shipping(Request $request, Order $order)
     {
 
@@ -614,6 +791,7 @@ class OrderController extends Controller
 
     public function add_to_cart(Request $request)
     {
+
         if ($request->item_type == 'food') {
             $product = Food::withOutGlobalScope(RestaurantScope::class)->find($request->id);
         } else {
@@ -630,52 +808,43 @@ class OrderController extends Controller
         $data['food'] = $request->item_type == 'food' ? $product : null;
         $data['item_campaign'] = $request->item_type == 'campaign' ? $product : null;
         $data['order_id'] = $request->order_id;
-        $str = '';
+        $variations = [];
         $price = 0;
         $addon_price = 0;
+        $variation_price=0;
 
-        //Gets all the choice values of customer choice option and generate a string like Black-S-Cotton
-        foreach (json_decode($product->choice_options) as $key => $choice) {
-            if ($str != null) {
-                $str .= '-' . str_replace(' ', '', $request[$choice->name]);
-            } else {
-                $str .= str_replace(' ', '', $request[$choice->name]);
-            }
-        }
-        $data['variant'] = json_encode([]);
-        $data['variation'] = json_encode([]);
-        if ($request->session()->has('order_cart') && !isset($request->cart_item_key)) {
-            if (count($request->session()->get('order_cart')) > 0) {
-                foreach ($request->session()->get('order_cart') as $key => $cartItem) {
-                    if ($cartItem['food_id'] == $request['id'] && $cartItem['status'] == true) {
-                        if (count(json_decode($cartItem['variation'], true)) > 0) {
-                            if (json_decode($cartItem['variation'], true)[0]['type'] == $str) {
-                                return response()->json([
-                                    'data' => 1
-                                ]);
-                            }
-                        } else {
-                            return response()->json([
-                                'data' => 1
-                            ]);
-                        }
-                    }
+        $product_variations = json_decode($product->variations, true);
+        if ($request->variations && count($product_variations)) {
+            foreach($request->variations  as $key=> $value ){
+
+                if($value['required'] == 'on' &&  isset($value['values']) == false){
+                    return response()->json([
+                        'data' => 'variation_error',
+                        'message' => translate('Please select items from') . ' ' . $value['name'],
+                    ]);
+                }
+                if(isset($value['values'])  && $value['min'] != 0 && $value['min'] > count($value['values']['label'])){
+                    return response()->json([
+                        'data' => 'variation_error',
+                        'message' => translate('Please select minimum ').$value['min'].translate(' For ').$value['name'].'.',
+                    ]);
+                }
+                if(isset($value['values']) && $value['max'] != 0 && $value['max'] < count($value['values']['label'])){
+                    return response()->json([
+                        'data' => 'variation_error',
+                        'message' => translate('Please select maximum ').$value['max'].translate(' For ').$value['name'].'.',
+                    ]);
                 }
             }
-        }
-        //Check the string and decreases quantity for the stock
-        if ($str != null) {
-            $count = count(json_decode($product->variations));
-            for ($i = 0; $i < $count; $i++) {
-                if (json_decode($product->variations)[$i]->type == $str) {
-                    $price = json_decode($product->variations)[$i]->price;
-                }
-            }
-            $data['variation'] = json_encode([["type" => $str, "price" => $price]]);
-        } else {
-            $price = $product->price;
-        }
+            $variation_data = Helpers::get_varient($product_variations, $request->variations);
+            $variation_price = $variation_data['price'];
+            $variations = $variation_data['variations'];
 
+        }
+        $price = $product->price + $variation_price;
+        $data['variation'] = json_encode($variations);
+        $data['variant'] = '';
+        // $data['variation_price'] = $variation_price;
         $data['quantity'] = $request['quantity'];
         $data['price'] = $price;
         $data['status'] = true;
@@ -693,11 +862,12 @@ class OrderController extends Controller
             $add_ons = $request['addon_id'];
         }
 
-        $addon_data = Helpers::calculate_addon_price(\App\Models\AddOn::whereIn('id', $add_ons)->get(), $add_on_qtys);
+        $addon_data = Helpers::calculate_addon_price(\App\Models\AddOn::withOutGlobalScope(App\Scopes\RestaurantScope::class)->whereIn('id', $add_ons)->get(), $add_on_qtys);
         $data['add_ons'] = json_encode($addon_data['addons']);
         $data['total_add_on_price'] = $addon_data['total_add_on_price'];
         // dd($data);
         $cart = $request->session()->get('order_cart', collect([]));
+
         if (isset($request->cart_item_key)) {
             $cart[$request->cart_item_key] = $data;
             return response()->json([
@@ -706,6 +876,7 @@ class OrderController extends Controller
         } else {
             $cart->push($data);
         }
+        // dd( $cart);
 
         return response()->json([
             'data' => 0
@@ -782,9 +953,10 @@ class OrderController extends Controller
         $product_price = 0;
         $restaurant_discount_amount = 0;
         if ($order->coupon_code) {
-            $coupon = Coupon::where(['code' => $request['coupon_code']])->first();
+            $coupon = Coupon::where(['code' => $order->coupon_code])->first();
         }
         foreach ($cart as $c) {
+
             if ($c['status'] == true) {
                 unset($c['food']);
                 unset($c['status']);
@@ -799,6 +971,8 @@ class OrderController extends Controller
 
                         $c->food_details = json_encode($product);
                         $c->updated_at = now();
+                        // $variation_data = Helpers::get_varient($product->variations, $c['variations']);
+                        // $variations = $variation_data['variations'];
                         if (isset($c->id)) {
                             OrderDetail::where('id', $c->id)->update(
                                 [
@@ -859,7 +1033,6 @@ class OrderController extends Controller
                         } else {
                             $c->save();
                         }
-
                         $total_addon_price += $c['total_add_on_price'];
                         $product_price += $price * $c['quantity'];
                         $restaurant_discount_amount += $c['discount_on_food'] * $c['quantity'];
@@ -965,22 +1138,22 @@ class OrderController extends Controller
     public function restaurant_order_search(Request $request){
         $key = explode(' ', $request['search']);
         $orders = Order::where(['restaurant_id'=>$request->restaurant_id])
-            ->where(function($q) use($key){
-                foreach ($key as $value){
-                    $q->orWhere('id', 'like', "%{$value}%");
+                        ->where(function($q) use($key){
+                            foreach ($key as $value){
+                                $q->orWhere('id', 'like', "%{$value}%");
 
-                }
-            })
-            ->whereHas('customer', function($q) use($key){
-                foreach($key as $value){
-                    $q->orWhere('f_name', 'like', "%{$value}%")
-                        ->orWhere('l_name', 'like', "%{$value}%");
-                }
-            })->get();
+                            }
+                        })
+                        ->whereHas('customer', function($q) use($key){
+                            foreach($key as $value){
+                                $q->orWhere('f_name', 'like', "%{$value}%")
+                                ->orWhere('l_name', 'like', "%{$value}%");
+                            }
+                        })->get();
 
 
-        return response()->json([
-            'view'=> view('admin-views.vendor.view.partials._orderTable', compact('orders'))->render()
-        ]);
+                        return response()->json([
+                            'view'=> view('admin-views.vendor.view.partials._orderTable', compact('orders'))->render()
+                        ]);
     }
 }

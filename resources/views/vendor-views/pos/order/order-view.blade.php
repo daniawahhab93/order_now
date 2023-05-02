@@ -746,12 +746,24 @@
         }
 
         function printDiv(divName) {
-            var printContents = document.getElementById(divName).innerHTML;
-            var originalContents = document.body.innerHTML;
-            document.body.innerHTML = printContents;
-            window.print();
-            document.body.innerHTML = originalContents;
-            location.reload();
+            if($('html').attr('dir') === 'rtl') {
+                $('html').attr('dir', 'ltr')
+                var printContents = document.getElementById(divName).innerHTML;
+                var originalContents = document.body.innerHTML;
+                document.body.innerHTML = printContents;
+                $('.initial-38-1').attr('dir', 'rtl')
+                window.print();
+                document.body.innerHTML = originalContents;
+                $('html').attr('dir', 'rtl')
+                location.reload();
+            }else{
+                var printContents = document.getElementById(divName).innerHTML;
+                var originalContents = document.body.innerHTML;
+                document.body.innerHTML = printContents;
+                window.print();
+                document.body.innerHTML = originalContents;
+                location.reload();
+            }
         }
     </script>
 @endpush

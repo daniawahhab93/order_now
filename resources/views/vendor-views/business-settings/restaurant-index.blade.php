@@ -74,7 +74,13 @@
                             </label>
                         </div>
                     </div>
-                    @if ($restaurant->self_delivery_system == 1)
+
+                    @php($data =0)
+                    @if (($restaurant->restaurant_model == 'subscription' && isset($restaurant->restaurant_sub) && $restaurant->restaurant_sub->self_delivery == 1)  || ($restaurant->restaurant_model == 'commission' && $restaurant->self_delivery_system == 1) )
+                    @php($data =1)
+                    @endif
+
+                    @if ($data)
                     <div class="col-lg-4 col-sm-6">
                         <div class="form-group m-0">
                             <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border rounded px-3 form-control" for="free_delivery">
@@ -135,6 +141,25 @@
                         </div>
                     </div>
                     @endif
+
+                    @php($order_subscription = \App\Models\BusinessSetting::where('key', 'order_subscription')->first())
+                    @if (isset($order_subscription) && $order_subscription->value == 1)
+                    <div class="col-lg-4 col-sm-6">
+                        <div class="form-group m-0">
+                            <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border rounded px-3 form-control" for="order_subscription_active">
+                                <span class="pr-2 text-capitalize">
+                                    {{translate('messages.Order_subscription')}}:
+                                    <span data-toggle="tooltip" data-placement="right" data-original-title="{{translate('If this option is on , customer can place subscription based order in user app.')}}" class="input-label-secondary"><img src="{{asset('public/assets/admin/img/info-circle.svg')}}" alt="i"></span>
+                                </span>
+                                <input type="checkbox" class="toggle-switch-input" onclick="location.href='{{route('vendor.business-settings.toggle-settings',[$restaurant->id,$restaurant->order_subscription_active?0:1, 'order_subscription_active'])}}'" id="order_subscription_active" {{$restaurant->order_subscription_active?'checked':''}}>
+                                <span class="toggle-switch-label">
+                                    <span class="toggle-switch-indicator"></span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    @endif
+
                 </div>
             </div>
         </div>
@@ -149,31 +174,44 @@
                 <form action="{{route('vendor.business-settings.update-setup',[$restaurant['id']])}}" method="post"
                     enctype="multipart/form-data">
                     @csrf
+
+
                     <div class="row g-3">
-                        <div class="col-sm-{{$restaurant->self_delivery_system?'4':'6'}} col-12">
+                        <div class="col-sm-{{$data?'4':'6'}} col-12">
                             <div class="form-group m-0">
                                 <label class="input-label text-capitalize" for="title">{{translate('messages.minimum')}} {{translate('messages.order')}} {{translate('messages.amount')}}</label>
                                 <input type="number" name="minimum_order" step="0.01" min="0" max="100000" class="form-control" placeholder="100" value="{{$restaurant->minimum_order??'0'}}">
                             </div>
                         </div>
-                        @if($restaurant->self_delivery_system)
-                        <div class="col-sm-{{$restaurant->self_delivery_system?'4':'6'}} col-12">
+                        @if($data)
+                        <div class="col-sm-{{$data?'4':'6'}} col-12">
                             <div class="form-group m-0">
-                                <label class="input-label text-capitalize" for="minimum_shipping_charge">{{translate('messages.minimum_shipping_charge')}} ({{\App\CentralLogics\Helpers::currency_symbol()}})
+                                <label class="input-label text-capitalize" for="minimum_shipping_charge">{{translate('messages.minimum_delivery_charge')}} ({{\App\CentralLogics\Helpers::currency_symbol()}})
                                 </label>
                                 <input type="number" id="minimum_shipping_charge" min="0" max="99999999.99" step="0.01" name="minimum_delivery_charge" class="form-control shipping_input" value="{{isset($restaurant->minimum_shipping_charge) ? $restaurant->minimum_shipping_charge : ''}}">
                             </div>
                         </div>
 
-                        <div class="col-sm-{{$restaurant->self_delivery_system?'4':'6'}} col-12">
+                        <div class="col-sm-{{$data?'4':'6'}} col-12">
                             <div class="form-group m-0">
                                 <label class="input-label text-capitalize" for="title">{{translate('messages.delivery_charge_per_km')}} ({{\App\CentralLogics\Helpers::currency_symbol()}})</label>
                                 <input type="number" name="per_km_delivery_charge" step="0.01" min="0" max="100000" class="form-control" placeholder="100" value="{{$restaurant->per_km_shipping_charge??'0'}}">
                             </div>
                         </div>
+                        <div class="col-sm-{{$data?'4':'6'}} col-12">
+                            <div class="form-group m-0">
+                                <label class="input-label text-capitalize" for="title">{{translate('messages.maximum_shipping_charge')}} ({{\App\CentralLogics\Helpers::currency_symbol()}})
+                                    <span data-toggle="tooltip" data-placement="right" data-original-title="{{translate('It will add a limite on total delivery charge.') }}"
+                                    class="input-label-secondary"><img
+                                        src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
+                                        alt="{{ translate('messages.maximum_shipping_charge') }}"></span>
+                                </label>
+                                <input type="number" name="maximum_shipping_charge" step="0.01" min="0" max="999999999" class="form-control" placeholder="10000" value="{{$restaurant->maximum_shipping_charge??''}}">
+                            </div>
+                        </div>
                         @endif
 
-                        <div class="col-sm-{{$restaurant->self_delivery_system?'4':'6'}} col-12">
+                        <div class="col-sm-{{$data?'4':'6'}} col-12">
                             <div class="form-group m-0">
                                 <label class="toggle-switch toggle-switch-sm d-flex justify-content-between input-label mb-1" for="gst_status">
                                     <span class="form-check-label">{{translate('messages.gst')}} <span class="input-label-secondary" data-toggle="tooltip" data-placement="right" data-original-title="{{translate('messages.gst_status_warning')}}"><img src="{{asset('/public/assets/admin/img/info-circle.svg')}}" alt="{{translate('messages.gst_status_warning')}}"></span></span>
@@ -185,7 +223,43 @@
                                 <input type="number" id="gst" name="gst" class="form-control" value="{{$restaurant->gst_code}}" {{isset($restaurant->gst_status)?'':'readonly'}}>
                             </div>
                         </div>
+
+
+                    <div class="col-sm-{{$data?'4':'6'}} col-12">
+                        <div class="form-group m-0">
+                            <label class="input-label" for="cuisine">{{ translate('messages.cuisine') }}
+                                {{-- <span
+                                    class="input-label-secondary"
+                                    title="{{ translate('messages.select_zone_for_map') }}"><img
+                                        src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
+                                        alt="{{ translate('messages.select_zone_for_map') }}"></span> --}}
+                                    </label>
+                            <select name="cuisine_ids[]" id="cuisine"  multiple="multiple"
+                                data-placeholder="{{ translate('messages.select') }} {{ translate('messages.Cuisine') }}"
+                                class="form-control h--45px min--45 js-select2-custom">
+                                {{ translate('messages.Cuisine') }}</option>
+                                {{-- <option value="" selected disabled>{{ translate('messages.select') }}
+                                    {{ translate('messages.Cuisine') }}</option> --}}
+                                {{-- @foreach (\App\Models\Cuisine::where('status',1 )->get(['id','name']) as $cu)
+                                        <option value="{{ $cu->id }}"
+                                            {{in_array($cu->id, json_decode($cuisines,true))?'selected':''}}
+                                            {{ $restaurant->cuisine_id == $cu->id ? 'selected' : '' }}
+                                            >
+                                            {{ $cu->name }}</option>
+                                @endforeach --}}
+                                @php($cuisine_array = \App\Models\Cuisine::where('status',1 )->get()->toArray())
+                                @php($selected_cuisine = isset($restaurant->cuisine) ? $restaurant->cuisine->pluck('id')->toArray() : [])
+                                @foreach ($cuisine_array as $cu)
+                                    <option value="{{ $cu['id'] }}"
+                                        {{ in_array($cu['id'], $selected_cuisine) ? 'selected' : '' }}>
+                                        {{ $cu['name'] }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        </div>
                     </div>
+
+
                     <div class="btn--container justify-content-end mt-3">
                         <button type="reset" class="btn btn--reset">{{translate('messages.reset')}}</button>
                         <button type="submit" class="btn btn--primary">{{translate('messages.update')}}</button>

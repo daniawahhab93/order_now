@@ -32,6 +32,42 @@
                 <!-- Navbar -->
                 <ul class="navbar-nav align-items-center flex-row">
 
+
+                    <li class="nav-item d-none d-sm-inline-block mr-2">
+                        <div class="hs-unfold">
+                            <div>
+                                @php( $local = session()->has('local')?session('local'):'en')
+                                @php($lang = \App\Models\BusinessSetting::where('key', 'system_language')->first())
+                                @if ($lang)
+                                <div
+                                    class="topbar-text dropdown disable-autohide text-capitalize d-flex">
+                                    <a class=" text-dark dropdown-toggle d-flex align-items-center nav-link "
+                                    href="#" data-toggle="dropdown">
+                                    @foreach(json_decode($lang['value'],true) as $data)
+                                    @if($data['code']==$local)
+                                    <i class="tio-globe"></i>
+                                                {{$data['code']}}
+                                            @endif
+                                        @endforeach
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        @foreach(json_decode($lang['value'],true) as $key =>$data)
+                                            @if($data['status']==1)
+                                                <li>
+                                                    <a class="dropdown-item py-1"
+                                                        href="{{route('admin.lang',[$data['code']])}}">
+                                                        <span class="text-capitalize">{{$data['code']}}</span>
+                                                    </a>
+                                                </li>
+                                            @endif
+                                        @endforeach
+                                    </ul>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                    </li>
+                    
                     <li class="nav-item d-none d-sm-inline-block mr-4">
                         <!-- Notification -->
                         <div class="hs-unfold">

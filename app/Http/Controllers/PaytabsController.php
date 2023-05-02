@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\CentralLogics\Helpers;
 use App\Models\Order;
-use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Http\Request;
+use App\CentralLogics\Helpers;
+use App\Models\BusinessSetting;
+use Brian2694\Toastr\Facades\Toastr;
 
 
 class Paytabs
@@ -73,14 +74,15 @@ class PaytabsController extends Controller
         $value = $order->order_amount;
 
         $user = $order->customer;
+        $currency=BusinessSetting::where('key', 'currency')->first();
 
         $plugin = new Paytabs();
         $request_url = 'payment/request';
         $data = [
             "tran_type" => "sale",
             "tran_class" => "ecom",
-            "cart_id" => $order->id,
-            "cart_currency" => "EGP",
+            "cart_id" => 'pay-'.$order->id,
+            "cart_currency" => isset($currency) ? $currency->value : "EGP",
             "cart_amount" => round($value,2),
             "cart_description" => "products",
             "paypage_lang" => "en",

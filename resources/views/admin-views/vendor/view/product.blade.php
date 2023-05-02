@@ -35,29 +35,34 @@
             <!-- Nav -->
             <ul class="nav nav-tabs page-header-tabs">
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', $restaurant->id)}}">{{translate('messages.overview')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', $restaurant->id)}}">{{translate('messages.overview')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'order'])}}"  aria-disabled="true">{{translate('messages.orders')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'order'])}}"  aria-disabled="true">{{translate('messages.orders')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link active" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'product'])}}"  aria-disabled="true">{{translate('messages.foods')}}</a>
+                    <a class="nav-link active" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'product'])}}"  aria-disabled="true">{{translate('messages.foods')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'reviews'])}}"  aria-disabled="true">{{translate('messages.reviews')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'reviews'])}}"  aria-disabled="true">{{translate('messages.reviews')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'discount'])}}"  aria-disabled="true">{{translate('discounts')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'discount'])}}"  aria-disabled="true">{{translate('discounts')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'transaction'])}}"  aria-disabled="true">{{translate('messages.transactions')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'transaction'])}}"  aria-disabled="true">{{translate('messages.transactions')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'settings'])}}"  aria-disabled="true">{{translate('messages.settings')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'settings'])}}"  aria-disabled="true">{{translate('messages.settings')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{route('admin.vendor.view', ['restaurant'=>$restaurant->id, 'tab'=> 'conversations'])}}"  aria-disabled="true">{{translate('messages.conversations')}}</a>
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'conversations'])}}"  aria-disabled="true">{{translate('messages.conversations')}}</a>
                 </li>
+                @if ($restaurant->restaurant_model != 'none' && $restaurant->restaurant_model != 'commission' )
+                <li class="nav-item">
+                    <a class="nav-link" href="{{route('admin.restaurant.view', ['restaurant'=>$restaurant->id, 'tab'=> 'subscriptions'])}}"  aria-disabled="true">{{translate('messages.subscription')}}</a>
+                </li>
+                @endif
             </ul>
             <!-- End Nav -->
         </div>
@@ -72,7 +77,8 @@
             <div class="order-info-icon icon-sm">
                 <img src="{{asset('/public/assets/admin/img/resturant/foods/all.png')}}" alt="public">
             </div>
-                @php($food = \App\Models\Food::where(['restaurant_id'=>$restaurant->id])->count())
+                @php($food = \App\Models\Food::withoutGlobalScope(\App\Scopes\RestaurantScope::class)
+                ->where(['restaurant_id'=>$restaurant->id])->count())
                 @php($food = ($food == null) ? 0 : $food)
                 <h6 class="card-subtitle">{{translate('messages.all')}}<span class="amount text--primary">{{$food}}</span></h6>
         </div>
@@ -81,7 +87,8 @@
             <div class="order-info-icon icon-sm">
                 <img src="{{asset('/public/assets/admin/img/resturant/foods/active.png')}}" alt="public">
             </div>
-                @php($food = \App\Models\Food::where(['restaurant_id'=>$restaurant->id, 'status'=>1])->count())
+                @php($food = \App\Models\Food::withoutGlobalScope(\App\Scopes\RestaurantScope::class)->
+                where(['restaurant_id'=>$restaurant->id, 'status'=>1])->count())
                 @php($food = ($food == null) ? 0 : $food)
                 <h6 class="card-subtitle">{{translate('Active Food')}}<span class="amount text--primary">{{$food}}</span></h6>
         </div>
@@ -90,7 +97,8 @@
             <div class="order-info-icon icon-sm">
                 <img src="{{asset('/public/assets/admin/img/resturant/foods/inactive.png')}}" alt="public">
             </div>
-                @php($food = \App\Models\Food::where(['restaurant_id'=>$restaurant->id, 'status'=>0])->count())
+                @php($food = \App\Models\Food::withoutGlobalScope(\App\Scopes\RestaurantScope::class)->
+                where(['restaurant_id'=>$restaurant->id, 'status'=>0])->count())
                 @php($food = ($food == null) ? 0 : $food)
                 <h6 class="card-subtitle">{{translate('Inactive Food')}}<span class="amount text--primary">{{$food}}</span></h6>
         </div>
@@ -303,7 +311,7 @@
                 }
             });
             $.post({
-                url: '{{route('admin.food.search-vendor')}}',
+                url: '{{route('admin.food.search-restaurant')}}',
                 data: formData,
                 cache: false,
                 contentType: false,

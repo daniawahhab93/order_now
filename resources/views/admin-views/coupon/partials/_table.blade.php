@@ -20,6 +20,8 @@
         <th>{{translate('messages.discount')}} {{translate('messages.type')}}</th>
         <th>{{translate('messages.start')}} {{translate('messages.date')}}</th>
         <th>{{translate('messages.expire')}} {{translate('messages.date')}}</th>
+        {{-- <th>{{translate('messages.created_by')}}</th> --}}
+        <th>{{translate('messages.Customer_type')}}</th>
         <th>{{translate('messages.status')}}</th>
         <th>{{translate('messages.action')}}</th>
     </tr>
@@ -41,6 +43,24 @@
             <td>{{$coupon['discount_type']}}</td>
             <td>{{$coupon['start_date']}}</td>
             <td>{{$coupon['expire_date']}}</td>
+            {{-- <td>
+                <span class="d-block font-size-sm text-body">
+                    @if ($coupon['created_by'] == 'admin')
+                    {{translate('messages.admin')}}
+                    @else
+                    {{translate('messages.restaurant')}}
+                    @endif
+                </span>
+            </td> --}}
+            <td>
+                <span class="d-block font-size-sm text-body">
+                    @if (in_array('all', json_decode($coupon->customer_id)))
+                    {{translate('messages.all')}} {{translate('messages.customers')}}
+                    @else
+                    {{translate('messages.Selected')}} {{translate('messages.customers')}}
+                    @endif
+                </span>
+            </td>
             <td>
                 <label class="toggle-switch toggle-switch-sm" for="couponCheckbox{{$coupon->id}}">
                     <input type="checkbox" onclick="location.href='{{route('admin.coupon.status',[$coupon['id'],$coupon->status?0:1])}}'" class="toggle-switch-input" id="couponCheckbox{{$coupon->id}}" {{$coupon->status?'checked':''}}>

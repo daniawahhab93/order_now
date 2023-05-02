@@ -10,6 +10,7 @@
         {{$e['created_at']->format('d M, Y')}}
     </td>
     <td>
+        @if (auth('admin')->id()  != $e['id'])
         <div class="btn--container">
             <a class="btn btn-sm btn--primary btn-outline-primary action-btn"
                 href="{{route('admin.employee.edit',[$e['id']])}}" title="{{translate('messages.edit')}} {{translate('messages.Employee')}}"><i class="tio-edit"></i>
@@ -22,6 +23,7 @@
                 method="post" id="employee-{{$e['id']}}">
             @csrf @method('delete')
         </form>
+        @endif
     </td>
 </tr>
 @endforeach

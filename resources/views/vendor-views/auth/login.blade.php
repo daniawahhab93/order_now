@@ -1,5 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+
+<?php
+    if (env('APP_MODE') == 'demo') {
+        $site_direction = session()->get('site_direction_vendor');
+    }else{
+        $site_direction = session()->has('vendor_site_direction')?session()->get('vendor_site_direction'):'ltr';
+    }
+?>
+<html dir="{{ $site_direction }}" lang="{{ str_replace('_', '-', app()->getLocale()) }}"  class="{{ $site_direction === 'rtl'?'active':'' }}">
 <head>
     <!-- Required Meta Tags Always Come First -->
     <meta charset="utf-8">
@@ -78,7 +86,7 @@
                             </span>
                         </label>
                         <div class="input-group input-group-merge">
-                            <input type="password" class="js-toggle-password form-control form-control-lg"
+                            <input type="password" class="js-toggle-password form-control form-control-lg __rounded"
                                     name="password" id="signupSrPassword"
                                     aria-label="8+ characters required" required
                                     data-msg="{{translate('messages.invalid_password_warning')}}"
@@ -166,7 +174,7 @@
                             </span>
                         </label>
                         <div class="input-group input-group-merge">
-                            <input type="password" class="js-toggle-password form-control form-control-lg"
+                            <input type="password" class="js-toggle-password form-control form-control-lg __rounded"
                                     name="password" aria-label="8+ characters required" required
                                     data-msg="{{translate('messages.invalid_password_warning')}}"
                                     data-hs-toggle-password-options='{

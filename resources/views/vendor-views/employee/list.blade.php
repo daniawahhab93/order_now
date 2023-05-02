@@ -62,20 +62,7 @@
 
                     <div id="usersExportDropdown"
                             class="hs-unfold-content dropdown-unfold dropdown-menu dropdown-menu-sm-right">
-                        {{--<span class="dropdown-header">{{translate('messages.options')}}</span>
-                        <a id="export-copy" class="dropdown-item" href="javascript:;">
-                            <img class="avatar avatar-xss avatar-4by3 mr-2"
-                                    src="{{asset('public/assets/admin')}}/svg/illustrations/copy.svg"
-                                    alt="Image Description">
-                            {{translate('messages.copy')}}
-                        </a>
-                        <a id="export-print" class="dropdown-item" href="javascript:;">
-                            <img class="avatar avatar-xss avatar-4by3 mr-2"
-                                    src="{{asset('public/assets/admin')}}/svg/illustrations/print.svg"
-                                    alt="Image Description">
-                            {{translate('messages.print')}}
-                        </a>
-                        <div class="dropdown-divider"></div>--}}
+
                         <span class="dropdown-header">{{translate('messages.download')}} {{translate('messages.options')}}</span>
                         <a id="export-excel" class="dropdown-item" href="{{route('vendor.employee.export-employee', ['type'=>'excel'])}}">
                             <img class="avatar avatar-xss avatar-4by3 mr-2"
@@ -89,12 +76,6 @@
                                     alt="Image Description">
                             .{{translate('messages.csv')}}
                         </a>
-                        {{--<a id="export-pdf" class="dropdown-item" href="javascript:;">
-                            <img class="avatar avatar-xss avatar-4by3 mr-2"
-                                    src="{{asset('public/assets/admin')}}/svg/components/pdf.svg"
-                                    alt="Image Description">
-                            {{translate('messages.pdf')}}
-                        </a>--}}
                     </div>
                 </div>
                 <!-- Export Button -->
@@ -130,6 +111,8 @@
                             <td>{{$e['phone']}}</td>
                             <td>{{$e->role?$e->role['name']:translate('messages.role_deleted')}}</td>
                             <td>
+
+                                @if (auth('vendor_employee')->id()  != $e['id'])
                                 <div class="btn--container justify-content-center">
                                     <a class="btn action-btn btn--primary btn-outline-primary"
                                         href="{{route('vendor.employee.edit',[$e['id']])}}" title="{{translate('messages.edit')}} {{translate('messages.Employee')}}"><i class="tio-edit"></i>
@@ -142,6 +125,7 @@
                                         @csrf @method('delete')
                                     </form>
                                 </div>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

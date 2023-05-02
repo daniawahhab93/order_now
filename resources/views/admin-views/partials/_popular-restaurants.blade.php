@@ -19,7 +19,7 @@
 <div class="card-body">
     <ul class="most-popular">
         @foreach ($popular as $key => $item)
-            <li onclick="location.href='{{ route('admin.vendor.view', $item->restaurant_id) }}'" class="cursor-pointer">
+            <li onclick="location.href='{{ route('admin.restaurant.view', $item->restaurant_id) }}'" class="cursor-pointer">
                 <div class="img-container">
                     <img onerror="this.src='{{ asset('public/assets/admin/img/100x100/1.png') }}'"
                         src="{{ asset('storage/app/public/restaurant') }}/{{ $item->restaurant['logo'] }}">

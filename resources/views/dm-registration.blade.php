@@ -1,13 +1,19 @@
-@extends('layouts.landing.app')
+{{-- @extends('layouts.landing.app') --}}
+@extends('layouts.landing.app-v2')
 @section('title', translate('messages.deliveryman_registration'))
 @push('css_or_js')
-    <link rel="stylesheet" href="{{ asset('public/assets/admin') }}/css/toastr.css">
+    {{-- <link rel="stylesheet" href="{{ asset('public/assets/admin') }}/css/toastr.css"> --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/css/intlTelInput.css"
         integrity="sha512-gxWow8Mo6q6pLa1XH/CcH8JyiSDEtiwJV78E+D+QP0EVasFs8wKXq16G8CLD4CJ2SnonHr4Lm/yY2fSI2+cbmw=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <link rel="stylesheet" href="{{ asset('public/assets/landing') }}/css/style.css" />
 @endpush
 
 @section('content')
+     <!-- Page Header Gap -->
+     <div class="h-148px"></div>
+     <!-- Page Header Gap -->
+
     <section class="m-0">
         <div class="container">
             <!-- Page Header -->
@@ -51,7 +57,7 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-sm-4 col-12">
+                            <div class="col-sm-6 col-12">
                                 <div class="form-group">
                                     <label class="input-label"
                                         for="exampleFormControlInput1">{{ translate('messages.email') }}</label>
@@ -59,7 +65,7 @@
                                         placeholder="{{ translate('messages.Ex :') }} ex@example.com" value="{{ old('email') }}" required>
                                 </div>
                             </div>
-                            <div class="col-sm-4 col-12">
+                            <div class="col-sm-6 col-12">
                                 <div class="form-group">
                                     <label class="input-label"
                                         for="exampleFormControlInput1">{{ translate('messages.deliveryman') }}
@@ -70,15 +76,16 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-sm-4 col-12">
+
+                            <div class="col-sm-6 col-12">
                                 <div class="form-group">
                                     <label class="input-label"
                                         for="exampleFormControlInput1">{{ translate('messages.zone') }}</label>
-                                    <select name="zone_id" class="form-control" required
+                                    <select name="zone_id" class="form-control js-select2-custom" required
                                         data-placeholder="{{ translate('messages.select') }} {{ translate('messages.zone') }}">
                                         <option value="" readonly="true" hidden="true">{{ translate('messages.select') }}
                                             {{ translate('messages.zone') }}</option>
-                                        @foreach (\App\Models\Zone::active()->get() as $zone)
+                                        @foreach (\App\Models\Zone::active()->get(['id','name']) as $zone)
                                             @if (isset(auth('admin')->user()->zone_id))
                                                 @if (auth('admin')->user()->zone_id == $zone->id)
                                                     <option value="{{ $zone->id }}" selected>{{ $zone->name }}
@@ -89,6 +96,20 @@
                                             @endif
                                         @endforeach
                                     </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-12">
+                                <div class="form-group">
+                                  <label class="input-label"
+                                            for="exampleFormControlInput1">{{ translate('messages.Vehicle') }}</label>
+                                        <select name="vehicle_id" class="form-control js-select2-custom h--45px" required
+                                            data-placeholder="{{ translate('messages.select') }} {{ translate('messages.vehicle') }}">
+                                            <option value="" readonly="true" hidden="true">{{ translate('messages.select') }} {{ translate('messages.vehicle') }}</option>
+                                            @foreach (\App\Models\Vehicle::where('status',1)->get(['id','type']) as $v)
+                                                        <option value="{{ $v->id }}" >{{ $v->type }}
+                                                        </option>
+                                            @endforeach
+                                        </select>
                                 </div>
                             </div>
                         </div>
@@ -153,10 +174,10 @@
                             </div>
                         </div>
                         <div class="row d-flex justify-content-center">
-                            <div class="col-md-8 col-12">
+                            <div class="col-md-6">
                                 <div class="form-group">
                                     <center class="pt-4">
-                                        <img class="initial-95" id="viewer"
+                                        <img class="initial-95" style="max-width: 130px" id="viewer"
                                             src="{{ asset('public/assets/admin/img/400x400/img2.jpg') }}"
                                             alt="delivery-man image" />
                                     </center>
@@ -176,12 +197,14 @@
         </div>
 
     </section>
-
+  <!-- Page Header Gap -->
+  <div class="h-148px"></div>
+  <!-- Page Header Gap -->
 @endsection
 
 @push('script_2')
-    <script src="{{ asset('public/assets/admin') }}/js/toastr.js"></script>
-    {!! Toastr::message() !!}
+    {{-- <script src="{{ asset('public/assets/admin') }}/js/toastr.js"></script>
+    {!! Toastr::message() !!} --}}
 
     @if ($errors->any())
         <script>
@@ -210,11 +233,9 @@
         function readURL(input) {
             if (input.files && input.files[0]) {
                 var reader = new FileReader();
-
                 reader.onload = function(e) {
                     $('#viewer').attr('src', e.target.result);
                 }
-
                 reader.readAsDataURL(input.files[0]);
             }
         }

@@ -26,11 +26,10 @@ class EmployeeController extends Controller
             'f_name' => 'required',
             'l_name' => 'nullable|max:100',
             'role_id' => 'required',
-            'image' => 'required',
+            'image' => 'required|max:2048',
             'email' => 'required|unique:admins',
             'phone' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10|max:20|unique:admins',
             'password' =>'required|min:6'
-
         ]);
 
         if ($request->role_id == 1) {
@@ -64,6 +63,10 @@ class EmployeeController extends Controller
     public function edit($id)
     {
         $e = Admin::zone()->where('role_id', '!=','1')->where(['id' => $id])->first();
+        if (auth('admin')->id()  == $e['id']){
+            Toastr::error(translate('messages.You_can_not_edit_your_own_info'));
+            return redirect()->route('admin.employee.list');
+        }
         $rls = AdminRole::whereNotIn('id', [1])->get();
         return view('admin-views.employee.edit', compact('rls', 'e'));
     }
@@ -76,9 +79,12 @@ class EmployeeController extends Controller
             'role_id' => 'required',
             'email' => 'required|unique:admins,email,'.$id,
             'phone' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10|max:20|unique:admins,phone,'.$id,
+            'password' => 'nullable|min:6',
+            'image' => 'nullable|max:2048',
         ], [
             'f_name.required' => translate('messages.first_name_is_required'),
         ]);
+
 
         if ($request->role_id == 1) {
             Toastr::warning(translate('messages.access_denied'));
@@ -86,6 +92,11 @@ class EmployeeController extends Controller
         }
 
         $e = Admin::where('role_id','!=',1)->findOrFail($id);
+        if (auth('admin')->id()  == $e['id']){
+            Toastr::error(translate('messages.You_can_not_edit_your_own_info'));
+            return redirect()->route('admin.employee.list');
+        }
+
         if ($request['password'] == null) {
             $pass = $e['password'];
         } else {
@@ -118,7 +129,12 @@ class EmployeeController extends Controller
 
     public function distroy($id)
     {
-        $role=Admin::zone()->where('role_id', '!=','1')->where(['id'=>$id])->delete();
+        $role=Admin::zone()->where('role_id', '!=','1')->where(['id'=>$id])->first();
+        if (auth('admin')->id()  == $role['id']){
+            Toastr::error(translate('messages.You_can_not_edit_your_own_info'));
+            return redirect()->route('admin.employee.list');
+        }
+        $role->delete();
         Toastr::info(translate('messages.employee_deleted_successfully'));
         return back();
     }

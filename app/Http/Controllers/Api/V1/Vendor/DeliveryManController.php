@@ -19,7 +19,9 @@ class DeliveryManController extends Controller
     public function __construct(Request $request)
     {
         $this->middleware(function ($request, $next) {
-            if(!$request->vendor->restaurants[0]->self_delivery_system)
+            $restaurant=$request->vendor->restaurants[0];
+
+            if(!($restaurant->restaurant_model == 'subscription' && isset($restaurant->restaurant_sub) && $restaurant->restaurant_sub->self_delivery)  || ($restaurant->restaurant_model == 'commission' &&  $restaurant->self_delivery_system ))
             {
                 return response()->json([
                     'errors'=>[
@@ -102,6 +104,9 @@ class DeliveryManController extends Controller
             'email' => 'required|unique:delivery_men',
             'phone' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10|unique:delivery_men',
             'password'=>'required|min:6',
+            'image' => 'nullable|max:2048',
+            'identity_image.*' => 'nullable|max:2048',
+
         ]);
 
         if ($validator->fails()) {
@@ -209,6 +214,8 @@ class DeliveryManController extends Controller
             'email' => 'required|unique:delivery_men,email,'.$id,
             'phone' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10|unique:delivery_men,phone,'.$id,
             'password'=>'nullable|min:6',
+            'image' => 'nullable|max:2048',
+            'identity_image.*' => 'nullable|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -260,7 +267,7 @@ class DeliveryManController extends Controller
 
         return response()->json(['message' => translate('messages.deliveryman_updated_successfully')], 200);
 
-        return redirect('vendor-panel/delivery-man/list');
+        return redirect('restaurant-panel/delivery-man/list');
     }
 
     public function delete(Request $request)

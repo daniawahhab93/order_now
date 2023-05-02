@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\CentralLogics\Helpers;
 
 class VendorMiddleware
 {
@@ -17,6 +18,8 @@ class VendorMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
+        Helpers::check_subscription_validity();
+
         if (Auth::guard('vendor')->check()) {
             if(!auth('vendor')->user()->status)
             {

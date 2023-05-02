@@ -478,7 +478,7 @@
                             <img src="{{asset('/public/assets/admin/img/payment/paymob.png')}}" alt="public">
                         </div>
                             <div class="form-group mb-4">
-                                <label class="{{Session::get('direction') === 'rtl' ? 'pr-3' : 'pl-3'}}">{{translate('messages.callback')}}</label>
+                                <label class="pl-3">{{translate('messages.callback')}}</label>
                                 <span class="btn btn-secondary btn-sm m-2"
                                     onclick="copyToClipboard('#id_paymob_accept')"><i class="tio-copy"></i> {{translate('messages.copy_callback')}}</span>
 
@@ -1094,7 +1094,7 @@
                                     </div>
 
                                     <div class="form-group mb-2">
-                                        <label class="{{Session::get('direction') === 'rtl ? 'pr-3' : 'pl-3'}}" >{{translate('messages.callback')}}</label>
+                                        <label class="pl-3" >{{translate('messages.callback')}}</label>
                                         <span class="btn btn-secondary btn-sm m-2"
                                             onclick="copyToClipboard('#id_paymob_accept')"><i class="tio-copy"></i> {{translate('messages.copy_callback')}}</span>
                                         <p class="form-control" id="id_paymob_accept">{{ url('/') }}/paymob-callback</p>

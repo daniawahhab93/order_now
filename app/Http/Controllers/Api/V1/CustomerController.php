@@ -178,6 +178,8 @@ class CustomerController extends Controller
             'f_name' => 'required',
             'l_name' => 'required',
             'email' => 'required|unique:users,email,'.$request->user()->id,
+            'image' => 'nullable|max:2048',
+
         ], [
             'f_name.required' => 'First name is required!',
             'l_name.required' => 'Last name is required!',
@@ -311,7 +313,7 @@ class CustomerController extends Controller
 
         if(Order::where('user_id', $user->id)->whereIn('order_status', ['pending','accepted','confirmed','processing','handover','picked_up'])->count())
         {
-            return response()->json(['errors'=>[['code'=>'on-going', 'message'=>translate('messages.user_account_delete_warning')]]],203);
+            return response()->json(['errors'=>[['code'=>'on-going', 'message'=>translate('messages.user_account_delete_warning')]]],403);
         }
         $request->user()->token()->revoke();
         if($user->userinfo){

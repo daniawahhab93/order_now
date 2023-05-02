@@ -53,6 +53,7 @@ class DeliveryManReviewController extends Controller
             'order_id' => 'required',
             'comment' => 'required',
             'rating' => 'required|numeric|max:5',
+            'attachment.*' => 'nullable|max:2048',
         ]);
 
         $dm = DeliveryMan::find($request->delivery_man_id);

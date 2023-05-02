@@ -2,23 +2,26 @@
 
 namespace App\Http\Controllers\Api\V1\Vendor;
 
-use App\CentralLogics\Helpers;
-use App\CentralLogics\OrderLogic;
-use App\CentralLogics\RestaurantLogic;
-use App\Http\Controllers\Controller;
-use App\Models\Vendor;
-use App\Models\Order;
-use App\Models\Notification;
-use App\Models\UserNotification;
-use App\Models\Campaign;
-use App\Models\WithdrawRequest;
 use App\Models\Food;
+use App\Models\Order;
+use App\Models\Vendor;
+use App\Models\Campaign;
+use App\Models\Notification;
 use Illuminate\Http\Request;
+use App\CentralLogics\Helpers;
+use App\Models\WithdrawRequest;
+use App\Models\UserNotification;
+use App\Models\WithdrawalMethod;
+use App\CentralLogics\OrderLogic;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\Controller;
 use Rap2hpoutre\FastExcel\FastExcel;
+use App\CentralLogics\RestaurantLogic;
+use App\Models\RestaurantSubscription;
+use Illuminate\Support\Facades\Config;
+use App\Models\SubscriptionTransaction;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class VendorController extends Controller
 {
@@ -53,6 +56,27 @@ class VendorController extends Controller
         unset($vendor['this_week_orders']);
         unset($vendor['this_month_orders']);
 
+
+        if($restaurant->restaurant_model == 'subscription'){
+            if(isset($restaurant->restaurant_sub)){
+                if($restaurant->restaurant_sub->max_product== 'unlimited' ){
+                    $max_product_uploads= -1;
+                }
+                else{
+                    $max_product_uploads= $restaurant->restaurant_sub->max_product - $restaurant->foods->count();
+                    if($max_product_uploads > 0){
+                        $max_product_uploads ?? 0;
+                    }elseif($max_product_uploads < 0) {
+                        $max_product_uploads = 0;
+                    }
+                }
+                $vendor['subscription'] =RestaurantSubscription::where('restaurant_id',$restaurant->id)->with('package')->latest()->first();
+                $vendor['subscription_other_data'] =  [
+                    'total_bill'=>  (float) SubscriptionTransaction::where('restaurant_id', $restaurant->id)->where('package_id', $vendor['subscription']->package->id)->sum('paid_amount'),
+                    'max_product_uploads' => (int) $max_product_uploads];
+                }
+            }
+
         return response()->json($vendor, 200);
     }
 
@@ -79,6 +103,7 @@ class VendorController extends Controller
             'l_name' => 'required',
             'phone' => 'required|unique:vendors,phone,'.$vendor->id,
             'password'=>'nullable|min:6',
+            'image' => 'nullable|max:2048',
         ], [
             'f_name.required' => translate('messages.first_name_is_required'),
             'l_name.required' => translate('messages.Last name is required!'),
@@ -123,19 +148,27 @@ class VendorController extends Controller
     {
         $vendor = $request['vendor'];
 
+        $restaurant=$vendor->restaurants[0];
+        $data =0;
+        if (($restaurant->restaurant_model == 'subscription' && isset($restaurant->restaurant_sub) && $restaurant->restaurant_sub->self_delivery == 1)  || ($restaurant->restaurant_model == 'commission' &&  $restaurant->self_delivery_system == 1) ){
+         $data =1;
+        }
+
         $orders = Order::whereHas('restaurant.vendor', function($query) use($vendor){
             $query->where('id', $vendor->id);
         })
         ->with('customer')
 
-        ->where(function($query)use($vendor){
-            if(config('order_confirmation_model') == 'restaurant' || $vendor->restaurants[0]->self_delivery_system)
+        ->where(function($query)use($data){
+            if(config('order_confirmation_model') == 'restaurant' || $data)
             {
-                $query->whereIn('order_status', ['accepted','pending','confirmed', 'processing', 'handover','picked_up']);
+                $query->whereIn('order_status', ['accepted','pending','confirmed', 'processing', 'handover','picked_up'])
+                ->hasSubscriptionInStatus(['accepted','pending','confirmed', 'processing', 'handover','picked_up']);
             }
             else
             {
                 $query->whereIn('order_status', ['confirmed', 'processing', 'handover','picked_up'])
+                ->hasSubscriptionInStatus(['accepted','pending','confirmed', 'processing', 'handover','picked_up'])
                 ->orWhere(function($query){
                     $query->where('payment_status','paid')->where('order_status', 'accepted');
                 })
@@ -168,9 +201,9 @@ class VendorController extends Controller
         $paginator = Order::whereHas('restaurant.vendor', function($query) use($vendor){
             $query->where('id', $vendor->id);
         })
-        ->with('customer')
+        ->with('customer','refund')
         ->when($request->status == 'all', function($query){
-            return $query->whereIn('order_status', ['refunded', 'delivered']);
+            return $query->whereIn('order_status', ['refunded','refund_requested','refund_request_canceled', 'delivered']);
         })
         ->when($request->status != 'all', function($query)use($request){
             return $query->where('order_status', $request->status);
@@ -192,6 +225,7 @@ class VendorController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'order_id' => 'required',
+            'reason' =>'required_if:status,canceled',
             'status' => 'required|in:confirmed,processing,handover,delivered,canceled'
         ]);
 
@@ -232,7 +266,13 @@ class VendorController extends Controller
             }
         }
 
-        if($request['status'] =="confirmed" && !$vendor->restaurants[0]->self_delivery_system && config('order_confirmation_model') == 'deliveryman' && $order->order_type != 'take_away')
+        $restaurant=$vendor->restaurants[0];
+        $data =0;
+        if (($restaurant->restaurant_model == 'subscription' && isset($restaurant->restaurant_sub) && $restaurant->restaurant_sub->self_delivery == 1)  || ($restaurant->restaurant_model == 'commission' &&  $restaurant->self_delivery_system == 1) ){
+         $data =1;
+        }
+
+        if($request['status'] =="confirmed" && !$data && config('order_confirmation_model') == 'deliveryman' && $order->order_type != 'take_away' && $order->subscription_id == null)
         {
             return response()->json([
                 'errors' => [
@@ -250,7 +290,7 @@ class VendorController extends Controller
             ], 403);
         }
 
-        if($request['status']=='delivered' && $order->order_type != 'take_away' && !$vendor->restaurants[0]->self_delivery_system)
+        if($request['status']=='delivered' && $order->order_type != 'take_away' && !$data)
         {
             return response()->json([
                 'errors' => [
@@ -267,7 +307,7 @@ class VendorController extends Controller
             ], 403);
         }
 
-        if ($request->status == 'delivered' && $order->transaction == null) {
+        if ($request->status == 'delivered' && ($order->transaction == null || isset($order->subscription_id))) {
             if($order->payment_method == 'cash_on_delivery')
             {
                 $ol = OrderLogic::create_transaction($order,'restaurant', null);
@@ -296,11 +336,32 @@ class VendorController extends Controller
                     $item->food->increment('order_count');
                 }
             });
-            $order->customer->increment('order_count');
+            $order->customer ?  $order->customer->increment('order_count') : '';
             $order->restaurant->increment('order_count');
         }
 
-        if($request->status == 'canceled' || $request->status == 'delivered')
+        if($request->status == 'canceled')
+        {
+            if($order->delivery_man)
+            {
+                $dm = $order->delivery_man;
+                $dm->current_orders = $dm->current_orders>1?$dm->current_orders-1:0;
+                $dm->save();
+            }
+            if(!isset($order->confirmed) && isset($order->subscription_id)){
+                $order->subscription()->update(['status' => 'canceled']);
+                    if($order->subscription->log){
+                        $order->subscription->log()->update([
+                            'order_status' => $request->status,
+                            'canceled' => now(),
+                            ]);
+                    }
+
+            }
+            $order->cancellation_reason=$request->reason;
+            $order->canceled_by='restaurant';
+        }
+        if( $request->status == 'delivered')
         {
             if($order->delivery_man)
             {
@@ -328,12 +389,13 @@ class VendorController extends Controller
         if ($validator->fails()) {
             return response()->json(['errors' => Helpers::error_processor($validator)], 403);
         }
+        // OrderLogic::create_subscription_log($request->order_id);
         $vendor = $request['vendor'];
 
         $order = Order::whereHas('restaurant.vendor', function($query) use($vendor){
             $query->where('id', $vendor->id);
         })
-        ->with(['customer','details','delivery_man'])
+        ->with(['customer','details','delivery_man','subscription'])
         ->where('id', $request['order_id'])
         ->Notpos()
         ->first();
@@ -418,12 +480,15 @@ class VendorController extends Controller
     public function get_basic_campaigns(Request $request)
     {
         $vendor = $request['vendor'];
-        $campaigns=Campaign::with('restaurants')->latest()->get();
+        $campaigns=Campaign::with('restaurants')->active()->running()->latest()->get();
         $data = [];
         $restaurant_id = $vendor->restaurants[0]->id;
         foreach ($campaigns as $item) {
             $variations = [];
             $restaurant_ids = count($item->restaurants)?$item->restaurants->pluck('id')->toArray():[];
+            $restaurant_joining_status = count($item->restaurants)?$item->restaurants->pluck('pivot')->toArray():[];
+
+
             if($item->start_date)
             {
                 $item['available_date_starts']=$item->start_date->format('Y-m-d');
@@ -441,10 +506,19 @@ class VendorController extends Controller
                 $item['description'] = $translate['description'];
             }
 
+
+            $item['vendor_status'] = null;
+            foreach($restaurant_joining_status as $status){
+                if($status['restaurant_id'] == $restaurant_id){
+                    $item['vendor_status'] =  $status['campaign_status'];
+                }
+
+            }
             $item['is_joined'] = in_array($restaurant_id, $restaurant_ids)?true:false;
             unset($item['restaurants']);
             array_push($data, $item);
         }
+        // dd($campaigns);
         // $data = CampaignLogic::get_basic_campaigns($vendor->restaurants[0]->id, $request['limite'], $request['offset']);
         return response()->json($data, 200);
     }
@@ -550,7 +624,9 @@ class VendorController extends Controller
         {
             $item['status'] = $status[$item->approved];
             $item['requested_at'] = $item->created_at->format('Y-m-d H:i:s');
-            $item['bank_name'] = $request['vendor']->bank_name;
+            $item['bank_name'] = $item->method ? $item->method->method_name :  $request['vendor']->bank_name;
+            $item['detail']=json_decode($item->withdrawal_method_fields,true);
+
             unset($item['created_at']);
             unset($item['approved']);
             $temp[] = $item;
@@ -567,11 +643,28 @@ class VendorController extends Controller
     public function request_withdraw(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'amount' => 'required|numeric|min:0.01'
+            'amount' => 'required|numeric|min:0.01',
+            'id'=> 'required'
         ]);
         if ($validator->fails()) {
             return response()->json(['errors' => Helpers::error_processor($validator)], 403);
         }
+
+
+        info($request->all());
+
+
+        $method = WithdrawalMethod::find($request['id']);
+        $fields = array_column($method->method_fields, 'input_name');
+        $values = $request->all();
+
+        $method_data = [];
+        foreach ($fields as $field) {
+            if(key_exists($field, $values)) {
+                $method_data[$field] = $values[$field];
+            }
+        }
+
 
         $w = $request['vendor']->wallet;
         if ($w->balance >= $request['amount']) {
@@ -579,6 +672,8 @@ class VendorController extends Controller
                 'vendor_id' => $w->vendor_id,
                 'amount' => $request['amount'],
                 'transaction_note' => null,
+                'withdrawal_method_id' => $request['id'],
+                'withdrawal_method_fields' => json_encode($method_data),
                 'approved' => 0,
                 'created_at' => now(),
                 'updated_at' => now()
@@ -634,5 +729,9 @@ class VendorController extends Controller
         return response()->json([]);
     }
 
+    public function withdraw_method_list(){
+        $wi=WithdrawalMethod::where('is_active',1)->get();
+        return response()->json($wi,200);
+    }
 
 }

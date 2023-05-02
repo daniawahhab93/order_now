@@ -19,11 +19,10 @@
         </h1>
     </div>
 
-
     <!-- Content Row -->
     <div class="row">
         <div class="col-md-12">
-            <form action="{{route('admin.employee.update',[$e['id']])}}" method="post" enctype="multipart/form-data">
+            <form action="{{route('admin.employee.update',[$e['id']])}}" method="post"  class="js-validate"  enctype="multipart/form-data">
                 @csrf
                 <div class="card mb-3">
                     <div class="card-header">
@@ -109,7 +108,7 @@
                                     <div class="form-group mt-3 mb-0">
                                         <div class="custom-file">
                                             <input type="file" name="image" id="customFileUpload" class="custom-file-input h--45px"
-                                                accept=".jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*" required>
+                                                accept=".jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
                                             <label class="custom-file-label h--45px" for="customFileUpload">{{translate('messages.choose')}} {{translate('messages.file')}}</label>
                                         </div>
                                     </div>
@@ -138,7 +137,7 @@
                                         placeholder="{{ translate('messages.Ex :') }} ex@gmail.com" required>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label qcont" for="password">{{translate('messages.password')}}</label>
+                                    {{-- <label class="form-label qcont" for="password">{{translate('messages.password')}}</label>
                                     <div class="input-group input-group-merge">
                                         <input type="text" name="password" class="form-control h--45px" id="password" value="{{old('password')}}"
                                         placeholder="{{translate('messages.password_length_placeholder',['length'=>'6+'])}}" required>
@@ -147,10 +146,34 @@
                                                 <i class="js-toggle-passowrd-show-icon-1 tio-visible-outlined"></i>
                                             </a>
                                         </div>
+                                    </div> --}}
+
+                                    <div class="js-form-message form-group">
+                                        <label class="input-label" for="signupSrPassword">{{translate('messages.password')}}</label>
+
+                                        <div class="input-group input-group-merge">
+                                            <input type="password" class="js-toggle-password form-control h--45px" name="password"
+                                                id="signupSrPassword"
+                                                placeholder="{{ translate('messages.password_length_placeholder', ['length' => '6+']) }}"
+                                                aria-label="6+ characters required"
+                                                data-msg="Your password is invalid. Please try again."
+                                                data-hs-toggle-password-options='{
+                                                                "target": [".js-toggle-password-target-1", ".js-toggle-password-target-2"],
+                                                                "defaultClass": "tio-hidden-outlined",
+                                                                "showClass": "tio-visible-outlined",
+                                                                "classChangeTarget": ".js-toggle-passowrd-show-icon-1"
+                                                                }'>
+                                            <div class="js-toggle-password-target-1 input-group-append">
+                                                <a class="input-group-text" href="javascript:;">
+                                                    <i class="js-toggle-passowrd-show-icon-1 tio-visible-outlined"></i>
+                                                </a>
+                                            </div>
+                                        </div>
                                     </div>
+
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label qcont" for="password">{{translate('messages.password')}}</label>
+                                    {{-- <label class="form-label qcont" for="password">{{translate('messages.password')}}</label>
                                     <div class="input-group input-group-merge">
                                         <input type="text" name="password" class="form-control h--45px" id="password" value="{{old('password')}}"
                                         placeholder="{{translate('messages.password_length_placeholder',['length'=>'6+'])}}" required>
@@ -159,7 +182,31 @@
                                                 <i class="js-toggle-passowrd-show-icon-1 tio-visible-outlined"></i>
                                             </a>
                                         </div>
+                                    </div> --}}
+
+                                    <div class="js-form-message form-group">
+                                        <label class="input-label" for="signupSrConfirmPassword">{{translate('messages.confirm_password')}}</label>
+
+                                        <div class="input-group input-group-merge">
+                                            <input type="password" class="js-toggle-password form-control h--45px"
+                                                name="confirmPassword" id="signupSrConfirmPassword"
+                                                placeholder="{{ translate('messages.password_length_placeholder', ['length' => '6+']) }}"
+                                                aria-label="6+ characters required"
+                                                data-msg="Password does not match the confirm password."
+                                                data-hs-toggle-password-options='{
+                                                                    "target": [".js-toggle-password-target-1", ".js-toggle-password-target-2"],
+                                                                    "defaultClass": "tio-hidden-outlined",
+                                                                    "showClass": "tio-visible-outlined",
+                                                                    "classChangeTarget": ".js-toggle-passowrd-show-icon-2"
+                                                                    }'>
+                                            <div class="js-toggle-password-target-2 input-group-append">
+                                                <a class="input-group-text" href="javascript:;">
+                                                    <i class="js-toggle-passowrd-show-icon-2 tio-visible-outlined"></i>
+                                                </a>
+                                            </div>
+                                        </div>
                                     </div>
+
                                 </div>
                             </div>
                         </div>
@@ -179,6 +226,20 @@
 
 @push('script_2')
     <script>
+             // INITIALIZATION OF SHOW PASSWORD
+            // =======================================================
+            $('.js-toggle-password').each(function() {
+                new HSTogglePassword(this).init()
+            });
+            $('.js-validate').each(function() {
+                $.HSCore.components.HSValidation.init($(this), {
+                    rules: {
+                        confirmPassword: {
+                            equalTo: '#signupSrPassword'
+                        }
+                    }
+                });
+            });
         function readURL(input) {
             if (input.files && input.files[0]) {
                 var reader = new FileReader();

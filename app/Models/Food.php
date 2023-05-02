@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use App\Scopes\RestaurantScope;
 use App\Scopes\ZoneScope;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+use App\Scopes\RestaurantScope;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Food extends Model
 {
@@ -25,9 +26,15 @@ class Food extends Model
         'reviews_count' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'veg' => 'integer'
+        'veg' => 'integer',
+        'min' => 'integer',
+        'max' => 'integer',
     ];
 
+    public function scopeRecommended($query)
+    {
+        return $query->where('recommended',1);
+    }
 
     public function translations()
     {
@@ -59,12 +66,12 @@ class Food extends Model
         return $this->hasMany(Review::class)->latest();
     }
 
-    // public function rating()
-    // {
-    //     return $this->hasMany(Review::class)
-    //         ->select(DB::raw('avg(rating) average, count(food_id) rating_count, food_id'))
-    //         ->groupBy('food_id');
-    // }
+    public function rating()
+    {
+        return $this->hasMany(Review::class)
+            ->select(DB::raw('avg(rating) average, count(food_id) rating_count, food_id'))
+            ->groupBy('food_id');
+    }
 
     public function restaurant()
     {
@@ -113,5 +120,36 @@ class Food extends Model
         }
 
         return $query;
+    }
+
+
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class);
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+        static::created(function ($food) {
+            $food->slug = $food->generateSlug($food->name);
+            $food->save();
+        });
+    }
+    private function generateSlug($name)
+    {
+        $slug = Str::slug($name);
+        if ($max_slug = static::where('slug', 'like',"{$slug}%")->latest('id')->value('slug')) {
+
+            if($max_slug == $slug) return "{$slug}-2";
+
+            $max_slug = explode('-',$max_slug);
+            $count = array_pop($max_slug);
+            if (isset($count) && is_numeric($count)) {
+                $max_slug[]= ++$count;
+                return implode('-', $max_slug);
+            }
+        }
+        return $slug;
     }
 }

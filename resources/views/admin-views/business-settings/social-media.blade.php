@@ -46,7 +46,7 @@
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <input type="hidden" id="id">
-                                        <label for="link" class="{{Session::get('direction') === "rtl" ? 'mr-1' : ''}}">{{ translate('messages.social_media_link')}}</label>
+                                        <label for="link" class="ml-1">{{ translate('messages.social_media_link')}}</label>
                                         <input type="text" name="link" class="form-control" id="link"
                                             placeholder="{{ translate('messages.Ex :') }} facebook.com/your-page-name" required>
                                     </div>
@@ -70,7 +70,7 @@
             <div class="col-md-12">
                 <div class="card">
                     <div class="table-responsive">
-                        <table class="table {{Session::get('direction') === 'rtl' ? 'text-right' : 'text-left'}}" id="dataTable" width="100%" cellspacing="0">
+                        <table class="table" id="dataTable" width="100%" cellspacing="0">
                             <thead class="thead-light">
                             <tr>
                                 <th class="border-0" scope="col">

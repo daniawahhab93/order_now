@@ -2,23 +2,25 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
-use App\CentralLogics\Helpers;
-use App\Http\Controllers\Controller;
-use App\Models\Vendor;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use App\Models\Zone;
+use App\Models\Vendor;
 use App\Models\Restaurant;
-use Grimzy\LaravelMysqlSpatial\Types\Point;
-use Brian2694\Toastr\Facades\Toastr;
+use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use App\CentralLogics\Helpers;
 use App\Models\BusinessSetting;
+use App\Models\SubscriptionPackage;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Mail;
+use App\Models\SubscriptionTransaction;
+use Illuminate\Support\Facades\Validator;
+use Grimzy\LaravelMysqlSpatial\Types\Point;
 
 class VendorLoginController extends Controller
 {
     public function login(Request $request)
     {
+
         $validator = Validator::make($request->all(), [
             'email' => 'required',
             'password' => 'required|min:6'
@@ -36,14 +38,77 @@ class VendorLoginController extends Controller
         if (auth('vendor')->attempt($data)) {
             $token = $this->genarate_token($request['email']);
             $vendor = Vendor::where(['email' => $request['email']])->first();
-            if(!$vendor->restaurants[0]->status)
+            if($vendor->restaurants[0]->status == 0 &&  $vendor->status == 0)
+            // if(!$vendor->restaurants[0]->status)
             {
+
                 return response()->json([
                     'errors' => [
                         ['code' => 'auth-002', 'message' => translate('messages.inactive_vendor_warning')]
                     ]
                 ], 403);
             }
+
+            $restaurant=$vendor->restaurants[0];
+            if( $restaurant->restaurant_model == 'none')
+            {
+                return response()->json([
+                    'subscribed' => [
+                        'restaurant_id' => $vendor->restaurants[0]->id, 'type' => 'new_join'
+                    ]
+                ], 200);
+            }
+
+            if ( $restaurant->restaurant_model == 'subscription' ) {
+                $rest_sub = $restaurant->restaurant_sub;
+                if (isset($rest_sub)) {
+                    if ($rest_sub->mobile_app == 0 ) {
+                        return response()->json([
+                            'errors' => [
+                                ['code'=>'no_mobile_app', 'message'=>translate('Your Subscription Plan is not Active for Mobile App')]
+                            ]
+                        ], 401);
+                    }
+                }
+            }
+            if( $restaurant->restaurant_model == 'unsubscribed' && isset($restaurant->restaurant_sub_update_application)){
+                $vendor->auth_token = $token;
+                $vendor->save();
+
+                        if($restaurant->restaurant_sub_update_application->max_product== 'unlimited' ){
+                            $max_product_uploads= -1;
+                        }
+                        else{
+                            $max_product_uploads= $restaurant->restaurant_sub_update_application->max_product - $restaurant->foods()->count();
+                            if($max_product_uploads > 0){
+                                $max_product_uploads ?? 0;
+                            }elseif($max_product_uploads < 0) {
+                                $max_product_uploads = 0;
+                            }
+                        }
+
+                    $data['subscription_other_data'] =  [
+                        'total_bill'=>  (float) SubscriptionTransaction::where('restaurant_id', $restaurant->id)->where('package_id', $restaurant->restaurant_sub_update_application->package->id)->sum('paid_amount'),
+                        'max_product_uploads' => (int) $max_product_uploads,
+                        ];
+
+                return response()->json(['token' => $token, 'zone_wise_topic'=> $vendor->restaurants[0]->zone->restaurant_wise_topic,
+                'subscription' => $restaurant->restaurant_sub_update_application,
+                'subscription_other_data' => $data['subscription_other_data'],
+                'balance' =>$vendor->wallet?(float)$vendor->wallet->balance:0,
+                'restaurant_id' =>(int) $restaurant->id,
+                'package' => $restaurant->restaurant_sub_update_application->package
+                ], 426);
+            }
+
+            if($restaurant->restaurant_model == 'unsubscribed' && !isset($restaurant->restaurant_sub_update_application)){
+                return response()->json([
+                    'subscribed' => [
+                        'restaurant_id' => $vendor->restaurants[0]->id, 'type' => 'new_join'
+                    ]
+                ], 200);
+            }
+
             $vendor->auth_token = $token;
             $vendor->save();
             return response()->json(['token' => $token, 'zone_wise_topic'=> $vendor->restaurants[0]->zone->restaurant_wise_topic], 200);
@@ -80,14 +145,15 @@ class VendorLoginController extends Controller
             'fName' => 'required',
             'restaurant_name' => 'required',
             'restaurant_address' => 'required',
-            'lat' => 'required',
-            'lng' => 'required',
+            'lat' => 'required|numeric|min:-90|max:90',
+            'lng' => 'required|numeric|min:-180|max:180',
             'email' => 'required|email|unique:vendors',
             'phone' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10|unique:vendors',
             'min_delivery_time' => 'required|regex:/^([0-9]{2})$/|min:2|max:2',
             'max_delivery_time' => 'required|regex:/^([0-9]{2})$/|min:2|max:2',
             'password' => 'required|min:6',
             'zone_id' => 'required',
+            // 'cuisine_ids' => 'required',
             'logo' => 'required',
             'vat' => 'required',
         ]);
@@ -128,8 +194,12 @@ class VendorLoginController extends Controller
         $restaurant->tax = $request->vat;
         $restaurant->delivery_time = $request->min_delivery_time .'-'. $request->max_delivery_time;
         $restaurant->status = 0;
+        $restaurant->restaurant_model = 'none';
         $restaurant->save();
 
+        $cuisine_ids = [];
+        $cuisine_ids = json_decode($request->cuisine_ids, true);
+        $restaurant->cuisine()->sync($cuisine_ids);
         try{
             if(config('mail.status')){
                 Mail::to($request['email'])->send(new \App\Mail\SelfRegistration('pending', $vendor->f_name.' '.$vendor->l_name));
@@ -138,6 +208,53 @@ class VendorLoginController extends Controller
             info($ex);
         }
 
-        return response()->json(['message'=>translate('messages.application_placed_successfully')],200);
+        return response()->json([
+            'restaurant_id'=> $restaurant->id,
+            'message'=>translate('messages.application_placed_successfully')],200);
     }
+
+    public function package_view(){
+        $packages= SubscriptionPackage::where('status',1)->get();
+        return response()->json(['packages'=> $packages], 200);
+    }
+
+    public function business_plan(Request $request){
+        $restaurant=Restaurant::findOrFail($request->restaurant_id);
+
+        if($request->business_plan == 'subscription' && $request->package_id != null ) {
+            $restaurant_id=$restaurant->id;
+            $package_id=$request->package_id;
+            $payment_method=$request->payment_method ?? 'free_trial';
+            $reference=$request->reference ?? null;
+            $discount=$request->discount ?? 0;
+            $restaurant=Restaurant::findOrFail($restaurant_id);
+            $type=$request->type ?? 'new_join';
+            if($request->payment == 'free_trial' ){
+                Helpers::subscription_plan_chosen($restaurant_id ,$package_id, $payment_method ,$reference ,$discount,$type);
+            }
+            elseif($request->payment == 'paying_now'){
+                // dd('paying_now');
+                Helpers::subscription_plan_chosen($restaurant_id ,$package_id, $payment_method ,$reference ,$discount,$type);
+            }
+            $data=[
+            'restaurant_model' => 'subscription',
+            'logo'=> $restaurant->logo,
+            'message' => translate('messages.application_placed_successfully')
+            ];
+            return response()->json($data,200);
+        }
+
+        elseif($request->business_plan == 'commission' ){
+            $restaurant->restaurant_model = 'commission';
+            $restaurant->save();
+
+        $data=['restaurant_model' => 'commission',
+        'logo'=> $restaurant->logo,
+        'message' => translate('messages.application_placed_successfully')
+        ];
+        return response()->json($data,200);
+        }
+    }
+
+
 }

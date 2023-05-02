@@ -46,12 +46,27 @@
                             <select id="select_restaurant" name="restaurant_ids[]" class="js-data-example-ajax form-control" data-placeholder="{{translate('messages.select_restaurant')}}" title="{{translate('messages.select_restaurant')}}">
                             </select>
                         </div>
+
+                        <div class="form-group col-lg-3 col-sm-6" id="customer_wise">
+                            <label class="input-label" for="select_customer">{{translate('messages.select_customer')}}</label>
+                            <select name="customer_ids[]" id="select_customer"
+                                class="form-control js-select2-custom"
+                                multiple="multiple" data-placeholder="{{translate('messages.select_customer')}}">
+                                <option value="all">{{translate('messages.all')}} </option>
+                            @foreach(\App\Models\User::get(['id','f_name','l_name']) as $user)
+                                <option value="{{$user->id}}">{{$user->f_name.' '.$user->l_name}}</option>
+                            @endforeach
+                            </select>
+                        </div>
+
+
+
                         <div class="form-group col-lg-3 col-sm-6" id="zone_wise">
                             <label class="input-label" for="exampleFormControlInput1">{{translate('messages.select')}} {{translate('messages.zone')}}</label>
                             <select name="zone_ids[]" id="choice_zones"
                                 class="form-control js-select2-custom"
                                 multiple="multiple" data-placeholder="{{translate('messages.select_zone')}}">
-                            @foreach(\App\Models\Zone::all() as $zone)
+                            @foreach(\App\Models\Zone::where('status',1)->get(['id','name']) as $zone)
                                 <option value="{{$zone->id}}">{{$zone->name}}</option>
                             @endforeach
                             </select>
@@ -84,15 +99,23 @@
                         <div class="col-lg-3 col-sm-6">
                             <div class="form-group">
                                 <label class="input-label" for="exampleFormControlInput1">{{translate('messages.discount')}} {{translate('messages.type')}}</label>
-                                <select name="discount_type" class="form-control" id="discount_type">
-                                    <option value="amount">{{translate('messages.amount')}}</option>
-                                    <option value="percent">{{translate('messages.percent')}}</option>
+                                <select name="discount_type" required class="form-control" id="discount_type">
+                                    <option value="amount">
+                                            {{ translate('messages.amount').' ('.\App\CentralLogics\Helpers::currency_symbol().')'  }}
+                                    </option>
+                                    <option value="percent"> {{ translate('messages.percent').' (%)' }}</option>
                                 </select>
                             </div>
                         </div>
                         <div class="col-lg-3 col-sm-6">
                             <div class="form-group">
-                                <label class="input-label" for="exampleFormControlInput1">{{translate('messages.discount')}}</label>
+                                <label class="input-label" for="exampleFormControlInput1">{{translate('messages.discount')}}
+                                    {{-- <span class="input-label-secondary text--title" data-toggle="tooltip"
+                                        data-placement="right"
+                                        data-original-title="{{ translate('Currently you need to manage discount with the Restaurant.') }}">
+                                        <i class="tio-info-outined"></i>
+                                    </span> --}}
+                            </label>
                                 <input type="number" step="0.01" min="1" max="999999999999.99" name="discount" id="discount" class="form-control" required>
                             </div>
                         </div>
@@ -121,8 +144,7 @@
             <div class="card-header py-2">
                 <div class="search--button-wrapper">
                     <h5 class="card-title">{{translate('messages.coupon')}} {{translate('messages.list')}}<span class="badge badge-soft-dark ml-2" id="itemCount">{{$coupons->total()}}</span></h5>
-                    <form id="dataSearch">
-                    @csrf
+                    <form method="get" >
                         <!-- Search -->
                         <div class="input--group input-group input-group-merge input-group-flush">
                             <input id="datatableSearch" type="search" name="search" class="form-control" placeholder="{{ translate('messages.Ex :') }} {{ translate('Search by title or code') }}" aria-label="{{translate('messages.search_here')}}">
@@ -162,6 +184,8 @@
                         <th>{{translate('messages.discount')}} {{translate('messages.type')}}</th>
                         <th>{{translate('messages.start')}} {{translate('messages.date')}}</th>
                         <th>{{translate('messages.expire')}} {{translate('messages.date')}}</th>
+                        {{-- <th>{{translate('messages.created_by')}}</th> --}}
+                        <th>{{translate('messages.Customer_type')}}</th>
                         <th>{{translate('messages.status')}}</th>
                         <th class="text-center">{{translate('messages.action')}}</th>
                     </tr>
@@ -204,6 +228,16 @@
 
                             <td>{{$coupon['start_date']}}</td>
                             <td>{{$coupon['expire_date']}}</td>
+
+                            <td>
+                                <span class="d-block font-size-sm text-body">
+                                    @if (in_array('all', json_decode($coupon->customer_id)))
+                                    {{translate('messages.all')}} {{translate('messages.customers')}}
+                                    @else
+                                    {{translate('messages.Selected')}} {{translate('messages.customers')}}
+                                    @endif
+                                </span>
+                            </td>
                             <td>
                                 <label class="toggle-switch toggle-switch-sm" for="couponCheckbox{{$coupon->id}}">
                                     <input type="checkbox" onclick="location.href='{{route('admin.coupon.status',[$coupon['id'],$coupon->status?0:1])}}'" class="toggle-switch-input" id="couponCheckbox{{$coupon->id}}" {{$coupon->status?'checked':''}}>
@@ -277,7 +311,7 @@
         $('#date_to').attr('min',(new Date()).toISOString().split('T')[0]);
         $('.js-data-example-ajax').select2({
             ajax: {
-                url: '{{url('/')}}/admin/vendor/get-restaurants',
+                url: '{{url('/')}}/admin/restaurant/get-restaurants',
                 data: function (params) {
                     return {
                         q: params.term, // search term
@@ -329,11 +363,14 @@
            if(coupon_type=='zone_wise')
             {
                 $('#restaurant_wise').hide();
+                $('#customer_wise').hide();
+                $('#select_customer').val(null).trigger('change');
                 $('#zone_wise').show();
             }
             else if(coupon_type=='restaurant_wise')
             {
                 $('#restaurant_wise').show();
+                $('#customer_wise').show();
                 $('#zone_wise').hide();
             }
             else if(coupon_type=='first_order')
@@ -342,18 +379,22 @@
                 $('#restaurant_wise').hide();
                 $('#coupon_limit').val(1);
                 $('#coupon_limit').attr("readonly","true");
+                $('#select_customer').val(null).trigger('change');
+                $('#customer_wise').hide();
             }
             else{
                 $('#zone_wise').hide();
                 $('#restaurant_wise').hide();
                 $('#coupon_limit').val('');
                 $('#coupon_limit').removeAttr("readonly");
+                $('#customer_wise').show();
             }
 
             if(coupon_type=='free_delivery')
             {
                 $('#discount_type').attr("disabled","true");
                 $('#discount_type').val("").trigger( "change" );
+                $('#discount_type').attr("required","false");
                 $('#max_discount').val(0);
                 $('#max_discount').attr("readonly","true");
                 $('#discount').val(0);
@@ -365,33 +406,33 @@
                 $('#discount').removeAttr("readonly");
             }
         }
-        $('#dataSearch').on('submit', function (e) {
-            e.preventDefault();
-            var formData = new FormData(this);
-            $.ajaxSetup({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                }
-            });
-            $.post({
-                url: '{{route('admin.coupon.search')}}',
-                data: formData,
-                cache: false,
-                contentType: false,
-                processData: false,
-                beforeSend: function () {
-                    $('#loading').show();
-                },
-                success: function (data) {
-                    $('#table-div').html(data.view);
-                    $('#itemCount').html(data.count);
-                    $('.page-area').hide();
-                },
-                complete: function () {
-                    $('#loading').hide();
-                },
-            });
-        });
+        // $('#dataSearch').on('submit', function (e) {
+        //     e.preventDefault();
+        //     var formData = new FormData(this);
+        //     $.ajaxSetup({
+        //         headers: {
+        //             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        //         }
+        //     });
+        //     $.post({
+        //         url: '{{route('admin.coupon.search')}}',
+        //         data: formData,
+        //         cache: false,
+        //         contentType: false,
+        //         processData: false,
+        //         beforeSend: function () {
+        //             $('#loading').show();
+        //         },
+        //         success: function (data) {
+        //             $('#table-div').html(data.view);
+        //             $('#itemCount').html(data.count);
+        //             $('.page-area').hide();
+        //         },
+        //         complete: function () {
+        //             $('#loading').hide();
+        //         },
+        //     });
+        // });
     </script>
     <script>
         $('#reset_btn').click(function(){
@@ -409,6 +450,7 @@
             $('#min_purchase').val(0);
             $('#select_restaurant').val(null).trigger('change');
             $('#choice_zones').val(null).trigger('change');
+            $('#select_customer').val(null).trigger('change');
         })
 
     </script>

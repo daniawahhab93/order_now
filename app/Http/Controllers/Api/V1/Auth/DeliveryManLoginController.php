@@ -14,7 +14,7 @@ class DeliveryManLoginController extends Controller
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'phone' => 'required',
+            'phone' => 'required|exists:delivery_men,phone',
             'password' => 'required|min:6'
         ]);
 
@@ -51,7 +51,15 @@ class DeliveryManLoginController extends Controller
             $delivery_man->auth_token = $token;
             $delivery_man->save();
 
-            return response()->json(['token' => $token, 'zone_wise_topic'=>$delivery_man->type=='zone_wise'?$delivery_man->zone->deliveryman_wise_topic:'restaurant_dm_'.$delivery_man->restaurant_id], 200);
+            if(isset($delivery_man->zone)){
+                if($delivery_man->vehicle_id){
+
+                    $topic = 'delivery_man_'.$delivery_man->zone->id.'_'.$delivery_man->vehicle_id;
+                }else{
+                    $topic = $delivery_man->type=='zone_wise'?$delivery_man->zone->deliveryman_wise_topic:'restaurant_dm_'.$delivery_man->restaurant_id;
+                }
+            }
+            return response()->json(['token' => $token, 'topic'=> isset($topic)?$topic:'No_topic_found'], 200);
         } else {
             $errors = [];
             array_push($errors, ['code' => 'auth-001', 'message' => 'Unauthorized.']);
@@ -71,7 +79,10 @@ class DeliveryManLoginController extends Controller
             'phone' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10|unique:delivery_men',
             'password'=>'required|min:6',
             'zone_id' => 'required',
-            'earning' => 'required'
+            'vehicle_id' => 'required',
+            'earning' => 'required|in:0,1',
+            'image' => 'nullable|max:2048',
+            'identity_image.*' => 'nullable|max:2048',
         ], [
             'f_name.required' => translate('messages.first_name_is_required'),
             'zone_id.required' => translate('messages.select_a_zone'),
@@ -110,8 +121,10 @@ class DeliveryManLoginController extends Controller
         $dm->image = $image_name;
         $dm->active = 0;
         $dm->zone_id = $request->zone_id;
+        $dm->vehicle_id = $request->vehicle_id;
         $dm->earning = $request->earning;
         $dm->password = bcrypt($request->password);
+        $dm->application_status= 'pending';
         $dm->save();
 
         return response()->json(['message' => translate('messages.deliveryman_added_successfully')], 200);

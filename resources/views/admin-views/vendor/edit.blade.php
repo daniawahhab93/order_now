@@ -17,7 +17,7 @@
         <div class="row gx-2 gx-lg-3">
             <div class="col-sm-12 col-lg-12 mb-3 mb-lg-2">
                 <div id="vendor_form" class="form-container">
-                    <form action="{{ route('admin.vendor.update', [$restaurant['id']]) }}" method="post"
+                    <form action="{{ route('admin.restaurant.update', [$restaurant['id']]) }}" method="post"
                         class="js-validate" enctype="multipart/form-data">
                         @csrf
                     <div class="card mb-3">
@@ -122,8 +122,26 @@
                                     </div>
                                 </div>
                             </div>
+
                             <div class="row">
                                 <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="input-label" for="cuisine">{{ translate('messages.cuisine') }}
+                                                </label>
+                                        <select name="cuisine_ids[]" id="cuisine"  multiple="multiple"
+                                            data-placeholder="{{ translate('messages.select') }} {{ translate('messages.Cuisine') }}"
+                                            class="form-control h--45px min--45 js-select2-custom">
+                                            {{ translate('messages.Cuisine') }}</option>
+
+                                            @php($cuisine_array = \App\Models\Cuisine::where('status',1 )->get()->toArray())
+                                            @php($selected_cuisine =isset($restaurant->cuisine) ? $restaurant->cuisine->pluck('id')->toArray() : [])
+                                            @foreach ($cuisine_array as $cu)
+                                                <option value="{{ $cu['id'] }}"
+                                                    {{ in_array($cu['id'], $selected_cuisine) ? 'selected' : '' }}>
+                                                    {{ $cu['name'] }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                     <div class="form-group">
                                         <label class="input-label" for="choice_zones">{{ translate('messages.zone') }}<span
                                                 class="input-label-secondary"
@@ -133,7 +151,7 @@
                                         <select name="zone_id" id="choice_zones" onchange="get_zone_data(this.value)"
                                             data-placeholder="{{ translate('messages.select') }} {{ translate('messages.zone') }}"
                                             class="form-control h--45px js-select2-custom">
-                                            @foreach (\App\Models\Zone::all() as $zone)
+                                            @foreach (\App\Models\Zone::where('status',1 )->get(['id','name']) as $zone)
                                                 @if (isset(auth('admin')->user()->zone_id))
                                                     @if (auth('admin')->user()->zone_id == $zone->id)
                                                         <option value="{{ $zone->id }}"
@@ -172,7 +190,7 @@
 
                                 <div class="col-md-8">
                                     <input id="pac-input" class="controls rounded initial-8" title="{{translate('messages.search_your_location_here')}}" type="text" placeholder="{{translate('messages.search_here')}}"/>
-                                    <div id="map"></div>
+                                    <div style="height: 370px !important" id="map"></div>
                                 </div>
 
                                 {{-- <div class="col-md-4 col-12">
@@ -338,7 +356,7 @@
         });
     </script>
     <script
-        src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&callback=initMap&v=3.45.8">
+        src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&callback=initMap&libraries=drawing,places&v=3.45.8">
     </script>
     <script>
         let myLatlng = {
@@ -374,49 +392,47 @@
             map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
             let markers = [];
             searchBox.addListener("places_changed", () => {
-                const places = searchBox.getPlaces();
-
-                if (places.length == 0) {
-                return;
-                }
-                // Clear out the old markers.
-                markers.forEach((marker) => {
-                marker.setMap(null);
-                });
-                markers = [];
-                // For each place, get the icon, name and location.
-                const bounds = new google.maps.LatLngBounds();
-                places.forEach((place) => {
-                if (!place.geometry || !place.geometry.location) {
-                    console.log("Returned place contains no geometry");
-                    return;
-                }
-                const icon = {
-                    url: place.icon,
-                    size: new google.maps.Size(71, 71),
-                    origin: new google.maps.Point(0, 0),
-                    anchor: new google.maps.Point(17, 34),
-                    scaledSize: new google.maps.Size(25, 25),
-                };
-                // Create a marker for each place.
-                markers.push(
-                    new google.maps.Marker({
-                    map,
-                    icon,
-                    title: place.name,
-                    position: place.geometry.location,
-                    })
-                );
-
-                if (place.geometry.viewport) {
-                    // Only geocodes have viewport.
-                    bounds.union(place.geometry.viewport);
-                } else {
-                    bounds.extend(place.geometry.location);
-                }
-                });
-                map.fitBounds(bounds);
-            });
+                        const places = searchBox.getPlaces();
+                        if (places.length == 0) {
+                        return;
+                        }
+                        // Clear out the old markers.
+                        markers.forEach((marker) => {
+                        marker.setMap(null);
+                        });
+                        markers = [];
+                        // For each place, get the icon, name and location.
+                        const bounds = new google.maps.LatLngBounds();
+                        places.forEach((place) => {
+                        if (!place.geometry || !place.geometry.location) {
+                            console.log("Returned place contains no geometry");
+                            return;
+                        }
+                        const icon = {
+                            url: place.icon,
+                            size: new google.maps.Size(71, 71),
+                            origin: new google.maps.Point(0, 0),
+                            anchor: new google.maps.Point(17, 34),
+                            scaledSize: new google.maps.Size(25, 25),
+                        };
+                        // Create a marker for each place.
+                        markers.push(
+                            new google.maps.Marker({
+                            map,
+                            icon,
+                            title: place.name,
+                            position: place.geometry.location,
+                            })
+                        );
+                        if (place.geometry.viewport) {
+                            // Only geocodes have viewport.
+                            bounds.union(place.geometry.viewport);
+                        } else {
+                            bounds.extend(place.geometry.location);
+                        }
+                        });
+                        map.fitBounds(bounds);
+                    });
         }
         initMap();
 

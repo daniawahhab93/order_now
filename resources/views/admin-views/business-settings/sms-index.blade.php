@@ -32,7 +32,7 @@
                         <h5 class="d-flex flex-wrap justify-content-between align-items-center text-uppercase">
                             <span>{{translate('messages.twilio_sms')}}</span>
                             <div class="pl-2">
-                                <img src="{{asset('/public/assets/admin/img/twilio.png')}}" alt="public">
+                                <img src="{{asset('/public/assets/admin/img/twilio.png')}}" height="38px" width="38px" alt="public">
                             </div>
                         </h5>
                         <span class="badge badge-soft-info mb-3 white--space">{{ translate('NB : #OTP# will be replace with otp') }}</span>
@@ -103,7 +103,7 @@
                         <h5 class="d-flex flex-wrap justify-content-between align-items-center text-uppercase">
                             <span>{{translate('messages.nexmo_sms')}}</span>
                             <div class="pl-2">
-                                <img src="{{asset('/public/assets/admin/img/nexmo.png')}}" alt="public">
+                                <img src="{{asset('/public/assets/admin/img/nexmo.png')}}" height="38px" width="38px" alt="public">
                             </div>
                         </h5>
                         <span class="badge badge-soft-info mb-3 white--space">{{ translate('NB : #OTP# will be replace with otp') }}</span>
@@ -162,7 +162,7 @@
                         <h5 class="d-flex flex-wrap justify-content-between align-items-center text-uppercase">
                             <span>{{translate('messages.2factor_sms')}}</span>
                             <div class="pl-2">
-                                <img src="{{asset('/public/assets/admin/img/twilio.png')}}" alt="public">
+                                <img src="{{asset('/public/assets/admin/img/factor.png')}}" height="38px" width="38px" alt="public">
                             </div>
                         </h5>
                         <span class="badge badge-soft-info mb-1 white--space">{{ translate('EX of SMS provider`s template : your OTP is XXXX here, please check.') }}</span><br>
@@ -175,13 +175,16 @@
                             <div class="d-flex flex-wrap mb-4">
                                 <label class="form-check form--check mr-2 mr-md-4">
                                     <input class="form-check-input" type="radio" name="status" value="1" {{isset($config) && $config['status']==1?'checked':''}}>
-                                    <label class="form-check-label text--title pl-2">{{translate('messages.active')}}</label>
+                                    <span class="form-check-label text--title pl-2">{{translate('messages.active')}}</span>
                                 </label>
                                 <label class="form-check form--check">
                                     <input class="form-check-input" type="radio" name="status" value="0" {{isset($config) && $config['status']==0?'checked':''}} >
-                                    <label class="form-check-label text--title pl-2">{{translate('messages.inactive')}} </label>
+                                    <span class="form-check-label text--title pl-2">{{translate('messages.inactive')}} </span>
                                 </label>
                             </div>
+
+
+
                             <div class="form-group">
                                 <label class="text-capitalize form-label">{{translate('messages.api_key')}}</label>
                                 <input type="text" class="form-control" name="api_key"
@@ -205,7 +208,7 @@
                         <h5 class="d-flex flex-wrap justify-content-between align-items-center text-uppercase">
                             <span>{{translate('messages.msg91_sms')}}</span>
                             <div class="pl-2">
-                                <img src="{{asset('/public/assets/admin/img/nexmo.png')}}" alt="public">
+                                <img src="{{asset('/public/assets/admin/img/msg91.png')}}" height="38px" width="38px" alt="public">
                             </div>
                         </h5>
                         <span class="badge badge-soft-info mb-3 white--space">{{ translate('NB : Keep an OTP variable in your SMS providers OTP Template.') }}</span><br>

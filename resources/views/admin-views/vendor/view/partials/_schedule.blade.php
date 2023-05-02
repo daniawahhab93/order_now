@@ -29,7 +29,7 @@ foreach ($restaurant->schedules as $schedule)
                                 {{date(config('timeformat'), strtotime($day['end_time']))}}
                             </span>
                         </span>
-                        <span class="dismiss--date" onclick="delete_schedule('{{route('admin.vendor.remove-schedule',['restaurant_schedule'=>$day['id']])}}')"><i class="tio-clear-circle-outlined"></i></span></span>
+                        <span class="dismiss--date" onclick="delete_schedule('{{route('admin.restaurant.remove-schedule',['restaurant_schedule'=>$day['id']])}}')"><i class="tio-clear-circle-outlined"></i></span></span>
                 @endforeach
             @else
                 <span class="btn btn-sm btn-outline-danger m-1 disabled">{{translate('messages.Offday')}}</span>
@@ -62,7 +62,7 @@ foreach ($restaurant->schedules as $schedule)
                                 {{date(config('timeformat'), strtotime($day['end_time']))}}
                             </span>
                         </span>
-                        <span class="dismiss--date" onclick="delete_schedule('{{route('admin.vendor.remove-schedule',['restaurant_schedule'=>$day['id']])}}')"><i class="tio-clear-circle-outlined"></i></span></span>
+                        <span class="dismiss--date" onclick="delete_schedule('{{route('admin.restaurant.remove-schedule',['restaurant_schedule'=>$day['id']])}}')"><i class="tio-clear-circle-outlined"></i></span></span>
                 @endforeach
             @else
                 <span class="btn btn-sm btn-outline-danger m-1 disabled">{{translate('messages.Offday')}}</span>
@@ -95,7 +95,7 @@ foreach ($restaurant->schedules as $schedule)
                                 {{date(config('timeformat'), strtotime($day['end_time']))}}
                             </span>
                         </span>
-                        <span class="dismiss--date" onclick="delete_schedule('{{route('admin.vendor.remove-schedule',['restaurant_schedule'=>$day['id']])}}')"><i class="tio-clear-circle-outlined"></i></span></span>
+                        <span class="dismiss--date" onclick="delete_schedule('{{route('admin.restaurant.remove-schedule',['restaurant_schedule'=>$day['id']])}}')"><i class="tio-clear-circle-outlined"></i></span></span>
                     @endforeach
                 @else
                     <span class="btn btn-sm btn-outline-danger m-1 disabled">{{translate('messages.Offday')}}</span>
@@ -128,7 +128,7 @@ foreach ($restaurant->schedules as $schedule)
                                 {{date(config('timeformat'), strtotime($day['end_time']))}}
                             </span>
                         </span>
-                        <span class="dismiss--date" onclick="delete_schedule('{{route('admin.vendor.remove-schedule',['restaurant_schedule'=>$day['id']])}}')"><i class="tio-clear-circle-outlined"></i></span></span>
+                        <span class="dismiss--date" onclick="delete_schedule('{{route('admin.restaurant.remove-schedule',['restaurant_schedule'=>$day['id']])}}')"><i class="tio-clear-circle-outlined"></i></span></span>
                 @endforeach
             @else
                 <span class="btn btn-sm btn-outline-danger m-1 disabled">{{translate('messages.Offday')}}</span>
@@ -161,7 +161,7 @@ foreach ($restaurant->schedules as $schedule)
                                 {{date(config('timeformat'), strtotime($day['end_time']))}}
                             </span>
                         </span>
-                        <span class="dismiss--date" onclick="delete_schedule('{{route('admin.vendor.remove-schedule',['restaurant_schedule'=>$day['id']])}}')"><i class="tio-clear-circle-outlined"></i></span></span>
+                        <span class="dismiss--date" onclick="delete_schedule('{{route('admin.restaurant.remove-schedule',['restaurant_schedule'=>$day['id']])}}')"><i class="tio-clear-circle-outlined"></i></span></span>
                 @endforeach
             @else
                 <span class="btn btn-sm btn-outline-danger m-1 disabled">{{translate('messages.Offday')}}</span>
@@ -194,7 +194,7 @@ foreach ($restaurant->schedules as $schedule)
                                 {{date(config('timeformat'), strtotime($day['end_time']))}}
                             </span>
                         </span>
-                        <span class="dismiss--date" onclick="delete_schedule('{{route('admin.vendor.remove-schedule',['restaurant_schedule'=>$day['id']])}}')"><i class="tio-clear-circle-outlined"></i></span></span>
+                        <span class="dismiss--date" onclick="delete_schedule('{{route('admin.restaurant.remove-schedule',['restaurant_schedule'=>$day['id']])}}')"><i class="tio-clear-circle-outlined"></i></span></span>
                 @endforeach
             @else
                 <span class="btn btn-sm btn-outline-danger m-1 disabled">{{translate('messages.Offday')}}</span>
@@ -227,7 +227,7 @@ foreach ($restaurant->schedules as $schedule)
                                 {{date(config('timeformat'), strtotime($day['end_time']))}}
                             </span>
                         </span>
-                        <span class="dismiss--date" onclick="delete_schedule('{{route('admin.vendor.remove-schedule',['restaurant_schedule'=>$day['id']])}}')"><i class="tio-clear-circle-outlined"></i></span></span>
+                        <span class="dismiss--date" onclick="delete_schedule('{{route('admin.restaurant.remove-schedule',['restaurant_schedule'=>$day['id']])}}')"><i class="tio-clear-circle-outlined"></i></span></span>
                 @endforeach
             @else
                 <span class="btn btn-sm btn-outline-danger m-1 disabled">{{translate('messages.Offday')}}</span>

@@ -21,7 +21,7 @@
         </div>
         <!-- End Page Header -->
         <form action="{{route('admin.delivery-man.update',[$delivery_man['id']])}}" method="post"
-                enctype="multipart/form-data">
+        class="js-validate"   enctype="multipart/form-data">
             @csrf
             <div class="card">
                 <div class="card-header">
@@ -74,8 +74,8 @@
                                 <div class="col-sm-6">
                                     <div class="form-group m-0">
                                         <label class="input-label" for="exampleFormControlInput1">{{translate('messages.zone')}}</label>
-                                        <select name="zone_id" class="form-control h--45px">
-                                        @foreach(\App\Models\Zone::all() as $zone)
+                                        <select name="zone_id" class="form-control js-select2-custom h--45px">
+                                        @foreach(\App\Models\Zone::where('status',1)->get(['id','name']) as $zone)
                                             @if(isset(auth('admin')->user()->zone_id))
                                                 @if(auth('admin')->user()->zone_id == $zone->id)
                                                     <option value="{{$zone->id}}" {{$zone->id == $delivery_man->zone_id?'selected':''}}>{{$zone->name}}</option>
@@ -83,6 +83,17 @@
                                             @else
                                             <option value="{{$zone->id}}" {{$zone->id == $delivery_man->zone_id?'selected':''}}>{{$zone->name}}</option>
                                             @endif
+                                        @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group m-0">
+                                        <label class="input-label" for="exampleFormControlInput1">{{translate('messages.vehicle')}}</label>
+                                        <select name="vehicle_id" class="form-control js-select2-custom h--45px">
+                                            <option value="" readonly="true" hidden="true">{{ translate('messages.select') }} {{ translate('messages.vehicle') }}</option>
+                                        @foreach(\App\Models\Vehicle::where('status',1)->get(['id','type']) as $v)
+                                            <option value="{{$v->id}}" {{$v->id == $delivery_man->vehicle_id?'selected':''}}>{{$v->type}}</option>
                                         @endforeach
                                         </select>
                                     </div>
@@ -97,6 +108,8 @@
                                         onerror="this.src='{{asset('public/assets/admin/img/100x100/user.png')}}'"
                                             src="{{asset('storage/app/public/delivery-man').'/'.$delivery_man['image']}}" alt="delivery-man image"/>
                                 </center>
+                                <label class="d-block mb-lg-3 text-center"></label>
+
                                 <div class="custom-file">
                                     <input type="file" name="image" id="customFileEg1" class="custom-file-input h--45px"
                                             accept=".jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
@@ -153,7 +166,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="card mt-3">
                 <div class="card-header">
                     <h5 class="card-title">
@@ -172,16 +184,55 @@
                             </div>
                         </div>
                         <div class="col-sm-6 col-lg-4">
-                            <div class="form-group m-0">
-                                <label class="input-label" for="exampleFormControlInput1">{{translate('messages.password')}}</label>
-                                <input type="text" name="password" class="form-control h--45px" placeholder="{{ translate('Ex: 5+ Character') }}">
+
+                            <div class="js-form-message form-group">
+                                <label class="input-label" for="signupSrPassword">{{translate('messages.password')}}</label>
+
+                                <div class="input-group input-group-merge">
+                                    <input type="password" class="js-toggle-password form-control h--45px" name="password"
+                                        id="signupSrPassword"
+                                        placeholder="{{ translate('messages.password_length_placeholder', ['length' => '6+']) }}"
+                                        aria-label="6+ characters required"
+                                        data-msg="Your password is invalid. Please try again."
+                                        data-hs-toggle-password-options='{
+                                                        "target": [".js-toggle-password-target-1", ".js-toggle-password-target-2"],
+                                                        "defaultClass": "tio-hidden-outlined",
+                                                        "showClass": "tio-visible-outlined",
+                                                        "classChangeTarget": ".js-toggle-passowrd-show-icon-1"
+                                                        }'>
+                                    <div class="js-toggle-password-target-1 input-group-append">
+                                        <a class="input-group-text" href="javascript:;">
+                                            <i class="js-toggle-passowrd-show-icon-1 tio-visible-outlined"></i>
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
+
                         </div>
                         <!-- Static -->
                         <div class="col-sm-6 col-lg-4">
-                            <div class="form-group m-0">
-                                <label class="input-label" for="exampleFormControlInput1">{{ translate('messages.confirm_password') }}</label>
-                                <input type="text" name="password" class="form-control h--45px" placeholder="{{ translate('Ex: 5+ Character') }}">
+
+                            <div class="js-form-message form-group">
+                                <label class="input-label" for="signupSrConfirmPassword">{{translate('messages.confirm_password')}}</label>
+
+                                <div class="input-group input-group-merge">
+                                    <input type="password" class="js-toggle-password form-control h--45px"
+                                        name="confirmPassword" id="signupSrConfirmPassword"
+                                        placeholder="{{ translate('messages.password_length_placeholder', ['length' => '6+']) }}"
+                                        aria-label="6+ characters required"
+                                        data-msg="Password does not match the confirm password."
+                                        data-hs-toggle-password-options='{
+                                                            "target": [".js-toggle-password-target-1", ".js-toggle-password-target-2"],
+                                                            "defaultClass": "tio-hidden-outlined",
+                                                            "showClass": "tio-visible-outlined",
+                                                            "classChangeTarget": ".js-toggle-passowrd-show-icon-2"
+                                                            }'>
+                                    <div class="js-toggle-password-target-2 input-group-append">
+                                        <a class="input-group-text" href="javascript:;">
+                                            <i class="js-toggle-passowrd-show-icon-2 tio-visible-outlined"></i>
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <!-- Static -->
@@ -201,6 +252,18 @@
     <script src="{{asset('public/assets/admin/js/intlTelInput.js')}}"></script>
     <script src="{{asset('public/assets/admin/js/intlTelInput-jquery.min.js')}}"></script>
     <script>
+
+
+
+             $('#exampleInputPassword ,#exampleRepeatPassword').on('keyup', function() {
+                var pass = $("#exampleInputPassword").val();
+                var passRepeat = $("#exampleRepeatPassword").val();
+                if (pass == passRepeat) {
+                    $('.pass').hide();
+                } else {
+                    $('.pass').show();
+                }
+            });
         function readURL(input) {
             if (input.files && input.files[0]) {
                 var reader = new FileReader();
@@ -232,6 +295,23 @@
             placeholderNumberType: "MOBILE",
             separateDialCode: true
         });
+
+
+          // INITIALIZATION OF SHOW PASSWORD
+            // =======================================================
+            $('.js-toggle-password').each(function() {
+                new HSTogglePassword(this).init()
+            });
+            $('.js-validate').each(function() {
+                $.HSCore.components.HSValidation.init($(this), {
+                    rules: {
+                        confirmPassword: {
+                            equalTo: '#signupSrPassword'
+                        }
+                    }
+                });
+            });
+
     </script>
 
     <script src="{{asset('public/assets/admin/js/spartan-multi-image-picker.js')}}"></script>

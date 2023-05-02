@@ -2,38 +2,42 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\Vendor;
-use App\Models\Restaurant;
 use App\Models\Zone;
 use App\Models\AddOn;
-use App\Models\WithdrawRequest;
-use App\Models\RestaurantWallet;
-use App\Models\RestaurantSchedule;
-use App\Models\AccountTransaction;
-use App\Models\Conversation;
+use App\Models\Vendor;
 use App\Models\Message;
 use App\Models\UserInfo;
-use App\Models\OrderTransaction;
-use App\Models\User;
-use Brian2694\Toastr\Facades\Toastr;
-use Illuminate\Support\Facades\Storage;
-use Grimzy\LaravelMysqlSpatial\Types\Point;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
+use App\Models\Restaurant;
+use Illuminate\Support\Str;
+use App\Models\Conversation;
+use Illuminate\Http\Request;
 use App\CentralLogics\Helpers;
-use App\CentralLogics\RestaurantLogic;
-use Rap2hpoutre\FastExcel\FastExcel;
+use Illuminate\Support\Carbon;
+use App\Models\BusinessSetting;
+use App\Models\WithdrawRequest;
 use App\Scopes\RestaurantScope;
+use App\Models\OrderTransaction;
+use App\Models\RestaurantWallet;
+use App\Models\AccountTransaction;
+use App\Models\RestaurantSchedule;
+use Illuminate\Support\Facades\DB;
+use App\Models\SubscriptionPackage;
+use App\Http\Controllers\Controller;
+use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Support\Facades\Mail;
+use Rap2hpoutre\FastExcel\FastExcel;
+use App\CentralLogics\RestaurantLogic;
+use App\Models\RestaurantSubscription;
+use App\Models\SubscriptionTransaction;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Grimzy\LaravelMysqlSpatial\Types\Point;
 
 
 class VendorController extends Controller
 {
     public function index()
     {
-
         return view('admin-views.vendor.index');
     }
 
@@ -44,20 +48,22 @@ class VendorController extends Controller
             'l_name' => 'nullable|max:100',
             'name' => 'required|max:191',
             'address' => 'required|max:1000',
-            'latitude' => 'required',
-            'longitude' => 'required',
+            'latitude' => 'required|numeric|min:-90|max:90',
+            'longitude' => 'required|numeric|min:-180|max:180',
             'email' => 'required|unique:vendors',
             'phone' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10|max:20|unique:vendors',
             'minimum_delivery_time' => 'required|regex:/^([0-9]{2})$/|min:2|max:2',
             'maximum_delivery_time' => 'required|regex:/^([0-9]{2})$/|min:2|max:2|gt:minimum_delivery_time',
             'password' => 'required|min:6',
             'zone_id' => 'required',
-            'logo' => 'required',
+            'logo' => 'required|max:2048',
+            'cover_photo' => 'required|max:2048',
             'tax' => 'required',
         ], [
             'f_name.required' => translate('messages.first_name_is_required')
         ]);
-
+        $cuisine_ids = [];
+        $cuisine_ids=$request->cuisine_ids;
         if ($request->zone_id) {
             $point = new Point($request->latitude, $request->longitude);
             $zone = Zone::contains('coordinates', $point)->where('id', $request->zone_id)->first();
@@ -92,12 +98,12 @@ class VendorController extends Controller
         $restaurant->vendor_id = $vendor->id;
         $restaurant->zone_id = $request->zone_id;
         $restaurant->tax = $request->tax;
+        $restaurant->restaurant_model = 'none';
         $restaurant->delivery_time = $request->minimum_delivery_time . '-' . $request->maximum_delivery_time;
-
         $restaurant->save();
-        // $restaurant->zones()->attach($request->zone_ids);
+        $restaurant->cuisine()->sync($cuisine_ids);
         Toastr::success(translate('messages.vendor') . translate('messages.added_successfully'));
-        return redirect('admin/vendor/list');
+        return redirect('admin/restaurant/list');
     }
 
     public function edit($id)
@@ -120,12 +126,14 @@ class VendorController extends Controller
             'email' => 'required|unique:vendors,email,' . $restaurant->vendor->id,
             'phone' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10|max:20|unique:vendors,phone,' . $restaurant->vendor->id,
             'zone_id' => 'required',
-            'latitude' => 'required',
-            'longitude' => 'required',
+            'latitude' => 'required|min:-90|max:90',
+            'longitude' => 'required|min:-180|max:180',
             'tax' => 'required',
             'password' => 'nullable|min:6',
             'minimum_delivery_time' => 'required|regex:/^([0-9]{2})$/|min:2|max:2',
             'maximum_delivery_time' => 'required|regex:/^([0-9]{2})$/|min:2|max:2|gt:minimum_delivery_time',
+            'logo' => 'nullable|max:2048',
+            'cover_photo' => 'nullable|max:2048',
         ], [
             'f_name.required' => translate('messages.first_name_is_required')
         ]);
@@ -152,6 +160,12 @@ class VendorController extends Controller
         $vendor->password = strlen($request->password) > 1 ? bcrypt($request->password) : $restaurant->vendor->password;
         $vendor->save();
 
+        $cuisine_ids = [];
+        $cuisine_ids=$request->cuisine_ids;
+
+        $slug = Str::slug($request->name);
+        $restaurant->slug = $restaurant->slug? $restaurant->slug :"{$slug}{$restaurant->id}";
+
         $restaurant->email = $request->email;
         $restaurant->phone = $request->phone;
         $restaurant->logo = $request->has('logo') ? Helpers::update('restaurant/', $restaurant->logo, 'png', $request->file('logo')) : $restaurant->logo;
@@ -163,8 +177,9 @@ class VendorController extends Controller
         $restaurant->zone_id = $request->zone_id;
         $restaurant->tax = $request->tax;
         $restaurant->delivery_time = $request->minimum_delivery_time . '-' . $request->maximum_delivery_time;
-        // $restaurant->zones()->sync($request->zone_ids);
         $restaurant->save();
+
+        $restaurant->cuisine()->sync($cuisine_ids);
         if ($vendor->userinfo) {
             $userinfo = $vendor->userinfo;
             $userinfo->f_name = $request->name;
@@ -174,7 +189,7 @@ class VendorController extends Controller
             $userinfo->save();
         }
         Toastr::success(translate('messages.restaurant') . translate('messages.updated_successfully'));
-        return redirect('admin/vendor/list');
+        return redirect('admin/restaurant/list');
     }
 
     public function destroy(Request $request, Restaurant $restaurant)
@@ -198,7 +213,7 @@ class VendorController extends Controller
         return back();
     }
 
-    public function view(Restaurant $restaurant, $tab = null, $sub_tab = 'cash')
+    public function view(Restaurant $restaurant,Request $request, $tab = null, $sub_tab = 'cash')
     {
         $wallet = $restaurant->vendor->wallet;
         if (!$wallet) {
@@ -232,13 +247,82 @@ class VendorController extends Controller
                 $conversations = [];
             }
             return view('admin-views.vendor.view.conversations', compact('restaurant', 'sub_tab', 'conversations'));
+        } elseif ($tab == 'subscriptions'){
+
+            $id=$restaurant->id;
+            if ($restaurant->restaurant_model == 'subscription' || $restaurant->restaurant_model == 'unsubscribed') {
+                $rest_subscription= RestaurantSubscription::where('restaurant_id', $id)->with(['package'])->latest()->first();
+                $package_id=(isset($rest_subscription->package_id))  ? $rest_subscription->package_id : 0 ;
+                $total_bill=SubscriptionTransaction::where('restaurant_id', $id)->where('package_id', $package_id)->sum('paid_amount');
+                $packages= SubscriptionPackage::where('status', 1)->get();
+                return view('admin-views.vendor.view.subscriptions', compact('restaurant', 'rest_subscription','package_id','total_bill','packages'));
+            } else{
+                abort(404);
+            }
+
+
+        } elseif ($tab == 'subscriptions-transactions'){
+            $filter = $request->query('filter', 'all');
+            $transcations = SubscriptionTransaction::where('restaurant_id', $restaurant->id)
+            ->when($filter == 'month', function ($query) {
+                return $query->whereMonth('created_at', Carbon::now()->month);
+            })
+            ->when($filter == 'year', function ($query) {
+                return $query->whereYear('created_at', Carbon::now()->year);
+            })
+            ->latest()->paginate(config('default_pagination'));
+            $total = $transcations->total();
+            return view('admin-views.vendor.view.subs_transaction',[
+            'transcations' => $transcations,
+            'filter' => $filter,
+            'total' => $total,
+            'restaurant' => $restaurant,
+            ]);
         }
-        return view('admin-views.vendor.view.index', compact('restaurant', 'wallet'));
+        return view('admin-views.vendor.view.index', compact('restaurant','wallet'));
+    }
+
+
+
+    public function rest_transcation_search(Request $request)
+    {
+        $key = explode(' ', $request['search']);
+        $transcations = SubscriptionTransaction::where('restaurant_id',$request->id)->where(function ($q) use ($key) {
+            foreach ($key as $value) {
+                $q->orWhere('id', 'like', "%{$value}%")
+                    ->orWhere('paid_amount', 'like', "%{$value}%")
+                    ->orWhere('reference', 'like', "%{$value}%")
+                    ->orWheredate('created_at', 'like', "%{$value}%");
+            }
+        })
+            ->get();
+        $total = $transcations->count();
+        return response()->json([
+            'view' => view('admin-views.vendor.view.partials._rest_subs_transcation', compact('transcations','total'))->render(), 'total'=> $total
+        ]);
+    }
+    public function trans_search_by_date(Request $request){
+        $from=$request->start_date;
+        $to= $request->end_date;
+        $id= $request->id;
+        $filter = 'all';
+        $restaurant=Restaurant::findOrFail($id);
+        $transcations=SubscriptionTransaction::where('restaurant_id', $restaurant->id)
+        ->whereBetween('created_at', ["{$from}", "{$to} 23:59:59"])
+        ->latest()->paginate(config('default_pagination'));
+        $total = $transcations->total();
+        return view('admin-views.vendor.view.subs_transaction',[
+            'transcations' => $transcations,
+            'filter' => $filter,
+            'total' => $total,
+            'restaurant' => $restaurant,
+            'from' =>  $from,
+            'to' =>  $to,
+            ]);
     }
 
     public function view_tab(Restaurant $restaurant)
     {
-
         Toastr::error(translate('messages.unknown_tab'));
         return back();
     }
@@ -246,33 +330,108 @@ class VendorController extends Controller
     public function list(Request $request)
     {
         $zone_id = $request->query('zone_id', 'all');
+        $cuisine_id = $request->query('cuisine_id', 'all');
         $type = $request->query('type', 'all');
+        $typ = $request->query('restaurant_model', '');
         $restaurants = Restaurant::when(is_numeric($zone_id), function ($query) use ($zone_id) {
-            return $query->where('zone_id', $zone_id);
-        })
-            ->with('vendor')->type($type)->latest()->paginate(config('default_pagination'));
+        return $query->where('zone_id', $zone_id);
+    })
+    ->with('vendor')
+    ->withSum('reviews' , 'rating')
+    ->withCount('reviews')
+    ->whereHas('vendor', function($q){
+        $q->where('status',1);
+    })
+    // ->when($cuisine_id,function($query) use($cuisine_id){
+    //     $query->whereHas('cuisine', function ($query) use ($cuisine_id){
+    //         $query->where('cuisine_restaurant.cuisine_id', $cuisine_id);
+    //     });
+    // })
+    ->cuisine($cuisine_id)
+    ->type($type)->RestaurantModel($typ)->latest()->paginate(config('default_pagination'));
         $zone = is_numeric($zone_id) ? Zone::findOrFail($zone_id) : null;
-        return view('admin-views.vendor.list', compact('restaurants', 'zone', 'type'));
+        return view('admin-views.vendor.list', compact('restaurants', 'zone', 'type','typ','cuisine_id'));
+    }
+    public function pending(Request $request)
+    {
+        $key = explode(' ', $request['search']);
+        $zone_id = $request->query('zone_id', 'all');
+        $type = $request->query('type', 'all');
+        $typ = $request->query('restaurant_model', '');
+        $restaurants = Restaurant::when(is_numeric($zone_id), function ($query) use ($zone_id) {
+        return $query->where('zone_id', $zone_id);
+    })
+    ->when(isset($key),function($query)use($key){
+        $query->where(function($q)use($key){
+            foreach ($key as $value) {
+                $q->orWhere('name', 'like', "%{$value}%")
+                ->orWhere('email', 'like', "%{$value}%")
+                ->orWhere('phone', 'like', "%{$value}%");
+            }
+        });
+    })
+    ->with('vendor')
+    ->whereHas('vendor', function ($q) {
+        $q->where('status', null);
+    })
+    ->type($type)->RestaurantModel($typ)->latest()->paginate(config('default_pagination'));
+        $zone = is_numeric($zone_id) ? Zone::findOrFail($zone_id) : null;
+        return view('admin-views.vendor.pending_list', compact('restaurants', 'zone', 'type','typ'));
+    }
+    public function denied(Request $request)
+    {
+        $key = explode(' ', $request['search']);
+        $zone_id = $request->query('zone_id', 'all');
+        $type = $request->query('type', 'all');
+        $typ = $request->query('restaurant_model', '');
+        $restaurants = Restaurant::when(is_numeric($zone_id), function ($query) use ($zone_id) {
+        return $query->where('zone_id', $zone_id);
+    })
+    ->when(isset($key),function($query)use($key){
+        $query->where(function($q)use($key){
+            foreach ($key as $value) {
+                $q->orWhere('name', 'like', "%{$value}%")
+                ->orWhere('email', 'like', "%{$value}%")
+                ->orWhere('phone', 'like', "%{$value}%");
+            }
+        });
+    })
+    ->with('vendor')
+    ->whereHas('vendor', function ($q) {
+        $q->Where('status', 0);
+    })
+    ->type($type)->RestaurantModel($typ)->latest()->paginate(config('default_pagination'));
+        $zone = is_numeric($zone_id) ? Zone::findOrFail($zone_id) : null;
+        return view('admin-views.vendor.denied', compact('restaurants', 'zone', 'type','typ'));
     }
 
     public function search(Request $request)
     {
         $key = explode(' ', $request['search']);
-        $restaurants = Restaurant::orWhereHas('vendor', function ($q) use ($key) {
-            foreach ($key as $value) {
-                $q->orWhere('f_name', 'like', "%{$value}%")
-                    ->orWhere('l_name', 'like', "%{$value}%")
-                    ->orWhere('email', 'like', "%{$value}%")
-                    ->orWhere('phone', 'like', "%{$value}%");
-            }
+        $restaurants = Restaurant::whereHas('vendor', function($q){
+            $q->where('status',1);
         })
-            ->where(function ($q) use ($key) {
+        ->where(function($query)use ($key){
+            $query->orWhereHas('vendor', function ($q) use ($key) {
                 foreach ($key as $value) {
-                    $q->orWhere('name', 'like', "%{$value}%")
+                    $q->orWhere('f_name', 'like', "%{$value}%")
+                        ->orWhere('l_name', 'like', "%{$value}%")
                         ->orWhere('email', 'like', "%{$value}%")
                         ->orWhere('phone', 'like', "%{$value}%");
                 }
-            })->get();
+            })
+            ->where(function ($q) use ($key) {
+                    foreach ($key as $value) {
+                        $q->orWhere('name', 'like', "%{$value}%")
+                            ->orWhere('email', 'like', "%{$value}%")
+                            ->orWhere('phone', 'like', "%{$value}%");
+                    }
+                });
+        })
+
+            ->withSum('reviews' , 'rating')
+            ->withCount('reviews')
+            ->get();
         $total = $restaurants->count();
         return response()->json([
             'view' => view('admin-views.vendor.partials._table', compact('restaurants'))->render(), 'total' => $total
@@ -328,6 +487,8 @@ class VendorController extends Controller
 
     public function restaurant_status(Restaurant $restaurant, Request $request)
     {
+
+        // dd($request->menu);
         if ($request->menu == "schedule_order" && !Helpers::schedule_order()) {
             Toastr::warning(translate('messages.schedule_order_disabled_warning'));
             return back();
@@ -342,9 +503,9 @@ class VendorController extends Controller
             Toastr::warning(translate('messages.veg_non_veg_disable_warning'));
             return back();
         }
-
         if ($request->menu == "self_delivery_system" && $request->status == '0') {
             $restaurant['free_delivery'] = 0;
+            $restaurant->coupon()->where('created_by','vendor')->where('coupon_type','free_delivery')->delete();
         }
         $restaurant[$request->menu] = $request->status;
         $restaurant->save();
@@ -376,9 +537,28 @@ class VendorController extends Controller
 
     public function updateRestaurantSettings(Restaurant $restaurant, Request $request)
     {
+
+        if(isset($request->restaurant_model)){
+            if($request->restaurant_model == 'subscription'){
+                $restaurant->restaurant_model= 'unsubscribed';
+                $restaurant->status=0;
+
+            } elseif($request->restaurant_model == 'commission'){
+                $restaurant->restaurant_model= 'commission';
+            }
+            if(isset($restaurant->restaurant_sub)){
+                $restaurant->restaurant_sub->update([
+                    'status'=>0,
+                ]);
+            }
+            $restaurant->save();
+            Toastr::success(translate('messages.restaurant') .' '.translate('messages.Business_Model_Updated'));
+            return back();
+            }
+
         $request->validate([
             'minimum_order' => 'required',
-            'comission' => 'required',
+            // 'comission' => 'required',
             'tax' => 'required',
             'minimum_delivery_time' => 'required|regex:/^([0-9]{2})$/|min:2|max:2',
             'maximum_delivery_time' => 'required|regex:/^([0-9]{2})$/|min:2|max:2|gt:minimum_delivery_time',
@@ -405,29 +585,41 @@ class VendorController extends Controller
             $restaurant->veg = 1;
             $restaurant->non_veg = 1;
         }
-
         $restaurant->save();
         Toastr::success(translate('messages.restaurant') . translate('messages.settings_updated'));
         return back();
     }
 
-    public function update_application(Request $request)
+    public function update_application($id,$status)
     {
-        $restaurant = Restaurant::findOrFail($request->id);
-        $restaurant->vendor->status = $request->status;
+        $restaurant = Restaurant::findOrFail($id);
+        $restaurant->vendor->status = $status;
         $restaurant->vendor->save();
-        if ($request->status) $restaurant->status = 1;
+        if ($status) $restaurant->status = 1;
+        if(isset($restaurant->restaurant_sub_trans) && isset($restaurant->restaurant_sub_update_application) && $restaurant->restaurant_sub_trans->payment_method == 'free_trial'){
+            $free_trial_period_data = json_decode(BusinessSetting::where(['key' => 'free_trial_period'])->first()->value,true);
+            $free_trial_period= (isset($free_trial_period_data['data']) ? $free_trial_period_data['data'] : 0);
+            $restaurant->restaurant_sub_update_application->update([
+                'expiry_date'=> Carbon::now()->addDays($free_trial_period)->format('Y-m-d'),
+                'status'=>1
+            ]);
+            $restaurant->restaurant_model= 'subscription';
+        } elseif (isset($restaurant->restaurant_sub_trans) && isset($restaurant->restaurant_sub_update_application) && $restaurant->restaurant_sub_trans->payment_method != 'free_trial') {
+            $add_days=$restaurant->restaurant_sub_trans->validity;
+            $restaurant->restaurant_sub_update_application->update([
+                'expiry_date'=> Carbon::now()->addDays($add_days)->format('Y-m-d'),
+                'status'=>1
+            ]);
+            $restaurant->restaurant_model= 'subscription';
+        }
         $restaurant->save();
-
         try {
             if (config('mail.status')) {
-                Mail::to($request['email'])->send(new \App\Mail\SelfRegistration($request->status == 1 ? 'approved' : 'denied', $restaurant->vendor->f_name . ' ' . $restaurant->vendor->l_name));
+                Mail::to($restaurant->vendor->email)->send(new \App\Mail\SelfRegistration($status == 1 ? 'approved' : 'denied', $restaurant->vendor->f_name . ' ' . $restaurant->vendor->l_name));
             }
         } catch (\Exception $ex) {
             info($ex);
         }
-
-
         Toastr::success(translate('messages.application_status_updated_successfully'));
         return back();
     }
@@ -467,7 +659,7 @@ class VendorController extends Controller
 
     public function withdraw_view($withdraw_id, $seller_id)
     {
-        $wr = WithdrawRequest::with(['vendor'])->where(['id' => $withdraw_id])->first();
+        $wr = WithdrawRequest::with(['vendor','method:id,method_name'])->where(['id' => $withdraw_id])->first();
         return view('admin-views.wallet.withdraw-view', compact('wr'));
     }
 
@@ -487,12 +679,12 @@ class VendorController extends Controller
             RestaurantWallet::where('vendor_id', $withdraw->vendor_id)->decrement('pending_withdraw', $withdraw->amount);
             $withdraw->save();
             Toastr::success(translate('messages.seller_payment_approved'));
-            return redirect()->route('admin.vendor.withdraw_list');
+            return redirect()->route('admin.restaurant.withdraw_list');
         } else if ($request->approved == 2) {
             RestaurantWallet::where('vendor_id', $withdraw->vendor_id)->decrement('pending_withdraw', $withdraw->amount);
             $withdraw->save();
             Toastr::info(translate('messages.seller_payment_denied'));
-            return redirect()->route('admin.vendor.withdraw_list');
+            return redirect()->route('admin.restaurant.withdraw_list');
         } else {
             Toastr::error(translate('messages.not_found'));
             return back();
@@ -577,11 +769,40 @@ class VendorController extends Controller
         $vendor = Vendor::orderBy('id', 'desc')->first('id');
         $vendor_id = $vendor ? $vendor->id : 0;
         foreach ($collections as $key => $collection) {
-            if ($collection['ownerFirstName'] === "" || $collection['restaurantName'] === "" || $collection['phone'] === "" || $collection['email'] === "" || $collection['latitude'] === "" || $collection['longitude'] === "" || $collection['zone_id'] === "") {
+            if ($collection['ownerFirstName'] === "" || $collection['restaurantName'] === "" || $collection['phone'] === ""
+            || $collection['email'] === "" || $collection['latitude'] === "" || $collection['longitude'] === ""
+            || $collection['zone_id'] === "" ||  $collection['DeliveryTime'] === ""  || $collection['RestaurantModel'] === ""  ) {
                 Toastr::error(translate('messages.please_fill_all_required_fields'));
                 return back();
             }
-
+            if(isset($collection['DeliveryTime']) && explode("-", (string)$collection['DeliveryTime'])[0] >  explode("-", (string)$collection['DeliveryTime'])[1]){
+                Toastr::error('messages.max_delivery_time_must_be_greater_than_min_delivery_time');
+                return back();
+            }
+            if(isset($collection['Comission']) && ($collection['Comission'] < 0 ||  $collection['Comission'] > 100) ) {
+                Toastr::error('messages.Comission_must_be_in_0_to_100');
+            }
+            if(isset($collection['Tax']) && ($collection['Tax'] < 0 ||  $collection['Tax'] > 100 )) {
+                Toastr::error('messages.Tax_must_be_in_0_to_100');
+            }
+            if(isset($collection['latitude']) && ($collection['latitude'] < -90 ||  $collection['latitude'] > 90 )) {
+                Toastr::error('messages.latitude_must_be_in_-90_to_90');
+            }
+            if(isset($collection['longitude']) && ($collection['longitude'] < -180 ||  $collection['longitude'] > 180 )) {
+                Toastr::error('messages.longitude_must_be_in_-180_to_180');
+            }
+            if(isset($collection['MinimumDeliveryFee']) && ($collection['MinimumDeliveryFee'] < 0  )) {
+                Toastr::error('messages.Enter_valid_Minimum_Delivery_Fee');
+            }
+            if(isset($collection['MinimumOrderAmount']) && ($collection['MinimumOrderAmount'] < 0  )) {
+                Toastr::error('messages.Enter_valid_Minimum_Order_Amount');
+            }
+            if(isset($collection['PerKmDeliveryFee']) && ($collection['PerKmDeliveryFee'] < 0  )) {
+                Toastr::error('messages.Enter_valid_Per_Km_Delivery_Fee');
+            }
+            if(isset($collection['MaximumDeliveryFee']) && ($collection['MaximumDeliveryFee'] < 0  )  ) {
+                Toastr::error('messages.Enter_valid_Maximum_Delivery_Fee');
+            }
 
             array_push($vendors, [
                 'id' => $vendor_id + $key + 1,
@@ -590,6 +811,7 @@ class VendorController extends Controller
                 'password' => bcrypt(12345678),
                 'phone' => $collection['phone'],
                 'email' => $collection['email'],
+                'status' => 1,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
@@ -602,6 +824,29 @@ class VendorController extends Controller
                 'longitude' => $collection['longitude'],
                 'vendor_id' => $vendor_id + $key + 1,
                 'zone_id' => $collection['zone_id'],
+                'address' => $collection['Address'],
+                // 'footer_text' => $collection['FooterText'],
+                'tax' => $collection['Tax'] ?? 0,
+                'minimum_order' => $collection['MinimumOrderAmount'] ?? 0,
+                'delivery_time' => $collection['DeliveryTime'] ?? '15-30',
+                'comission' => $collection['Comission'] ?? 'comission',
+                'minimum_shipping_charge' => $collection['MinimumDeliveryFee'] ?? 0,
+                'per_km_shipping_charge' => $collection['PerKmDeliveryFee'] ?? 0,
+                'maximum_shipping_charge' => $collection['MaximumDeliveryFee'] ?? 0,
+                // 'restaurant_model' => $collection['RestaurantModel'] ?? 'commission',
+                'restaurant_model' =>  $collection['RestaurantModel'] == 'subscription' ? 'unsubscribed' : 'commission'  ,
+                'schedule_order' => $collection['ScheduleOrder'] == 'yes' ? 1 : 0,
+                'take_away' => $collection['TakeAway'] == 'yes' ? 1 : 0,
+                'free_delivery' => $collection['FreeDelivery'] == 'yes' ? 1 : 0,
+                'veg' => $collection['Veg'] == 'yes' ? 1 : 0,
+                'non_veg' => $collection['NonVeg'] == 'yes' ? 1 : 0,
+                'delivery' => $collection['Delivery'] == 'yes' ? 1 : 0,
+                'status' => $collection['Status'] == 'active' ? 1 : 0,
+                'food_section' => $collection['FoodSection'] == 'active' ?1 : 0,
+                'reviews_section' => $collection['ReviewsSection'] == 'active' ?1 : 0,
+                'pos_system' => $collection['PosSystem'] == 'active' ?1 : 0,
+                'self_delivery_system' => $collection['SelfDeliverySystem'] == 'active' ?1 : 0,
+                'active' => $collection['RestaurantOpen'] == 'yes' ?1 : 0,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
@@ -636,12 +881,15 @@ class VendorController extends Controller
             'from_date' => 'required_if:type,date_wise',
             'to_date' => 'required_if:type,date_wise'
         ]);
-        $vendors = Vendor::with('restaurants')
+        $vendors = Vendor::with('restaurants')->has('restaurants')
             ->when($request['type'] == 'date_wise', function ($query) use ($request) {
                 $query->whereBetween('created_at', [$request['from_date'] . ' 00:00:00', $request['to_date'] . ' 23:59:59']);
             })
             ->when($request['type'] == 'id_wise', function ($query) use ($request) {
                 $query->whereBetween('id', [$request['start_id'], $request['end_id']]);
+            })
+            ->when($request->type == 'all' ,function($q){
+                $q->where('status',1);
             })
             ->get();
         return (new FastExcel(RestaurantLogic::format_export_restaurants($vendors)))->download('Restaurants.xlsx');
@@ -698,23 +946,32 @@ class VendorController extends Controller
         ]);
     }
 
-    public function restaurants_export($type)
+    public function restaurants_export( Request $request,  $type)
     {
-        $restaurant = Restaurant::with('vendor', 'zone')->get();
+        $zone_id = $request->query('zone_id', 'all');
+        $restaurant_model = $request->query('restaurant_model', '');
+        $ty = $request->query('ty', 'all');
+        $restaurants = Restaurant::when(is_numeric($zone_id), function ($query) use ($zone_id) {
+            return $query->where('zone_id', $zone_id);
+        })
+        ->type($ty)->RestaurantModel($restaurant_model)->latest()->with('vendor', 'zone')->get();
+
+
         if ($type == 'excel') {
-            return (new FastExcel(Helpers::export_restaurants($restaurant)))->download('Restaurants.xlsx');
+            return (new FastExcel(Helpers::export_restaurants($restaurants)))->download('Restaurants.xlsx');
         } elseif ($type == 'csv') {
-            return (new FastExcel(Helpers::export_restaurants($restaurant)))->download('Restaurants.csv');
+            return (new FastExcel(Helpers::export_restaurants($restaurants)))->download('Restaurants.csv');
         }
     }
 
     public function withdraw_list_export(Request $request)
     {
-        $withdraw_request = WithdrawRequest::all();
+        $withdraw_request = WithdrawRequest::latest()->get();
         if ($request->type == 'excel') {
-            return (new FastExcel($withdraw_request))->download('WithdrawRequests.xlsx');
+
+            return (new FastExcel(Helpers::restaurant_withdraw_list_export($withdraw_request)))->download('WithdrawRequests.xlsx');
         } elseif ($request->type == 'csv') {
-            return (new FastExcel($withdraw_request))->download('WithdrawRequests.csv');
+            return (new FastExcel(Helpers::restaurant_withdraw_list_export($withdraw_request)))->download('WithdrawRequests.csv');
         }
     }
     public function conversation_list(Request $request)

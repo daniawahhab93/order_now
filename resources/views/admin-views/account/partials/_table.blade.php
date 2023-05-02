@@ -3,7 +3,7 @@
             <td scope="row">{{$key+1}}</td>
             <td>
                 @if($at->restaurant)
-                <a href="{{route('admin.vendor.view',[$at->restaurant['id']])}}">{{ Str::limit($at->restaurant->name, 20, '...') }}</a>
+                <a href="{{route('admin.restaurant.view',[$at->restaurant['id']])}}">{{ Str::limit($at->restaurant->name, 20, '...') }}</a>
                 @elseif($at->deliveryman)
                 <a href="{{route('admin.delivery-man.preview',[$at->deliveryman->id])}}">{{ $at->deliveryman->f_name }} {{ $at->deliveryman->l_name }}</a>
                 @else

@@ -2,23 +2,32 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\CentralLogics\Helpers;
-use App\CentralLogics\CouponLogic;
-use App\CentralLogics\CustomerLogic;
-use App\Http\Controllers\Controller;
-use App\Models\BusinessSetting;
+use App\Models\Food;
+use App\Models\Zone;
 use App\Models\Order;
 use App\Models\Coupon;
-use App\Models\OrderDetail;
-use App\Models\Food;
+use App\Models\Refund;
+use App\Models\Vehicle;
 use App\Models\Restaurant;
+use App\Models\OrderDetail;
 use App\Models\ItemCampaign;
+use App\Models\RefundReason;
+use App\Models\Subscription;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use App\Models\Zone;
-use Grimzy\LaravelMysqlSpatial\Types\Point;
+use App\CentralLogics\Helpers;
+use App\Models\BusinessSetting;
+use App\CentralLogics\OrderLogic;
+use App\Models\OrderCancelReason;
+use App\CentralLogics\CouponLogic;
 use Illuminate\Support\Facades\DB;
+use App\CentralLogics\CustomerLogic;
+use App\Http\Controllers\Controller;
+
+use App\Models\SubscriptionSchedule;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
+use Grimzy\LaravelMysqlSpatial\Types\Point;
+use Illuminate\Support\Facades\Http;
 
 class OrderController extends Controller
 {
@@ -31,12 +40,13 @@ class OrderController extends Controller
         if ($validator->fails()) {
             return response()->json(['errors' => Helpers::error_processor($validator)], 403);
         }
-        $order = Order::with(['restaurant', 'delivery_man.rating'])->withCount('details')->where(['id' => $request['order_id'], 'user_id' => $request->user()->id])->Notpos()->first();
+        $order = Order::with(['restaurant.restaurant_sub', 'refund', 'delivery_man.rating','subscription'])->withCount('details')->where(['id' => $request['order_id'], 'user_id' => $request->user()->id])->Notpos()->first();
         if($order)
         {
             $order['restaurant'] = $order['restaurant']?Helpers::restaurant_data_formatting($order['restaurant']):$order['restaurant'];
             $order['delivery_address'] = $order['delivery_address']?json_decode($order['delivery_address']):$order['delivery_address'];
             $order['delivery_man'] = $order['delivery_man']?Helpers::deliverymen_data_formatting([$order['delivery_man']]):$order['delivery_man'];
+
             unset($order['details']);
         }
         else
@@ -79,6 +89,7 @@ class OrderController extends Controller
         $coupon = null;
         $delivery_charge = null;
         $free_delivery_by = null;
+        $coupon_created_by = null;
         $schedule_at = $request->schedule_at?\Carbon\Carbon::parse($request->schedule_at):now();
         if($request->schedule_at && $schedule_at < now())
         {
@@ -88,7 +99,7 @@ class OrderController extends Controller
                 ]
             ], 406);
         }
-        $restaurant = Restaurant::with('discount')->selectRaw('*, IF(((select count(*) from `restaurant_schedule` where `restaurants`.`id` = `restaurant_schedule`.`restaurant_id` and `restaurant_schedule`.`day` = '.$schedule_at->format('w').' and `restaurant_schedule`.`opening_time` < "'.$schedule_at->format('H:i:s').'" and `restaurant_schedule`.`closing_time` >"'.$schedule_at->format('H:i:s').'") > 0), true, false) as open')->where('id', $request->restaurant_id)->first();
+        $restaurant = Restaurant::with(['discount', 'restaurant_sub'])->selectRaw('*, IF(((select count(*) from `restaurant_schedule` where `restaurants`.`id` = `restaurant_schedule`.`restaurant_id` and `restaurant_schedule`.`day` = '.$schedule_at->format('w').' and `restaurant_schedule`.`opening_time` < "'.$schedule_at->format('H:i:s').'" and `restaurant_schedule`.`closing_time` >"'.$schedule_at->format('H:i:s').'") > 0), true, false) as open')->where('id', $request->restaurant_id)->first();
 
         if(!$restaurant)
         {
@@ -99,6 +110,25 @@ class OrderController extends Controller
             ], 404);
         }
 
+
+        $rest_sub=$restaurant->restaurant_sub;
+        if ($restaurant->restaurant_model == 'subscription' && isset($rest_sub)) {
+            if($rest_sub->max_order != "unlimited" && $rest_sub->max_order <= 0){
+                return response()->json([
+                    'errors' => [
+                        ['code' => 'order-confirmation-error', 'message' => translate('messages.Sorry_the_restaurant_is_unable_to_take_any_order_!')]
+                    ]
+                ], 403);
+            }
+        } elseif( $restaurant->restaurant_model == 'unsubscribed'){
+            return response()->json([
+                'errors' => [
+                    ['code' => 'order-confirmation-model', 'message' => translate('messages.Sorry_the_restaurant_is_unable_to_take_any_order_!')]
+                ]
+            ], 403);
+        }
+
+
         if($request->schedule_at && !$restaurant->schedule_order)
         {
             return response()->json([
@@ -108,7 +138,7 @@ class OrderController extends Controller
             ], 406);
         }
 
-        if($restaurant->open == false)
+        if($restaurant->open == false && !$request->subscription_order)
         {
             return response()->json([
                 'errors' => [
@@ -129,6 +159,14 @@ class OrderController extends Controller
                         ]
                     ], 407);
                 }
+                else if($staus==408)
+                {
+                    return response()->json([
+                        'errors' => [
+                            ['code' => 'coupon', 'message' => translate('messages.You_are_not_eligible_for_this_coupon')]
+                        ]
+                    ], 403);
+                }
                 else if($staus==406)
                 {
                     return response()->json([
@@ -145,23 +183,53 @@ class OrderController extends Controller
                         ]
                     ], 404);
                 }
+
+                $coupon_created_by =$coupon->created_by;
                 if($coupon->coupon_type == 'free_delivery')
                 {
                     $delivery_charge = 0;
-                    $coupon = null;
-                    $free_delivery_by = 'admin';
+                    $free_delivery_by =  $coupon_created_by;
+                    $coupon_created_by = null;
+                    // $coupon = null;
                 }
             } else {
                 return response()->json([
                     'errors' => [
                         ['code' => 'coupon', 'message' => translate('messages.not_found')]
                     ]
-                ], 401);
+                ], 404);
             }
         }
-        $per_km_shipping_charge = (float)BusinessSetting::where(['key' => 'per_km_shipping_charge'])->first()->value;
-        $minimum_shipping_charge = (float)BusinessSetting::where(['key' => 'minimum_shipping_charge'])->first()->value;
 
+
+        if(isset($coupon))
+        {
+            $coupon->increment('total_uses');
+        }
+        if(isset($coupon) && $coupon->coupon_type == 'free_delivery')
+        {
+            $coupon = null;
+        }
+
+        $per_km_shipping_charge = 0;
+        $minimum_shipping_charge = 0;
+        $maximum_shipping_charge =  0;
+        $max_cod_order_amount_value=  0;
+        $increased=0;
+        $distance_data = $request->distance;
+
+        $data = Vehicle::active()->
+        where(function ($query) use ($distance_data) {
+            $query->where('starting_coverage_area', '<=', $distance_data)->where('maximum_coverage_area', '>=', $distance_data)
+            ->orWhere(function ($query) use ($distance_data) {
+                $query->where('starting_coverage_area', '>=', $distance_data);
+            });
+        })
+            ->orderBy('starting_coverage_area')->first();
+
+
+        $extra_charges = (float) (isset($data) ? $data->extra_charges  : 0);
+        $vehicle_id= (isset($data) ? $data->id  : null);
         if($request->latitude && $request->longitude)
         {
             $point = new Point($request->latitude,$request->longitude);
@@ -177,30 +245,76 @@ class OrderController extends Controller
             if( $zone->per_km_shipping_charge && $zone->minimum_shipping_charge ) {
                 $per_km_shipping_charge = $zone->per_km_shipping_charge;
                 $minimum_shipping_charge = $zone->minimum_shipping_charge;
+                $maximum_shipping_charge = $zone->maximum_shipping_charge;
+                $max_cod_order_amount_value= $zone->max_cod_order_amount;
+                if($zone->increased_delivery_fee_status == 1){
+                    $increased=$zone->increased_delivery_fee ?? 0;
+                }
             }
         }
 
-        if($request['order_type'] != 'take_away' && !$restaurant->free_delivery && !isset($delivery_charge))
+
+        if($request['order_type'] != 'take_away' && !$restaurant->free_delivery &&  !isset($delivery_charge) && ($restaurant->restaurant_model == 'subscription' && isset($restaurant->restaurant_sub) && $restaurant->restaurant_sub->self_delivery == 1  || $restaurant->restaurant_model == 'commission' &&  $restaurant->self_delivery_system == 1 ))
         {
-            if($restaurant->self_delivery_system)
-            {
                 $per_km_shipping_charge = $restaurant->per_km_shipping_charge;
                 $minimum_shipping_charge = $restaurant->minimum_shipping_charge;
-            }
+                $maximum_shipping_charge = $restaurant->maximum_shipping_charge;
+                $extra_charges= 0;
+                $vehicle_id=null;
+                $increased=0;
         }
 
-        $original_delivery_charge = ($request->distance * $per_km_shipping_charge > $minimum_shipping_charge) ? $request->distance * $per_km_shipping_charge : $minimum_shipping_charge;
+        if($restaurant->free_delivery || $free_delivery_by == 'vendor' ){
+            $per_km_shipping_charge = $restaurant->per_km_shipping_charge;
+            $minimum_shipping_charge = $restaurant->minimum_shipping_charge;
+            $maximum_shipping_charge = $restaurant->maximum_shipping_charge;
+            $extra_charges= 0;
+            $vehicle_id=null;
+            $increased=0;
+        }
+
+        $original_delivery_charge = ($request->distance * $per_km_shipping_charge > $minimum_shipping_charge) ? $request->distance * $per_km_shipping_charge + $extra_charges  : $minimum_shipping_charge + $extra_charges;
 
         if($request['order_type'] == 'take_away')
         {
             $per_km_shipping_charge = 0;
             $minimum_shipping_charge = 0;
+            $maximum_shipping_charge = 0;
+            $extra_charges= 0;
+            $distance_data = 0;
+            $vehicle_id=null;
+            $increased=0;
+            $original_delivery_charge =0;
         }
+
+        if ( $maximum_shipping_charge  > $minimum_shipping_charge  && $original_delivery_charge >  $maximum_shipping_charge ){
+            $original_delivery_charge = $maximum_shipping_charge;
+        }
+        else{
+            $original_delivery_charge = $original_delivery_charge;
+        }
+
         if(!isset($delivery_charge)){
             $delivery_charge = ($request->distance * $per_km_shipping_charge > $minimum_shipping_charge) ? $request->distance * $per_km_shipping_charge : $minimum_shipping_charge;
+            if ( $maximum_shipping_charge  > $minimum_shipping_charge  && $delivery_charge + $extra_charges >  $maximum_shipping_charge ){
+                $delivery_charge =$maximum_shipping_charge;
+            }
+            else{
+                $delivery_charge =$extra_charges + $delivery_charge;
+            }
         }
 
 
+        if($increased > 0 ){
+            if($delivery_charge > 0){
+                $increased_fee = ($delivery_charge * $increased) / 100;
+                $delivery_charge = $delivery_charge + $increased_fee;
+            }
+            if($original_delivery_charge > 0){
+                $increased_fee = ($original_delivery_charge * $increased) / 100;
+                $original_delivery_charge = $original_delivery_charge + $increased_fee;
+            }
+        }
         $address = [
             'contact_person_name' => $request->contact_person_name?$request->contact_person_name:$request->user()->f_name.' '.$request->user()->f_name,
             'contact_person_number' => $request->contact_person_number?$request->contact_person_number:$request->user()->phone,
@@ -221,14 +335,13 @@ class OrderController extends Controller
         $order = new Order();
         $order->id = 100000 + Order::all()->count() + 1;
         if (Order::find($order->id)) {
-            $order->id = Order::orderBy('id','desc')->first()->id + 1;
+            $order->id = Order::orderBy('id','desc')->first('id')->id + 1;
         }
-
+        $order->distance = $distance_data;
         $order->user_id = $request->user()->id;
         $order->order_amount = $request['order_amount'];
-
         $order->payment_status = $request['payment_method']=='wallet'?'paid':'unpaid';
-        $order->order_status = $request['payment_method']=='digital_payment'?'failed':($request->payment_method == 'wallet'?'confirmed':'pending');
+        $order->order_status = $request['payment_method']=='digital_payment'?'pending':($request->payment_method == 'wallet'?'confirmed':'pending');
         $order->coupon_code = $request['coupon_code'];
         $order->payment_method = $request->payment_method;
         $order->transaction_reference = null;
@@ -248,33 +361,39 @@ class OrderController extends Controller
         } else {
             $order->dm_tips = 0;
         }
+        $order->vehicle_id = $vehicle_id;
         $order->pending = now();
         $order->confirmed = $request->payment_method == 'wallet' ? now() : null;
         $order->created_at = now();
         $order->updated_at = now();
         foreach ($request['cart'] as $c) {
             if ($c['item_campaign_id'] != null) {
+
                 $product = ItemCampaign::active()->find($c['item_campaign_id']);
                 if ($product) {
-                    if (count(json_decode($product['variations'], true)) > 0) {
-                        $price = Helpers::variation_price($product, json_encode($c['variation']));
+                    $product_variations = json_decode($product->variations, true);
+                    $variations=[];
+                    if (count($product_variations)) {
+                        $variation_data = Helpers::get_varient($product_variations, $c['variations']);
+                        $price = $product['price'] + $variation_data['price'];
+                        $variations = $variation_data['variations'];
                     } else {
                         $price = $product['price'];
                     }
                     $product->tax = $restaurant->tax;
                     $product = Helpers::product_data_formatting($product, false, false, app()->getLocale());
                     $addon_data = Helpers::calculate_addon_price(\App\Models\AddOn::whereIn('id',$c['add_on_ids'])->get(), $c['add_on_qtys']);
+
                     $or_d = [
                         'food_id' => null,
                         'item_campaign_id' => $c['item_campaign_id'],
                         'food_details' => json_encode($product),
                         'quantity' => $c['quantity'],
-                        'price' => $price,
+                        'price' => round($price, config('round_up_to_digit')),
                         'tax_amount' => Helpers::tax_calculate($product, $price),
                         'discount_on_food' => Helpers::product_discount_calculate($product, $price, $restaurant),
                         'discount_type' => 'discount_on_product',
-                        'variant' => json_encode($c['variant']),
-                        'variation' => json_encode($c['variation']),
+                        'variation' => json_encode($variations),
                         'add_ons' => json_encode($addon_data['addons']),
                         'total_add_on_price' => $addon_data['total_add_on_price'],
                         'created_at' => now(),
@@ -289,14 +408,18 @@ class OrderController extends Controller
                         'errors' => [
                             ['code' => 'campaign', 'message' => translate('messages.product_unavailable_warning')]
                         ]
-                    ], 401);
+                    ], 404);
                 }
             } else {
                 $product = Food::active()->find($c['food_id']);
                 if ($product) {
-                    if (count(json_decode($product['variations'], true)) > 0) {
-                        $price = Helpers::variation_price($product, json_encode($c['variation']));
-                    } else {
+                        $product_variations = json_decode($product->variations, true);
+                        $variations=[];
+                        if (count($product_variations)) {
+                            $variation_data = Helpers::get_varient($product_variations, $c['variations']);
+                            $price = $product['price'] + $variation_data['price'];
+                            $variations =  $variation_data['variations'];
+                        } else {
                         $price = $product['price'];
                     }
                     $product->tax = $restaurant->tax;
@@ -311,8 +434,7 @@ class OrderController extends Controller
                         'tax_amount' => round(Helpers::tax_calculate($product, $price), config('round_up_to_digit')),
                         'discount_on_food' => Helpers::product_discount_calculate($product, $price, $restaurant),
                         'discount_type' => 'discount_on_product',
-                        'variant' => json_encode($c['variant']),
-                        'variation' => json_encode($c['variation']),
+                        'variation' => json_encode($variations),
                         'add_ons' => json_encode($addon_data['addons']),
                         'total_add_on_price' => round($addon_data['total_add_on_price'], config('round_up_to_digit')),
                         'created_at' => now(),
@@ -327,14 +449,19 @@ class OrderController extends Controller
                         'errors' => [
                             ['code' => 'food', 'message' => translate('messages.product_unavailable_warning')]
                         ]
-                    ], 401);
+                    ], 404);
                 }
             }
 
         }
+
+      $order->discount_on_product_by = 'vendor';
+
         $restaurant_discount = Helpers::get_restaurant_discount($restaurant);
         if(isset($restaurant_discount))
         {
+            $order->discount_on_product_by = 'admin';
+
             if($product_price + $total_addon_price < $restaurant_discount['min_purchase'])
             {
                 $restaurant_discount_amount = 0;
@@ -345,11 +472,21 @@ class OrderController extends Controller
                 $restaurant_discount_amount = $restaurant_discount['max_discount'];
             }
         }
+
         $coupon_discount_amount = $coupon ? CouponLogic::get_discount($coupon, $product_price + $total_addon_price - $restaurant_discount_amount) : 0;
         $total_price = $product_price + $total_addon_price - $restaurant_discount_amount - $coupon_discount_amount ;
 
-        $tax = $restaurant->tax;
-        $total_tax_amount= ($tax > 0)?(($total_price * $tax)/100):0;
+        $tax = ($restaurant->tax > 0)?$restaurant->tax:0;
+        $order->tax_status = 'excluded';
+
+        $tax_included =BusinessSetting::where(['key'=>'tax_included'])->first() ?  BusinessSetting::where(['key'=>'tax_included'])->first()->value : 0;
+        if ($tax_included ==  1){
+            $order->tax_status = 'included';
+        }
+
+        $total_tax_amount=Helpers::product_tax($total_price,$tax,$order->tax_status =='included');
+
+        $tax_a=$order->tax_status =='included'?0:$total_tax_amount;
 
         if($restaurant->minimum_order > $product_price + $total_addon_price )
         {
@@ -375,12 +512,14 @@ class OrderController extends Controller
             $free_delivery_by = 'vendor';
         }
 
-        if($coupon)
-        {
-            $coupon->increment('total_uses');
-        }
+        $order->coupon_created_by = $coupon_created_by;
 
-        $order_amount = round($total_price + $total_tax_amount + $order->delivery_charge , config('round_up_to_digit'));
+        // if($coupon)
+        // {
+        //     $coupon->increment('total_uses');
+        // }
+
+        $order_amount = round($total_price + $tax_a + $order->delivery_charge , config('round_up_to_digit'));
 
         if($request->payment_method == 'wallet' && $request->user()->wallet_balance < $order_amount)
         {
@@ -390,7 +529,6 @@ class OrderController extends Controller
                 ]
             ], 203);
         }
-        // dd($order->dm_tips);
         try {
             $order->coupon_discount_amount = round($coupon_discount_amount, config('round_up_to_digit'));
             $order->coupon_discount_title = $coupon ? $coupon->title : '';
@@ -398,18 +536,83 @@ class OrderController extends Controller
             $order->restaurant_discount_amount= round($restaurant_discount_amount, config('round_up_to_digit'));
             $order->total_tax_amount= round($total_tax_amount, config('round_up_to_digit'));
             $order->order_amount = $order_amount + $order->dm_tips;
+
+            if( $max_cod_order_amount_value > 0 && $order->payment_method == 'cash_on_delivery' && $order->order_amount > $max_cod_order_amount_value){
+            return response()->json([
+                'errors' => [
+                    ['code' => 'order_amount', 'message' => translate('messages.You can not Order more then ').$max_cod_order_amount_value .Helpers::currency_symbol().' '. translate('messages.on COD order.')]
+                ]
+            ], 203);
+            }
+
+
+            // if ($request->subscription_order &&  $restaurant->restaurant_model == 'subscription' && isset($rest_sub) &&
+            // Carbon::parse($rest_sub->expiry_date)->format('Y-m-d') < Carbon::parse($request->subscription_end_at
+            // )){
+            //     return response()->json([
+            //         'errors' => [
+            //             ['code' => 'restaurant_subs_exp', 'message' => translate('messages.You_need_to_Set_end_date_before').' '.$rest_sub->expiry_date->format('Y-m-d')]
+            //         ]
+            //     ], 203);
+            // }
+
+            DB::beginTransaction();
+
+            // new Order Subscription create
+            if($request->subscription_order && $request->subscription_quantity){
+                $subscription = new Subscription();
+                $subscription->status = 'active';
+                $subscription->start_at = $request->subscription_start_at;
+                $subscription->end_at = $request->subscription_end_at;
+                $subscription->type = $request->subscription_type;
+                $subscription->quantity = $request->subscription_quantity;
+                $subscription->user_id = $request->user()->id;
+                $subscription->restaurant_id = $restaurant->id;
+                $subscription->save();
+                $order->subscription_id = $subscription->id;
+                // $subscription_schedules =  Helpers::get_subscription_schedules($request->subscription_type, $request->subscription_start_at, $request->subscription_end_at, json_decode($request->days, true));
+
+                $days = array_map(function($day)use($subscription){
+                    $day['subscription_id'] = $subscription->id;
+                    $day['type'] = $subscription->type;
+                    $day['created_at'] = now();
+                    $day['updated_at'] = now();
+                    return $day;
+                },json_decode($request->subscription_days, true));
+                // info(['SubscriptionSchedule_____', $days]);
+                SubscriptionSchedule::insert($days);
+
+                // $order->checked = 1;
+            }
+
             $order->save();
+            // new Order Subscription logs create for the order
+            OrderLogic::create_subscription_log($order->id);
+            // End Order Subscription.
+
             foreach ($order_details as $key => $item) {
                 $order_details[$key]['order_id'] = $order->id;
             }
             OrderDetail::insert($order_details);
-            Helpers::send_order_notification($order);
 
             $customer = $request->user();
             $customer->zone_id = $restaurant->zone_id;
             $customer->save();
 
             $restaurant->increment('total_order');
+
+            if ($restaurant->restaurant_model == 'subscription' && isset($rest_sub) && $request['payment_method'] != 'digital_payment'){
+                if ($rest_sub->max_order != "unlimited" && $rest_sub->max_order > 0 ) {
+                    $rest_sub->decrement('max_order' , 1);
+                    }
+            }
+
+            DB::commit();
+
+            // if($order->subscription_id == null){
+            //     Http::async()->get(url('/')."/api/v1/customer/order/send-notification/{$order->id}");
+            // }
+            Helpers::visitor_log('restaurant',$customer->id,$restaurant->id,true);
             if($request->payment_method == 'wallet') CustomerLogic::create_wallet_transaction($order->user_id, $order->order_amount, 'order_place', $order->id);
 
             try{
@@ -424,7 +627,7 @@ class OrderController extends Controller
                 'message' => translate('messages.order_placed_successfully'),
                 'order_id' => $order->id,
                 'username' =>$order->user()->fname.' '.$order->user()->lname,
-                'total_ammount' => $total_price+$order->delivery_charge+$total_tax_amount
+                'total_ammount' => $total_price+$order->delivery_charge+$tax_a
             ], 200);
         } catch (\Exception $e) {
             info($e);
@@ -449,7 +652,41 @@ class OrderController extends Controller
             return response()->json(['errors' => Helpers::error_processor($validator)], 403);
         }
 
-        $paginator = Order::with(['restaurant', 'delivery_man.rating'])->withCount('details')->where(['user_id' => $request->user()->id])->whereIn('order_status', ['delivered','canceled','refund_requested','refunded','failed'])->Notpos()->latest()->paginate($request['limit'], ['*'], 'page', $request['offset']);
+        $paginator = Order::with(['restaurant', 'delivery_man.rating'])->withCount('details')->where(['user_id' => $request->user()->id])->
+        whereIn('order_status', ['delivered','canceled','refund_requested','refund_request_canceled','refunded','failed'])->Notpos()
+        ->whereNull('subscription_id')
+
+        ->latest()->paginate($request['limit'], ['*'], 'page', $request['offset']);
+        $orders = array_map(function ($data) {
+            $data['delivery_address'] = $data['delivery_address']?json_decode($data['delivery_address']):$data['delivery_address'];
+            $data['restaurant'] = $data['restaurant']?Helpers::restaurant_data_formatting($data['restaurant']):$data['restaurant'];
+            $data['delivery_man'] = $data['delivery_man']?Helpers::deliverymen_data_formatting([$data['delivery_man']]):$data['delivery_man'];
+            return $data;
+        }, $paginator->items());
+        $data = [
+            'total_size' => $paginator->total(),
+            'limit' => $request['limit'],
+            'offset' => $request['offset'],
+            'orders' => $orders
+        ];
+        return response()->json($data, 200);
+    }
+    public function get_order_subscription_list(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'limit' => 'required',
+            'offset' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => Helpers::error_processor($validator)], 403);
+        }
+
+        $paginator = Order::with(['restaurant', 'delivery_man.rating'])->withCount('details')->where(['user_id' => $request->user()->id])
+        // ->whereIn('order_status', ['delivered','canceled','refund_requested','refund_request_canceled','refunded','failed'])
+        ->Notpos()
+        ->whereNotNull('subscription_id')
+        ->latest()->paginate($request['limit'], ['*'], 'page', $request['offset']);
         $orders = array_map(function ($data) {
             $data['delivery_address'] = $data['delivery_address']?json_decode($data['delivery_address']):$data['delivery_address'];
             $data['restaurant'] = $data['restaurant']?Helpers::restaurant_data_formatting($data['restaurant']):$data['restaurant'];
@@ -476,7 +713,11 @@ class OrderController extends Controller
             return response()->json(['errors' => Helpers::error_processor($validator)], 403);
         }
 
-        $paginator = Order::with(['restaurant', 'delivery_man.rating'])->withCount('details')->where(['user_id' => $request->user()->id])->whereNotIn('order_status', ['delivered','canceled','refund_requested','refunded','failed'])->Notpos()->latest()->paginate($request['limit'], ['*'], 'page', $request['offset']);
+        $paginator = Order::with(['restaurant', 'delivery_man.rating'])->withCount('details')->where(['user_id' => $request->user()->id])
+        ->whereNull('subscription_id')
+        // ->hasSubscriptionToday()
+        ->whereNotIn('order_status', ['delivered','canceled','refund_requested','refund_request_canceled','refunded','failed'])
+        ->Notpos()->latest()->paginate($request['limit'], ['*'], 'page', $request['offset']);
 
         $orders = array_map(function ($data) {
             $data['delivery_address'] = $data['delivery_address']?json_decode($data['delivery_address']):$data['delivery_address'];
@@ -502,69 +743,169 @@ class OrderController extends Controller
         if ($validator->fails()) {
             return response()->json(['errors' => Helpers::error_processor($validator)], 403);
         }
+        $order = Order::with('details','subscription.schedules')->where('user_id', $request->user()->id)->find($request->order_id);
+        $details = isset($order->details)?$order->details:null;
 
-        $details = OrderDetail::whereHas('order', function($query)use($request){
-            return $query->where('user_id', $request->user()->id);
-        })->where(['order_id' => $request['order_id']])->get();
-        if ($details->count() > 0) {
-            $details = $details = Helpers::order_details_data_formatting($details);
-            return response()->json($details, 200);
-        } else {
+        if ($details != null && $details->count() > 0) {
+            $storage = [];
+            foreach ($details as $item) {
+                $item['add_ons'] = json_decode($item['add_ons']);
+                $item['variation'] = json_decode($item['variation']);
+                $item['food_details'] = json_decode($item['food_details'], true);
+                $item['zone_id'] = (int) (isset($order->zone_id) ? $order->zone_id :  $order->restaurant->zone_id);
+                array_push($storage, $item);
+            }
+            $data = $storage;
+            // $details = Helpers::order_details_data_formatting($details);
+            $subscription_schedules = $order->subscription ? $order->subscription->schedules : [];
+            return response()->json(['details'=>$data, 'subscription_schedules'=> $subscription_schedules,
+            ], 200);
+
+        }
+
+        // $details = OrderDetail::whereHas('order', function($query)use($request){
+        //     return $query->where('user_id', $request->user()->id);
+        // })->where(['order_id' => $request['order_id']])->get();
+
+
+        // if ($details->count() > 0) {
+        //     $details = $details = Helpers::order_details_data_formatting($details);
+        //     return response()->json($details, 200);
+        // }
+        else {
             return response()->json([
                 'errors' => [
                     ['code' => 'order', 'message' => translate('messages.not_found')]
                 ]
-            ], 401);
+            ], 200);
         }
     }
 
     public function cancel_order(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'reason' => 'required|max:255'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => Helpers::error_processor($validator)], 403);
+        }
         $order = Order::where(['user_id' => $request->user()->id, 'id' => $request['order_id']])->Notpos()->first();
         if(!$order){
                 return response()->json([
                     'errors' => [
                         ['code' => 'order', 'message' => translate('messages.not_found')]
                     ]
-                ], 401);
+                ], 404);
         }
-        else if ($order->order_status == 'pending') {
-
+        else if ($order->order_status == 'pending' || $order->order_status == 'failed' || $order->order_status == 'canceled'  ) {
             $order->order_status = 'canceled';
             $order->canceled = now();
+            $order->cancellation_reason = $request->reason;
+            $order->canceled_by = 'customer';
             $order->save();
+
+            //   if(!isset($order->confirmed) && isset($order->subscription_id)){
+            //     $order->subscription()->update(['status' => 'canceled']);
+            //         if($order->subscription->log){
+            //             $order->subscription->log()->update([
+            //                 'order_status' => $request->status,
+            //                 'canceled' => now(),
+            //                 ]);
+            //         }
+
+            // }
+
+
+
             Helpers::send_order_notification($order);
+
+            Helpers::increment_order_count($order->restaurant);
+
             return response()->json(['message' => translate('messages.order_canceled_successfully')], 200);
         }
         return response()->json([
             'errors' => [
                 ['code' => 'order', 'message' => translate('messages.you_can_not_cancel_after_confirm')]
             ]
-        ], 401);
+        ], 403);
+    }
+
+    public function refund_reasons(){
+        $refund_reasons=RefundReason::where('status',1)->get();
+        return response()->json([
+            'refund_reasons' => $refund_reasons
+        ], 200);
     }
 
     public function refund_request(Request $request)
     {
+        if(BusinessSetting::where(['key'=>'refund_active_status'])->first()->value == false){
+            return response()->json([
+                'errors' => [
+                    ['code' => 'order', 'message' => translate('You can not request for a refund')]
+                ]
+            ], 403);
+        }
+        $validator = Validator::make($request->all(), [
+            'customer_reason' => 'required|string|max:254',
+            'refund_method'=>'nullable|string|max:100',
+            'customer_note'=>'nullable|string|max:65535',
+            'image.*' => 'nullable|max:2048',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['errors' => Helpers::error_processor($validator)], 403);
+        }
+
         $order = Order::where(['user_id' => $request->user()->id, 'id' => $request['order_id']])->Notpos()->first();
         if(!$order){
                 return response()->json([
                     'errors' => [
                         ['code' => 'order', 'message' => translate('messages.not_found')]
                     ]
-                ], 401);
+                ], 404);
         }
-        else if ($order->order_status == 'delivered') {
+
+        else if ($order->order_status == 'delivered' && $order->payment_status == 'paid') {
+
+            $id_img_names = [];
+            if ($request->has('image')) {
+                foreach ($request->file('image') as $img) {
+                    $image_name = Helpers::upload('refund/', 'png', $img);
+                    array_push($id_img_names, $image_name);
+                }
+                $images = json_encode($id_img_names);
+            } else {
+                $images = json_encode([]);
+                // return response()->json(['message' => 'no_image'], 200);
+            }
+
+            $refund_amount = round($order->order_amount - $order->delivery_charge- $order->dm_tips , config('round_up_to_digit'));
+
+            $refund = new Refund();
+            $refund->order_id = $order->id;
+            $refund->user_id = $order->user_id;
+            $refund->order_status= $order->order_status;
+            $refund->refund_status= 'pending';
+            $refund->refund_method= $request->refund_method ?? 'wallet';
+            $refund->customer_reason= $request->customer_reason;
+            $refund->customer_note= $request->customer_note;
+            $refund->refund_amount= $refund_amount;
+            $refund->image = $images;
+            $refund->save();
 
             $order->order_status = 'refund_requested';
             $order->refund_requested = now();
             $order->save();
+            // Helpers::send_order_notification($order);
             return response()->json(['message' => translate('messages.refund_request_placed_successfully')], 200);
         }
+
         return response()->json([
             'errors' => [
                 ['code' => 'order', 'message' => translate('messages.you_can_not_request_for_refund_after_delivery')]
             ]
-        ], 401);
+        ], 403);
     }
 
     public function update_payment_method(Request $request)
@@ -628,5 +969,57 @@ class OrderController extends Controller
                 ['code' => 'order', 'message' => translate('messages.not_found')]
             ]
         ], 404);
+    }
+
+    public function cancellation_reason(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'limit' => 'required',
+            'offset' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => Helpers::error_processor($validator)], 403);
+        }
+
+        $limit = $request->query('limit', 1);
+        $offset = $request->query('offset', 1);
+
+        $reasons = OrderCancelReason::where('status', 1)->when($request->type,function($query) use($request){
+          return $query->where('user_type',$request->type);
+        })
+        ->paginate($limit, ['*'], 'page', $offset);
+        $data = [
+            'total_size' => $reasons->total(),
+            'limit' => $limit,
+            'offset' => $offset,
+            'reasons' => $reasons->items(),
+        ];
+        return response()->json($data, 200);
+    }
+
+
+    public function food_list(Request $request){
+
+        $validator = Validator::make($request->all(), [
+            'food_id' => 'required',
+        ]);
+
+        $food_ids= json_decode($request['food_id'], true);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => Helpers::error_processor($validator)], 403);
+        }
+        $product = Food::active()->whereIn('id',$food_ids)->get();
+        return response()->json(Helpers::product_data_formatting($product, true, false, app()->getLocale()), 200);
+    }
+
+
+    public function order_notification(Request $request,$order_id){
+        $order = Order::where('user_id', $request->user()->id)->where('id',$order_id)->first();
+        if($order){
+            Helpers::send_order_notification($order);
+        }
+        return response()->json();
     }
 }

@@ -233,7 +233,7 @@
                 }
             });
             $.post({
-                url: '{{route('admin.vendor.search')}}',
+                url: '{{route('admin.restaurant.search')}}',
                 data: formData,
                 cache: false,
                 contentType: false,

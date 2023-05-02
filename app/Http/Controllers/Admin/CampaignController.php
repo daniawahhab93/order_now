@@ -2,17 +2,18 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Http\Request;
-use App\Models\Campaign;
-use App\Models\ItemCampaign;
-use App\Models\Restaurant;
-use Brian2694\Toastr\Facades\Toastr;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Storage;
-use App\CentralLogics\Helpers;
+use App\Models\Campaign;
+use App\Models\Restaurant;
 use App\Models\Translation;
+use Illuminate\Support\Str;
+use App\Models\ItemCampaign;
+use Illuminate\Http\Request;
+use App\CentralLogics\Helpers;
+use App\Http\Controllers\Controller;
+use Brian2694\Toastr\Facades\Toastr;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class CampaignController extends Controller
 {
@@ -39,7 +40,8 @@ class CampaignController extends Controller
         $validator = Validator::make($request->all(), [
             'title' => 'required|unique:campaigns|max:191',
             'description'=>'max:1000',
-            'image' => 'required',
+            'image' => 'required|max:2048',
+
         ]);
 
         if ($validator->fails()) {
@@ -87,7 +89,9 @@ class CampaignController extends Controller
     {
         $validator = Validator::make($request->all(),[
             'title' => 'required|max:191',
-            'description' => 'max:1000'
+            'description' => 'max:1000',
+            'image' => 'nullable|max:2048',
+
         ]);
 
         if ($validator->fails()) {
@@ -131,7 +135,7 @@ class CampaignController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'title' => 'required|max:191|unique:item_campaigns',
-            'image' => 'required',
+            'image' => 'required|max:2048',
             'category_id' => 'required',
             'price' => 'required|numeric|between:0.01,999999999999.99',
             'restaurant_id' => 'required',
@@ -202,32 +206,46 @@ class CampaignController extends Controller
         }
         $campaign->choice_options = json_encode($choice_options);
         $variations = [];
-        $options = [];
-        if ($request->has('choice_no')) {
-            foreach ($request->choice_no as $key => $no) {
-                $name = 'choice_options_' . $no;
-                $my_str = implode('|', $request[$name]);
-                array_push($options, explode(',', $my_str));
-            }
-        }
-        //Generates the combinations of customer choice options
-        $combinations = Helpers::combinations($options);
-        if (count($combinations[0]) > 0) {
-            foreach ($combinations as $key => $combination) {
-                $str = '';
-                foreach ($combination as $k => $item) {
-                    if ($k > 0) {
-                        $str .= '-' . str_replace(' ', '', $item);
-                    } else {
-                        $str .= str_replace(' ', '', $item);
-                    }
+        if(isset($request->options))
+        {
+            foreach(array_values($request->options) as $key=>$option)
+            {
+
+                $temp_variation['name']= $option['name'];
+                $temp_variation['type']= $option['type'];
+                $temp_variation['min']= $option['min'] ?? 0;
+                $temp_variation['max']= $option['max'] ?? 0;
+                if($option['min'] > 0 &&  $option['min'] > $option['max']  ){
+                    $validator->getMessageBag()->add('name', translate('messages.minimum_value_can_not_be_greater_then_maximum_value'));
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
                 }
-                $item = [];
-                $item['type'] = $str;
-                $item['price'] = abs($request['price_' . str_replace('.', '_', $str)]);
-                array_push($variations, $item);
+                if(!isset($option['values'])){
+                    $validator->getMessageBag()->add('name', translate('messages.please_add_options_for').$option['name']);
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
+                }
+                if($option['max'] > count($option['values'])  ){
+                    $validator->getMessageBag()->add('name', translate('messages.please_add_more_options_or_change_the_max_value_for').$option['name']);
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
+                }
+                $temp_variation['required']= $option['required']??'off';
+
+                $temp_value = [];
+                foreach(array_values($option['values']) as $value)
+                {
+                    if(isset($value['label'])){
+                        $temp_option['label'] = $value['label'];
+                    }
+                    $temp_option['optionPrice'] = $value['optionPrice'];
+                    array_push($temp_value,$temp_option);
+                }
+                $temp_variation['values']= $temp_value;
+                array_push($variations,$temp_variation);
             }
         }
+
+        $slug = Str::slug($request->title[array_search('en', $request->lang)]);
+        $campaign->slug = $campaign->slug? $campaign->slug :"{$slug}{$campaign->id}";
+
         $campaign->admin_id = auth('admin')->id();
         $campaign->title = $request->title[array_search('en', $request->lang)];
         $campaign->description = $request->description[array_search('en', $request->lang)];
@@ -280,6 +298,7 @@ class CampaignController extends Controller
             'price' => 'required|numeric|between:0.01,999999999999.99',
             'restaurant_id' => 'required',
             'veg' => 'required',
+            'image' => 'nullable|max:2048',
             'description.*'=>'max:1000',
         ]);
 
@@ -336,34 +355,46 @@ class CampaignController extends Controller
                 array_push($choice_options, $item);
             }
         }
+
         $campaign->choice_options = json_encode($choice_options);
         $variations = [];
-        $options = [];
-        if ($request->has('choice_no')) {
-            foreach ($request->choice_no as $key => $no) {
-                $name = 'choice_options_' . $no;
-                $my_str = implode('|', $request[$name]);
-                array_push($options, explode(',', $my_str));
-            }
-        }
-        //Generates the combinations of customer choice options
-        $combinations = Helpers::combinations($options);
-        if (count($combinations[0]) > 0) {
-            foreach ($combinations as $key => $combination) {
-                $str = '';
-                foreach ($combination as $k => $item) {
-                    if ($k > 0) {
-                        $str .= '-' . str_replace(' ', '', $item);
-                    } else {
-                        $str .= str_replace(' ', '', $item);
-                    }
+        if(isset($request->options))
+        {
+            foreach(array_values($request->options) as $key=>$option)
+            {
+
+                $temp_variation['name']= $option['name'];
+                $temp_variation['type']= $option['type'];
+                $temp_variation['min']= $option['min'] ?? 0;
+                $temp_variation['max']= $option['max'] ?? 0;
+                if($option['min'] > 0 &&  $option['min'] > $option['max']  ){
+                    $validator->getMessageBag()->add('name', translate('messages.minimum_value_can_not_be_greater_then_maximum_value'));
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
                 }
-                $item = [];
-                $item['type'] = $str;
-                $item['price'] = abs($request['price_' . str_replace('.', '_', $str)]);
-                array_push($variations, $item);
+                if(!isset($option['values'])){
+                    $validator->getMessageBag()->add('name', translate('messages.please_add_options_for').$option['name']);
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
+                }
+                if($option['max'] > count($option['values'])  ){
+                    $validator->getMessageBag()->add('name', translate('messages.please_add_more_options_or_change_the_max_value_for').$option['name']);
+                    return response()->json(['errors' => Helpers::error_processor($validator)]);
+                }
+                $temp_variation['required']= $option['required']??'off';
+
+                $temp_value = [];
+                foreach(array_values($option['values']) as $value)
+                {
+                    if(isset($value['label'])){
+                        $temp_option['label'] = $value['label'];
+                    }
+                    $temp_option['optionPrice'] = $value['optionPrice'];
+                    array_push($temp_value,$temp_option);
+                }
+                $temp_variation['values']= $temp_value;
+                array_push($variations,$temp_variation);
             }
         }
+
         $campaign->title = $request->title[array_search('en', $request->lang)];
         $campaign->description = $request->description[array_search('en', $request->lang)];
         $campaign->image = $request->has('image') ? Helpers::update('campaign/', $campaign->image, 'png', $request->file('image')) : $campaign->image;
@@ -418,12 +449,21 @@ class CampaignController extends Controller
         return view('admin-views.campaign.'.$type.'.edit', compact('campaign'));
     }
 
-    public function view($type, $campaign)
+    public function view(Request $request ,$type, $campaign)
     {
         if($type=='basic')
         {
             $campaign = Campaign::findOrFail($campaign);
-            $restaurants = $campaign->restaurants()->paginate(config('default_pagination'));
+            $key = explode(' ', $request['search']);
+
+            $restaurants = $campaign->restaurants()
+            ->when(isset($key) ,function ($q) use ($key) {
+                foreach ($key as $value) {
+                    $q->where('name', 'like', "%{$value}%");
+                    // ->orWhere('email', 'like', "%{$value}%");
+                }
+            })->paginate(config('default_pagination'));
+
             $restaurant_ids = [];
             foreach($campaign->restaurants as $restaurant)
             {
@@ -484,7 +524,16 @@ class CampaignController extends Controller
     }
     public function addrestaurant(Request $request, Campaign $campaign)
     {
-        $campaign->restaurants()->attach($request->restaurant_id);
+        $campaign->restaurants()->attach($request->restaurant_id,['campaign_status' => 'confirmed']);
+        $campaign->save();
+        Toastr::success(translate('messages.restaurant_added_to_campaign'));
+        return back();
+    }
+
+    public function restaurant_confirmation($campaign,$restaurant_id,$status)
+    {
+        $campaign = Campaign::findOrFail($campaign);
+        $campaign->restaurants()->updateExistingPivot($restaurant_id,['campaign_status' => $status]);
         $campaign->save();
         Toastr::success(translate('messages.restaurant_added_to_campaign'));
         return back();

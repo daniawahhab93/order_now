@@ -18,7 +18,7 @@ class CategoryLogic
         return Category::where(['parent_id' => $parent_id])->get();
     }
 
-    public static function products(int $category_id, array $zone_id, int $limit,int $offset, $type)
+    public static function products($category_id, array $zone_id, int $limit,int $offset, $type)
     {
         $paginator = Food::whereHas('restaurant', function($query)use($zone_id){
             return $query->whereIn('zone_id', $zone_id);
@@ -37,9 +37,9 @@ class CategoryLogic
     }
 
 
-    public static function restaurants(int $category_id, array $zone_id, int $limit,int $offset, $type)
+    public static function restaurants($category_id, array $zone_id, int $limit,int $offset, $type,$longitude=0,$latitude=0)
     {
-        $paginator = Restaurant::withOpen()->whereIn('zone_id', $zone_id)
+        $paginator = Restaurant::withOpen($longitude,$latitude)->whereIn('zone_id', $zone_id)
         ->whereHas('foods.category', function($query)use($category_id){
             return $query->whereId($category_id)->orWhere('parent_id', $category_id);
         })
@@ -69,5 +69,24 @@ class CategoryLogic
         }
 
         return Food::whereIn('category_id', $cate_ids)->get();
+    }
+
+
+    public static function format_export_category($category)
+    {
+        $storage = [];
+        foreach($category as $item)
+        {
+            $storage[] = [
+                'id'=>$item->id,
+                'name'=>$item->name,
+                'image'=>$item->image,
+                'parent_id'=>$item->parent_id,
+                'position'=>$item->position,
+                'priority'=>$item->priority,
+            ];
+        }
+
+        return $storage;
     }
 }

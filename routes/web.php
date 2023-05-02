@@ -1,5 +1,6 @@
 <?php
 
+// use App\Models\Order;
 use Illuminate\Support\Facades\Route;
 /*
 |--------------------------------------------------------------------------
@@ -13,11 +14,17 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', 'HomeController@index')->name('home');
+Route::get('lang/{locale}', 'HomeController@lang')->name('lang');
 Route::get('terms-and-conditions', 'HomeController@terms_and_conditions')->name('terms-and-conditions');
 Route::get('about-us', 'HomeController@about_us')->name('about-us');
-Route::get('contact-us', 'HomeController@contact_us')->name('contact-us');
+Route::match(['get', 'post'],'contact-us', 'HomeController@contact_us')->name('contact-us');
 Route::get('privacy-policy', 'HomeController@privacy_policy')->name('privacy-policy');
 Route::post('newsletter/subscribe', 'NewsletterController@newsLetterSubscribe')->name('newsletter.subscribe');
+
+Route::get('refund-policy', 'HomeController@refund_policy')->name('refund-policy');
+Route::get('shipping-policy', 'HomeController@shipping_policy')->name('shipping-policy');
+Route::get('cancellation-policy', 'HomeController@cancellation_policy')->name('cancellation-policy');
+
 Route::get('authentication-failed', function () {
     $errors = [];
     array_push($errors, ['code' => 'auth-001', 'message' => 'Unauthenticated.']);
@@ -93,14 +100,18 @@ Route::any('/paytabs-payment', 'PaytabsController@payment')->name('paytabs-payme
 Route::any('/paytabs-response', 'PaytabsController@callback_response')->name('paytabs-response');
 
 //bkash
-Route::group(['prefix'=>'bkash'], function () {
+Route::group(['prefix' => 'bkash'], function () {
     // Payment Routes for bKash
     Route::post('get-token', 'BkashPaymentController@getToken')->name('bkash-get-token');
-    Route::post('create-payment', 'BkashPaymentController@createPayment')->name('bkash-create-payment');
-    Route::post('execute-payment', 'BkashPaymentController@executePayment')->name('bkash-execute-payment');
-    Route::get('query-payment', 'BkashPaymentController@queryPayment')->name('bkash-query-payment');
-    Route::post('success', 'BkashPaymentController@bkashSuccess')->name('bkash-success');
+    // Route::post('create-payment', 'BkashPaymentController@createPayment')->name('bkash-create-payment');
+    // Route::post('execute-payment', 'BkashPaymentController@executePayment')->name('bkash-execute-payment');
+    // Route::get('query-payment', 'BkashPaymentController@queryPayment')->name('bkash-query-payment');
+    Route::get('make-payment', 'BkashPaymentController@make_tokenize_payment')->name('bkash-make-payment');
+    Route::any('success', 'BkashPaymentController@bkashSuccess')->name('bkash-success');
 
+    // Refund Routes for bKash
+    // Route::get('refund', 'BkashRefundController@index')->name('bkash-refund');
+    // Route::post('refund', 'BkashRefundController@refund')->name('bkash-refund');
 });
 
 // The callback url after a payment PAYTM
@@ -114,8 +125,22 @@ Route::any('liqpay-callback/{order_id}', 'LiqPayController@callback')->name('liq
 Route::get('wallet-payment','WalletPaymentController@make_payment')->name('wallet.payment');
 
 Route::get('/test',function (){
-    return view('errors.404');
-    dd('Hello tester');
+//    $dad= round(346.95 - 41 , config('round_up_to_digit'));
+// $distance_data =3;
+
+// $data = \App\Models\Vehicle::active()->
+// where(function ($query) use ($distance_data) {
+//     $query->where('starting_coverage_area', '<=', $distance_data)->where('maximum_coverage_area', '>=', $distance_data)
+//     ->orWhere(function ($query) use ($distance_data) {
+//         $query->where('starting_coverage_area', '>=', $distance_data);
+//     });
+// })
+//     ->orderBy('starting_coverage_area')->first();
+
+
+//     dd($data);
+return view('errors.404');
+    // dd('Hello tester');
 });
 
 Route::get('authentication-failed', function () {
@@ -133,7 +158,10 @@ Route::get('module-test',function (){
 //Restaurant Registration
 Route::group(['prefix' => 'restaurant', 'as' => 'restaurant.'], function () {
     Route::get('apply', 'VendorController@create')->name('create');
+    Route::get('back/{restaurant_id}', 'VendorController@back')->name('back');
     Route::post('apply', 'VendorController@store')->name('store');
+    Route::post('payment', 'VendorController@payment')->name('payment');
+    Route::post('business-plan', 'VendorController@business_plan')->name('business_plan');
 });
 
 //Deliveryman Registration

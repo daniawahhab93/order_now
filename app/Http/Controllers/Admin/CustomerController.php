@@ -89,6 +89,23 @@ class CustomerController extends Controller
             'view'=>view('admin-views.customer.partials._table',compact('customers'))->render()
         ]);
     }
+    public function order_search(Request $request){
+        $key = explode(' ', $request['search']);
+        $customer = User::find($request->id);
+
+        $orders=Order::where(['user_id' => $customer->id])->Notpos()->
+        where(function ($q) use ($key) {
+            foreach ($key as $value) {
+                $q->Where('id', 'like', "%{$value}%");
+            }
+        })
+        ->paginate(config('default_pagination'));
+        // ->limit(50)->get();
+        $total=$orders->total();
+        return response()->json([
+            'view'=>view('admin-views.customer.partials._list_table',compact('customer', 'orders'))->render() ,'total' => $total
+        ]);
+    }
 
     public function view($id)
     {

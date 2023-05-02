@@ -66,10 +66,10 @@
                                     <div class="form-group m-0">
                                         <label class="input-label"
                                             for="exampleFormControlInput1">{{ translate('messages.zone') }}</label>
-                                        <select name="zone_id" class="form-control h--45px" required
+                                        <select name="zone_id" class="form-control js-select2-custom h--45px" required
                                             data-placeholder="{{ translate('messages.select') }} {{ translate('messages.zone') }}">
                                             <option value="" readonly="true" hidden="true">{{ translate('Ex: XYZ Zone') }}</option>
-                                            @foreach (\App\Models\Zone::all() as $zone)
+                                            @foreach (\App\Models\Zone::where('status',1)->get(['id','name']) as $zone)
                                                 @if (isset(auth('admin')->user()->zone_id))
                                                     @if (auth('admin')->user()->zone_id == $zone->id)
                                                         <option value="{{ $zone->id }}" selected>{{ $zone->name }}
@@ -78,6 +78,20 @@
                                                 @else
                                                     <option value="{{ $zone->id }}">{{ $zone->name }}</option>
                                                 @endif
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-group m-0">
+                                        <label class="input-label"
+                                            for="exampleFormControlInput1">{{ translate('messages.Vehicle') }}</label>
+                                        <select name="vehicle_id" class="form-control js-select2-custom h--45px" required
+                                            data-placeholder="{{ translate('messages.select') }} {{ translate('messages.vehicle') }}">
+                                            <option value="" readonly="true" hidden="true">{{ translate('messages.select') }} {{ translate('messages.vehicle') }}</option>
+                                            @foreach (\App\Models\Vehicle::where('status',1)->get(['id','type']) as $v)
+                                                        <option value="{{ $v->id }}" >{{ $v->type }}
+                                                        </option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -105,6 +119,7 @@
                                         src="{{ asset('public/assets/admin/img/100x100/user.png') }}"
                                         alt="delivery-man image" />
                                 </center>
+                                <label class="d-block mb-lg-3 "></label>
                                 <div class="custom-file">
                                     <input type="file" name="image" id="customFileEg1" class="custom-file-input h--45px"
                                         accept=".jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*" required>

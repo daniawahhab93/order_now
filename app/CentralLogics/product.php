@@ -10,7 +10,13 @@ class ProductLogic
 {
     public static function get_product($id)
     {
-        return Food::active()->where('id', $id)->first();
+        return Food::active()->when(is_numeric($id),function ($qurey) use($id){
+                        $qurey-> where('id', $id);
+                    })
+                    ->when(!is_numeric($id),function ($qurey) use($id){
+                        $qurey-> where('slug', $id);
+                    })
+                    ->first();
     }
 
     public static function get_latest_products($limit, $offset, $restaurant_id, $category_id, $type='all')
@@ -24,7 +30,7 @@ class ProductLogic
         }
         $paginator = $paginator->where('restaurant_id', $restaurant_id)->latest()->paginate($limit, ['*'], 'page', $offset);
 
-       return [
+        return [
             'total_size' => $paginator->total(),
             'limit' => $limit,
             'offset' => $offset,
@@ -54,18 +60,6 @@ class ProductLogic
             foreach ($key as $value) {
                 $q->orWhere('name', 'like', "%{$value}%");
             }
-        })
-        ->where(function ($q) use ($key) {
-            foreach ($key as $value) {
-                $q->orWhere('name', 'like', "%{$value}%");
-            }
-            $q->orWhereHas('translations',function($query)use($key){
-                $query->where(function($q)use($key){
-                    foreach ($key as $value) {
-                        $q->where('value', 'like', "%{$value}%");
-                    };
-                });
-            });
         })->paginate($limit, ['*'], 'page', $offset);
 
         return [
@@ -82,7 +76,7 @@ class ProductLogic
         {
             $paginator = Food::whereHas('restaurant', function($q)use($zone_id){
                 $q->whereIn('zone_id', $zone_id)->Weekday();
-            })->active()->type($type)->popular()->paginate($limit, ['*'], 'page', $offset);
+            })->active()->has('reviews')->type($type)->popular()->paginate($limit, ['*'], 'page', $offset);
 
             return [
                 'total_size' => $paginator->total(),
@@ -93,7 +87,7 @@ class ProductLogic
         }
         $paginator = Food::active()->type($type)->whereHas('restaurant', function($q)use($zone_id){
             $q->whereIn('zone_id', $zone_id)->Weekday();
-        })->popular()->limit(50)->get();
+        })->has('reviews')->popular()->limit(50)->get();
 
         return [
             'total_size' => $paginator->count(),
@@ -110,7 +104,7 @@ class ProductLogic
         {
             $paginator = Food::whereHas('restaurant', function($q)use($zone_id){
                 $q->whereIn('zone_id', $zone_id)->Weekday();
-            })->withCount('reviews')->active()->type($type)
+            })->has('reviews')->withCount('reviews')->active()->type($type)
             ->orderBy('reviews_count','desc')
             ->paginate($limit, ['*'], 'page', $offset);
 
@@ -124,6 +118,7 @@ class ProductLogic
         $paginator = Food::active()->type($type)->whereHas('restaurant', function($q)use($zone_id){
             $q->whereIn('zone_id', $zone_id)->Weekday();
         })
+        ->has('reviews')
         ->withCount('reviews')
         ->orderBy('reviews_count','desc')
         ->limit(50)->get();
@@ -224,6 +219,7 @@ class ProductLogic
                 'veg'=>$item->veg,
                 'category_id'=>$category_id,
                 'sub_category_id'=>$sub_category_id,
+                'restaurant_id'=>$item->restaurant_id,
                 'price'=>$item->price,
                 'discount'=>$item->discount,
                 'discount_type'=>$item->discount_type,
@@ -231,9 +227,8 @@ class ProductLogic
                 'available_time_ends'=>$item->available_time_ends,
                 'variations'=>str_replace(['{','}','[',']'],['(',')','',''],$item->variations),
                 'add_ons'=>str_replace(['"','[',']'],'',$item->add_ons),
-                'attributes'=>str_replace(['"','[',']'],'',$item->attributes),
-                'choice_options'=>str_replace(['{','}'],['(',')'],substr($item->choice_options, 1, -1)),
-                'restaurant_id'=>$item->restaurant_id,
+                // 'attributes'=>str_replace(['"','[',']'],'',$item->attributes),
+                // 'choice_options'=>str_replace(['{','}'],['(',')'],substr($item->choice_options, 1, -1)),
             ];
         }
 
@@ -276,4 +271,49 @@ class ProductLogic
         }
         return json_encode($restaurant_ratings);
     }
+
+
+
+    public static function recommended_products($zone_id,$restaurant_id,$limit = null, $offset = null, $type='all')
+    {
+        $data =[];
+        if($limit != null && $offset != null)
+        {
+            $paginator = Food::where('restaurant_id', $restaurant_id)->whereHas('restaurant', function($q)use($zone_id){
+                $q->whereIn('zone_id', $zone_id)->Weekday();
+            })->active()->type($type)->Recommended()->paginate($limit, ['*'], 'page', $offset);
+                $data = $paginator->items();
+        }
+        else{
+            $paginator = Food::where('restaurant_id', $restaurant_id)->active()->type($type)->whereHas('restaurant', function($q)use($zone_id){
+                $q->whereIn('zone_id', $zone_id)->Weekday();
+            })->Recommended()->limit(50)->get();
+            $data =$paginator;
+        }
+
+        return [
+            'total_size' => $paginator->count(),
+            'limit' => $limit,
+            'offset' => $offset,
+            'products' => $data
+        ];
+    }
+
+
+    public static function format_export_addons($addons)
+    {
+        $storage = [];
+        foreach($addons as $item)
+        {
+            $storage[] = [
+                'id'=>$item->id,
+                'name'=>$item->name,
+                'price'=>$item->price,
+                'restaurant_id'=>$item->restaurant_id,
+            ];
+        }
+
+        return $storage;
+    }
+
 }

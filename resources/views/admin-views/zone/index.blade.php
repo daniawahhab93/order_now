@@ -71,7 +71,7 @@
                                             <label class="input-label">
                                                 {{translate('messages.minimum_delivery_charge')}}  ({{\App\CentralLogics\Helpers::currency_symbol()}})
                                             </label>
-                                            <input id="minimum_delivery_charge" name="minimum_delivery_charge" type="number" class="form-control h--45px" placeholder="{{ translate('messages.Ex :') }} 10" required>
+                                            <input id="minimum_delivery_charge" name="minimum_delivery_charge" required type="number" min="1" step=".0001" class="form-control h--45px" placeholder="{{ translate('messages.Ex :') }} 10" >
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
@@ -79,9 +79,41 @@
                                             <label class="input-label">
                                                 {{translate('messages.delivery_charge_per_km')}} ({{\App\CentralLogics\Helpers::currency_symbol()}})
                                             </label>
-                                            <input id="delivery_charge_per_km" name="per_km_delivery_charge" type="number" class="form-control h--45px" placeholder="{{ translate('messages.Ex :') }} 10" required>
+                                            <input id="delivery_charge_per_km" name="per_km_delivery_charge" required type="number" min="1" step=".0001" class="form-control h--45px" placeholder="{{ translate('messages.Ex :') }} 10" >
                                         </div>
                                     </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group mb-3">
+                                            <label class="input-label text-capitalize d-inline-flex alig-items-center">
+                                                {{translate('messages.maximum_delivery_charge')}} ({{\App\CentralLogics\Helpers::currency_symbol()}})
+                                                <span data-toggle="tooltip" data-placement="right" data-original-title="{{translate('messages.maximum_delivery_charge_hint') }}"
+                                                class="input-label-secondary"><img
+                                                    src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
+                                                    alt="{{ translate('messages.maximum_shipping_charge') }}"></span>
+                                            </label>
+                                            <input id="maximum_shipping_charge" name="maximum_shipping_charge" type="number" min="0" step=".001" class="form-control h--45px" placeholder="{{ translate('messages.Ex :') }} 10000">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-sm-6">
+                                        <div class="form-group mb-3">
+                                            <label class="input-label text-capitalize d-inline-flex alig-items-center"
+                                            for="max_cod_order_amount">{{ translate('messages.maximum_COD_order_amount') }} ({{ \App\CentralLogics\Helpers::currency_symbol() }})
+                                            <span data-toggle="tooltip" data-placement="right" data-original-title="{{translate('messages.maximum_cod_order_hint')}}" class="input-label-secondary"><img src="{{ asset('/public/assets/admin/img/info-circle.svg') }}" alt="{{ translate('messages.dm_maximum_order_hint') }}"></span>
+                                        </label>
+                                        {{-- <label class="switch ml-3 float-right">
+                                            <input type="checkbox" class="status" name="max_cod_order_amount_status"
+                                                id="max_cod_order_amount_status" value="1">
+                                            <span class="slider round"></span>
+                                        </label> --}}
+                                        <input type="number" name="max_cod_order_amount" class="form-control"
+                                            id="max_cod_order_amount" min="0" step=".001"
+                                            placeholder="{{ translate('messages.Ex :') }} 5000"
+                                            >
+                                        </div>
+                                    </div>
+
+
                                 </div>
                                 <div class="map-warper overflow-hidden rounded">
                                     <input id="pac-input" class="controls rounded initial-8" title="{{translate('messages.search_your_location_here')}}" type="text" placeholder="{{translate('messages.search_here')}}"/>
@@ -116,41 +148,17 @@
                             </form>
                             <!-- Unfold -->
                             <div class="hs-unfold ml-3">
-                                <a class="js-hs-unfold-invoker btn btn-sm btn-white dropdown-toggle btn export-btn btn-outline-primary btn--primary font--sm" href="javascript:;"
-                                   data-hs-unfold-options='{
-                                     "target": "#usersExportDropdown",
-                                     "type": "css-animation"
-                                   }'>
+                                    <a class="js-hs-unfold-invoker btn btn-sm btn-white dropdown-toggle btn export-btn btn-outline-primary btn--primary font--sm" href="javascript:;"
+                                    data-hs-unfold-options='{
+                                        "target": "#usersExportDropdown",
+                                        "type": "css-animation"
+                                    }'>
                                     <i class="tio-download-to mr-1"></i> {{translate('messages.export')}}
                                 </a>
 
                                 <div id="usersExportDropdown"
-                                     class="hs-unfold-content dropdown-unfold dropdown-menu dropdown-menu-sm-right">
-                                    {{--<span class="dropdown-header">{{translate('messages.options')}}</span>
-                                    <a id="export-copy" class="dropdown-item" href="javascript:;">
-                                        <img class="avatar avatar-xss avatar-4by3 mr-2"
-                                             src="{{asset('public/assets/admin')}}/svg/illustrations/copy.svg"
-                                             alt="Image Description">
-                                        {{translate('messages.copy')}}
-                                    </a>
-                                    <a id="export-print" class="dropdown-item" href="javascript:;">
-                                        <img class="avatar avatar-xss avatar-4by3 mr-2"
-                                             src="{{asset('public/assets/admin')}}/svg/illustrations/print.svg"
-                                             alt="Image Description">
-                                        {{translate('messages.print')}}
-                                    </a>
-                                    <div class="dropdown-divider"></div>--}}
+                                        class="hs-unfold-content dropdown-unfold dropdown-menu dropdown-menu-sm-right">
                                     <span class="dropdown-header">{{translate('messages.download')}} {{translate('messages.options')}}</span>
-{{--                                     <form action="{{route('admin.zone.export-zones')}}" method="post">
-                                        @csrf
-                                        <input type="hidden" name="type" value="excel">
-                                        <button type="submit">
-                                            <img class="avatar avatar-xss avatar-4by3 mr-2"
-                                            src="{{asset('public/assets/admin')}}/svg/components/excel.svg"
-                                            alt="Image Description">
-                                            {{translate('messages.excel')}}
-                                        </button>
-                                    </form> --}}
                                     <a target="__blank" id="export-excel" class="dropdown-item" href="{{route('admin.zone.export-zones', ['type'=>'excel'])}}">
                                         <img class="avatar avatar-xss avatar-4by3 mr-2"
                                         src="{{asset('public/assets/admin')}}/svg/components/excel.svg"
@@ -159,16 +167,10 @@
                                     </a>
                                     <a target="__blank" id="export-csv" class="dropdown-item" href="{{route('admin.zone.export-zones', ['type'=>'csv'])}}">
                                         <img class="avatar avatar-xss avatar-4by3 mr-2"
-                                             src="{{asset('public/assets/admin')}}/svg/components/placeholder-csv-format.svg"
-                                             alt="Image Description">
+                                                src="{{asset('public/assets/admin')}}/svg/components/placeholder-csv-format.svg"
+                                                alt="Image Description">
                                         .{{translate('messages.csv')}}
                                     </a>
-                                    {{--<a id="export-pdf" class="dropdown-item" href="javascript:;">
-                                        <img class="avatar avatar-xss avatar-4by3 mr-2"
-                                             src="{{asset('public/assets/admin')}}/svg/components/pdf.svg"
-                                             alt="Image Description">
-                                        {{translate('messages.pdf')}}
-                                    </a>--}}
                                 </div>
                             </div>
                             <!-- End Unfold -->
@@ -177,12 +179,12 @@
                     <!-- Table -->
                     <div class="table-responsive datatable-custom">
                         <table id="columnSearchDatatable"
-                               class="table table-borderless table-thead-bordered table-nowrap table-align-middle card-table"
-                               data-hs-datatables-options='{
-                                 "order": [],
-                                 "orderCellsTop": true,
-                                 "paging":false
-                               }'>
+                                class="table table-borderless table-thead-bordered table-nowrap table-align-middle card-table"
+                                data-hs-datatables-options='{
+                                    "order": [],
+                                    "orderCellsTop": true,
+                                    "paging":false
+                                }'>
                             <thead class="thead-light">
                             <tr>
                                 <th>{{translate('messages.sl')}}</th>
@@ -191,7 +193,7 @@
                                 <th class="text-center">{{translate('messages.restaurants')}}</th>
                                 <th class="text-center">{{translate('messages.deliverymen')}}</th>
                                 <th >{{translate('messages.status')}}</th>
-                                <th class="w-40px">{{translate('messages.action')}}</th>
+                                <th class="w-40px text-center">{{translate('messages.action')}}</th>
                             </tr>
                             </thead>
 
@@ -230,10 +232,14 @@
                                         </form>
                                     </td>
                                     <td>
-                                        <div class="pl-1">
+                                        <div class="btn--container justify-content-center">
+                                            <a class="btn action-btn btn-light btn-outline-dark"
+                                            href="{{route('admin.zone.settings',['id'=>$zone['id']])}}" title="{{translate('messages.zone_settings')}}"><i class="tio-settings"></i>
+                                            </a>
                                             <a class="btn btn-sm btn--primary btn-outline-primary action-btn"
                                                 href="{{route('admin.zone.edit',[$zone['id']])}}" title="{{translate('messages.edit')}} {{translate('messages.zone')}}"><i class="tio-edit"></i>
                                             </a>
+
                                             {{--<a class="btn btn-sm btn-white" href="javascript:"
                                             onclick="form_alert('zone-{{$zone['id']}}','Want to delete this zone ?')" title="{{translate('messages.delete')}} {{translate('messages.zone')}}"><i class="tio-delete-outlined"></i>
                                             </a>
@@ -560,5 +566,27 @@
             lastpolygon.setMap(null);
             $('#coordinates').val(null);
         })
+
+
+
+        $(document).on('ready', function() {
+
+            $("#maximum_shipping_charge_status").on('change', function() {
+                if ($("#maximum_shipping_charge_status").is(':checked')) {
+                    $('#maximum_shipping_charge').removeAttr('readonly');
+                } else {
+                    $('#maximum_shipping_charge').attr('readonly', true);
+                    $('#maximum_shipping_charge').val('Ex : 0');
+                }
+            });
+            $("#max_cod_order_amount_status").on('change', function() {
+                if ($("#max_cod_order_amount_status").is(':checked')) {
+                    $('#max_cod_order_amount').removeAttr('readonly');
+                } else {
+                    $('#max_cod_order_amount').attr('readonly', true);
+                    $('#max_cod_order_amount').val('Ex : 0');
+                }
+            });
+        });
     </script>
 @endpush

@@ -181,6 +181,7 @@
             </div>
         </section>
     @endif
+
     <section class="subscription">
         <div class="container">
             <div class="subscription">
@@ -222,7 +223,7 @@
                     </div>
                 </div>
                 <div class="row d-flex justify-content-center text-center">
-                    <div class="owl-carousel mt-4">
+                    <div class="owl-carousel mt-4 testimononial--slider">
                         @foreach ($testimonial as $data)
                             <div class="col owl-item">
                                 <div class="testimonial">

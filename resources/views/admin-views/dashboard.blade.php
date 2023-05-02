@@ -4,6 +4,11 @@
 
 
 @section('content')
+<style>
+    .bg-dddd{
+    background-color: #44f279 !important;
+  }
+</style>
     <div class="content container-fluid">
         @if(auth('admin')->user()->role_id == 1)
         <!-- Page Header -->
@@ -50,7 +55,8 @@
                 <!-- Card -->
                 <div class="card h-100" id="monthly-earning-graph">
                     <!-- Body -->
-                @include('admin-views.partials._monthly-earning-graph',['total_sell'=>$total_sell,'commission'=>$commission])
+
+                @include('admin-views.partials._monthly-earning-graph',['total_sell'=>$total_sell,'total_subs' =>$total_subs,'commission'=>$commission])
                 <!-- End Body -->
                 </div>
                 <!-- End Card -->
@@ -95,7 +101,20 @@
                         </div>
                         <div class="position-relative" >
                             <div id="user-overview-board">
-                                @include('admin-views.partials._user-overview-chart')
+                                {{-- @include('admin-views.partials._user-overview-chart') --}}
+                                @php($params = session('dash_params'))
+                                @if ($params['zone_id'] != 'all')
+                                    @php($zone_name = \App\Models\Zone::where('id', $params['zone_id'])->first()->name)
+                                @else
+                                @php($zone_name=translate('All'))
+                                @endif
+                                <div class="chartjs-custom mx-auto">
+                                    <canvas id="user-overview" class="mt-2"></canvas>
+                                </div>
+                                <div class="total--users">
+                                    <span>{{translate('messages.total_users')}}</span>
+                                    <h3>{{ $data['customer'] + $data['restaurants'] + $data['delivery_man'] }}</h3>
+                                </div>
                             </div>
                         </div>
                         <div class="d-flex flex-wrap justify-content-center mt-4 pt-xl-5">
@@ -182,60 +201,60 @@
 @endsection
 
 @push('script')
-    <!-- <script src="{{asset('public/assets/admin')}}/vendor/chart.js/dist/Chart.min.js"></script>
-    <script src="{{asset('public/assets/admin')}}/vendor/chart.js.extensions/chartjs-extensions.js"></script> -->
-    <script
-        src="{{asset('public/assets/admin')}}/vendor/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js"></script>
+    <script src="{{asset('public/assets/admin')}}/vendor/chart.js/dist/Chart.min.js"></script>
+    <script src="{{asset('public/assets/admin')}}/vendor/chart.js.extensions/chartjs-extensions.js"></script>
+    <script src="{{asset('public/assets/admin')}}/vendor/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js"></script>
 @endpush
 
 
 @push('script_2')
-    <script>
-        // INITIALIZATION OF CHARTJS
-        // =======================================================
-        Chart.plugins.unregister(ChartDataLabels);
+<script>
+    // INITIALIZATION OF CHARTJS
+    // =======================================================
+    Chart.plugins.unregister(ChartDataLabels);
 
-        $('.js-chart').each(function () {
-            $.HSCore.components.HSChartJS.init($(this));
-        });
+    $('.js-chart').each(function () {
+        $.HSCore.components.HSChartJS.init($(this));
+    });
 
-        var updatingChart = $.HSCore.components.HSChartJS.init($('#updatingData'));
-    </script>
+    var updatingChart = $.HSCore.components.HSChartJS.init($('#updatingData'));
+</script>
 
-    <!-- <script>
-        var ctx = document.getElementById('user-overview');
-        var myChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                datasets: [{
-                    label: 'User',
-                    data: ['{{$data['customer']}}', '{{$data['restaurants']}}', '{{$data['delivery_man']}}'],
-                    backgroundColor: [
-                        '#FFC960',
-                        '#0661CB',
-                        '#7ECAFF'
-                    ],
-                    hoverOffset: 3
-                }],
-                labels: [
-                    '{{translate('messages.customer')}}',
-                    '{{translate('messages.restaurant')}}',
-                    '{{ translate('messages.delivery_man')}}'
+<script>
+    var ctx = document.getElementById('user-overview');
+    var myChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                label: 'User',
+                data: ['{{$data['customer']}}', '{{$data['restaurants']}}', '{{$data['delivery_man']}}'],
+                backgroundColor: [
+                    '#FFC960',
+                    '#0661CB',
+                    '#7ECAFF'
                 ],
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                },
-                legend: {
-                    display: false,
-                    position: 'chartArea',
+                hoverOffset: 3
+            }],
+            labels: [
+                '{{translate('messages.customer')}}',
+                '{{translate('messages.restaurant')}}',
+                '{{ translate('messages.delivery_man')}}'
+            ],
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
                 }
+            },
+            legend: {
+                display: false,
+                position: 'chartArea',
             }
-        });
-    </script> -->
+        }
+    });
+</script>
+
 
     <script>
         function order_stats_update(type) {

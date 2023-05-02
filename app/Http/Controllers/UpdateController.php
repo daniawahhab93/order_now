@@ -4,14 +4,16 @@ namespace App\Http\Controllers;
 
 ini_set('max_execution_time', 180);
 
+use App\Traits\ActivationClass;
+use Illuminate\Http\Request;
 use App\CentralLogics\Helpers;
 use App\CentralLogics\ProductLogic;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
 
 class UpdateController extends Controller
 {
+    use ActivationClass;
+
     public function update_software_index(){
         return view('update.update-software');
     }
@@ -22,11 +24,11 @@ class UpdateController extends Controller
         Helpers::setEnvironmentValue('BUYER_USERNAME',$request['username']);
         Helpers::setEnvironmentValue('PURCHASE_CODE',$request['purchase_key']);
         Helpers::setEnvironmentValue('APP_MODE','live');
-        Helpers::setEnvironmentValue('SOFTWARE_VERSION','5.8.1');
+        Helpers::setEnvironmentValue('SOFTWARE_VERSION','6.2.0');
         Helpers::setEnvironmentValue('APP_NAME','stackfood'.time());
+        Helpers::setEnvironmentValue('REACT_APP_KEY','43218516');
 
-        $data = Helpers::requestSender();
-        if (!$data['active']) {
+        if (!$this->actch()) {
             return redirect(base64_decode('aHR0cHM6Ly82YW10ZWNoLmNvbS9zb2Z0d2FyZS1hY3RpdmF0aW9u'));
         }
 
@@ -76,7 +78,7 @@ class UpdateController extends Controller
         Helpers::insert_business_settings_key('canceled_by_restaurant',0);
         Helpers::insert_business_settings_key('timeformat','24');
         // Helpers::insert_business_settings_key('language','en');
-        // Helpers::insert_business_settings_key('social_login','[{"login_medium":"google","client_id":"","client_secret":"","status":"0"},{"login_medium":"facebook","client_id":"","client_secret":"","status":""}]');
+
         Helpers::insert_business_settings_key('toggle_veg_non_veg', 0);
         Helpers::insert_business_settings_key('toggle_dm_registration', 0);
         Helpers::insert_business_settings_key('toggle_restaurant_registration', 0);
@@ -103,6 +105,7 @@ class UpdateController extends Controller
             ProductLogic::update_food_ratings();
         }
 
+        Helpers::insert_business_settings_key('social_login','[{"login_medium":"google","client_id":"","client_secret":"","status":"0"},{"login_medium":"facebook","client_id":"","client_secret":"","status":""}]');
         //version 5.8
         Helpers::insert_business_settings_key('fcm_credentials',
             json_encode([
@@ -115,6 +118,22 @@ class UpdateController extends Controller
                 'measurementId'=> ''
             ])
         );
+        //version 5.9
+        Helpers::insert_business_settings_key('refund_active_status', '1');
+
+        Helpers::insert_business_settings_key('business_model',
+        json_encode([
+            'commission'        =>  1,
+            'subscription'     =>  0,
+        ]));
+        //version 6.1
+
+        Helpers::insert_business_settings_key('tax_included', '0');
+        Helpers::insert_business_settings_key('site_direction', 'ltr');
+        // //version 6.2
+        // Helpers::insert_business_settings_key('otp_interval_time', '30');
+        // Helpers::insert_business_settings_key('max_otp_hit', '5');
+
         return redirect('/admin/auth/login');
     }
 }

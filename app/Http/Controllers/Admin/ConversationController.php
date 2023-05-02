@@ -68,6 +68,14 @@ class ConversationController extends Controller
 
 
         if ($request->has('images')) {
+            $validator = Validator::make($request->all(), [
+                'images.*' => 'max:2048',
+            ]);
+
+            if ($validator->fails()) {
+                $validator->getMessageBag()->add('images', 'Max Image Upload limit is 2mb');
+                return response()->json(['errors' => Helpers::error_processor($validator)]);
+            }
             $image_name=[];
             foreach($request->images as $key=>$img)
             {

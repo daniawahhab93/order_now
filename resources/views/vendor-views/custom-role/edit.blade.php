@@ -105,16 +105,16 @@
                             <div class="form-group form-check form--check">
                                 <input type="checkbox" name="modules[]" value="chat" class="form-check-input"
                                     id="chat" {{in_array('chat',(array)json_decode($role['modules']))?'checked':''}}>
-                                <label class="form-check-label input-label qcont" for="chat">{{ translate('messages.chat')}}</label>
+                                <label class="form-check-label qcont" for="chat">{{ translate('messages.chat')}}</label>
                             </div>
                         </div>
-                        <div class="check-item">
+                        {{-- <div class="check-item">
                             <div class="form-group form-check form--check">
                                 <input type="checkbox" name="modules[]" value="custom_role" class="form-check-input"
                                     id="custom_role" {{in_array('custom_role',(array)json_decode($role['modules']))?'checked':''}}>
                                 <label class="form-check-label qcont" for="custom_role">{{translate('messages.custom_role')}}</label>
                             </div>
-                        </div>
+                        </div> --}}
 
                         <div class="check-item">
                             <div class="form-group form-check form--check">
@@ -137,6 +137,31 @@
                                 <input type="checkbox" name="modules[]" value="pos" class="form-check-input"
                                     id="pos" {{in_array('pos',(array)json_decode($role['modules']))?'checked':''}}>
                                 <label class="form-check-label qcont" for="pos">{{translate('messages.pos')}}</label>
+                            </div>
+                        </div>
+                        @php($restaurant_data = \App\CentralLogics\Helpers::get_restaurant_data())
+                        @if ($restaurant_data->restaurant_model != 'commission')
+                        <div class="check-item">
+                            <div class="form-group form-check form--check">
+                                <input type="checkbox" name="modules[]" value="subscription" class="form-check-input"
+                                    id="subscription" {{in_array('subscription',(array)json_decode($role['modules']))?'checked':''}}>
+                                <label class="form-check-label qcont" for="subscription">{{translate('messages.subscription')}}</label>
+                            </div>
+                        </div>
+                        @endif
+                        <div class="check-item">
+                            <div class="form-group form-check form--check">
+                                <input type="checkbox" name="modules[]" value="coupon" class="form-check-input"
+                                    id="coupon" {{in_array('coupon',(array)json_decode($role['modules']))?'checked':''}}>
+                                <label class="form-check-label qcont" for="coupon">{{translate('messages.coupon')}}</label>
+                            </div>
+                        </div>
+                        
+                        <div class="check-item">
+                            <div class="form-group form-check form--check">
+                                <input type="checkbox" name="modules[]" value="report" class="form-check-input"
+                                    id="report" {{in_array('report',(array)json_decode($role['modules']))?'checked':''}}>
+                                <label class="form-check-label qcont" for="report">{{translate('messages.report')}}</label>
                             </div>
                         </div>
                     </div>

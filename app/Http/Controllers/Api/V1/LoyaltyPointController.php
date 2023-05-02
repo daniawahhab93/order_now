@@ -23,7 +23,9 @@ class LoyaltyPointController extends Controller
             return response()->json(['errors' => Helpers::error_processor($validator)], 403);
         }
 
-        if($request->user()->loyalty_point < (int)BusinessSetting::where('key','loyalty_point_minimum_point')->first()->value) return response()->json(['errors' => [ ['code' => 'point', 'message' => translate('messages.insufficient_point')]]], 203);
+        if($request->user()->loyalty_point <= 0 || $request->user()->loyalty_point < (int)BusinessSetting::where('key','loyalty_point_minimum_point')->first()->value || $request->point > $request->user()->loyalty_point) {
+            return response()->json(['errors' => [ ['code' => 'point', 'message' => trans('messages.insufficient_point')]]], 203);
+        }
 
         try
         {

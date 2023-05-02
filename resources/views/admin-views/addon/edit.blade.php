@@ -126,7 +126,7 @@
 <script>
     $('.js-data-example-ajax').select2({
         ajax: {
-            url: '{{url('/')}}/admin/vendor/get-restaurants',
+            url: '{{url('/')}}/admin/restaurant/get-restaurants',
             data: function (params) {
                 return {
                     q: params.term, // search term

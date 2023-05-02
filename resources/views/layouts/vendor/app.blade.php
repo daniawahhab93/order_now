@@ -1,6 +1,12 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
+<?php
+    if (env('APP_MODE') == 'demo') {
+        $site_direction = session()->get('site_direction_vendor');
+    }else{
+        $site_direction = session()->has('vendor_site_direction')?session()->get('vendor_site_direction'):'ltr';
+    }
+?>
+<html dir="{{ $site_direction }}" lang="{{ str_replace('_', '-', app()->getLocale()) }}"  class="{{ $site_direction === 'rtl'?'active':'' }}"><head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <!-- Title -->
@@ -27,6 +33,14 @@
 </head>
 
 <body class="footer-offset">
+
+    @if (env('APP_MODE')=='demo')
+    <div class="direction-toggle">
+        <i class="tio-settings"></i>
+        <span></span>
+    </div>
+    @endif
+
     <div class="pre--loader">
     </div>
 {{--loader--}}
@@ -130,6 +144,47 @@
     </script>
 @endif
 <!-- JS Plugins Init. -->
+<script>
+
+    $(document).on('ready', function(){
+        $(".direction-toggle").on("click", function () {
+            if($('html').hasClass('active')){
+                $('html').removeClass('active')
+                setDirection(1);
+            }else {
+                setDirection(0);
+                $('html').addClass('active')
+            }
+        });
+        if ($('html').attr('dir') == "rtl") {
+            $(".direction-toggle").find('span').text('Toggle LTR')
+        } else {
+            $(".direction-toggle").find('span').text('Toggle RTL')
+        }
+
+        function setDirection(status) {
+            if (status == 1) {
+                $("html").attr('dir', 'ltr');
+                $(".direction-toggle").find('span').text('Toggle RTL')
+            } else {
+                $("html").attr('dir', 'rtl');
+                $(".direction-toggle").find('span').text('Toggle LTR')
+            }
+            $.get({
+                    url: '{{ route('vendor.business-settings.site_direction_vendor') }}',
+                    dataType: 'json',
+                    data: {
+                        status: status,
+                    },
+                    success: function() {
+                        alert(ok);
+                    },
+
+                });
+            }
+        });
+</script>
+
 <script>
     $(document).on('ready', function () {
         // ONLY DEV
@@ -266,35 +321,33 @@
 </script>
 
 <script>
-    @if(\App\CentralLogics\Helpers::employee_module_permission_check('order'))
-    var order_type = 'all';
-    setInterval(function () {
-        $.get({
-            url: '{{route('vendor.get-restaurant-data')}}',
-            dataType: 'json',
-            success: function (response) {
-                let data = response.data;
-                if (data.new_pending_order > 0) {
-                    order_type = 'pending';
-                    playAudio();
-                    $('#popup-modal').appendTo("body").modal('show');
-                }
-                else if(data.new_confirmed_order > 0)
-                {
-                    order_type = 'confirmed';
-                    playAudio();
-                    $('#popup-modal').appendTo("body").modal('show');
-                }
-            },
-        });
-    }, 10000);
-    @endif
-    function check_order() {
-        location.href = '{{url('/')}}/vendor-panel/order/list/'+order_type;
-    }
+    // @if(\App\CentralLogics\Helpers::employee_module_permission_check('order'))
+    // var order_type = 'all';
+    // setInterval(function () {
+    //     $.get({
+    //         url: '{{route('vendor.get-restaurant-data')}}',
+    //         dataType: 'json',
+    //         success: function (response) {
+    //             let data = response.data;
+    //             if (data.new_pending_order > 0) {
+    //                 order_type = 'pending';
+    //                 playAudio();
+    //                 $('#popup-modal').appendTo("body").modal('show');
+    //             }
+    //             else if(data.new_confirmed_order > 0)
+    //             {
+    //                 order_type = 'confirmed';
+    //                 playAudio();
+    //                 $('#popup-modal').appendTo("body").modal('show');
+    //             }
+    //         },
+    //     });
+    // }, 10000);
+    // @endif
+
 
     function check_message() {
-        location.href = '{{url('/')}}/vendor-panel/message/list';
+        location.href = '{{url('/')}}/restaurant-panel/message/list';
     }
 
     function route_alert(route, message) {
@@ -361,68 +414,93 @@
                 return messaging.getToken()
 
             }).then(function (response) {
-                console.log(response);
-                $.ajaxSetup({
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    }
-                });
-                $.ajax({
-                    url: '{{ route('vendor.store.token') }}',
-                    type: 'POST',
-                    data: {
-                        token: response
-                    },
-                    // error: function (error) {
-                    //     alert(error);
-                    // },
-                });
+                @php($restaurant_id=\App\CentralLogics\Helpers::get_restaurant_id())
+                subscribeTokenToTopic(response, "restaurant_panel_{{$restaurant_id}}_message");
+                // $.ajaxSetup({
+                //     headers: {
+                //         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                //     }
+                // });
+                // $.ajax({
+                //     url: '{{ route('vendor.store.token') }}',
+                //     type: 'POST',
+                //     data: {
+                //         token: response
+                //     },
+                //     // error: function (error) {
+                //     //     alert(error);
+                //     // },
+                // });
             }).catch(function (error) {
                 console.log(error);
             });
     }
 
+    @php($key = \App\Models\BusinessSetting::where('key', 'push_notification_key')->first())
+    function subscribeTokenToTopic(token, topic) {
+        fetch('https://iid.googleapis.com/iid/v1/' + token + '/rel/topics/' + topic, {
+            method: 'POST',
+            headers: new Headers({
+                'Authorization': 'key={{ $key ? $key->value : '' }}'
+            })
+        }).then(response => {
+            if (response.status < 200 || response.status >= 400) {
+                throw 'Error subscribing to topic: ' + response.status + ' - ' + response.text();
+            }
+            console.log('Subscribed to "' + topic + '"');
+        }).catch(error => {
+            console.error(error);
+        })
+    }
     function getUrlParameter(sParam) {
-            var sPageURL = window.location.search.substring(1);
-            var sURLVariables = sPageURL.split('&');
-            for (var i = 0; i < sURLVariables.length; i++) {
-                var sParameterName = sURLVariables[i].split('=');
-                if (sParameterName[0] == sParam) {
-                    return sParameterName[1];
-                }
+        var sPageURL = window.location.search.substring(1);
+        var sURLVariables = sPageURL.split('&');
+        for (var i = 0; i < sURLVariables.length; i++) {
+            var sParameterName = sURLVariables[i].split('=');
+            if (sParameterName[0] == sParam) {
+                return sParameterName[1];
             }
         }
+    }
 
-        function converationList() {
-            $.ajax({
-                url: "{{ route('vendor.message.list') }}",
-                success: function(data) {
-                    $('#conversation-list').empty();
-                    $("#conversation-list").append(data.html);
-                    var user_id = getUrlParameter('user');
-                    $('.customer-list').removeClass('conv-active');
-                    $('#customer-' + user_id).addClass('conv-active');
-                }
-            })
-        }
+    function converationList() {
+        $.ajax({
+            url: "{{ route('vendor.message.list') }}",
+            success: function(data) {
+                $('#conversation-list').empty();
+                $("#conversation-list").append(data.html);
+                var user_id = getUrlParameter('user');
+                $('.customer-list').removeClass('conv-active');
+                $('#customer-' + user_id).addClass('conv-active');
+            }
+        })
+    }
 
-        function conversationView() {
+    function conversationView() {
+        var conversation_id = getUrlParameter('conversation');
+        var user_id = getUrlParameter('user');
+        var url= '{{url('/')}}/restaurant-panel/message/view/'+conversation_id+'/' + user_id;
+        $.ajax({
+            url: url,
+            success: function(data) {
+                $('#view-conversation').html(data.view);
+            }
+        })
+    }
+    var order_type = 'all';
+    messaging.onMessage(function (payload) {
+        console.log(payload.data);
+
+        if(payload.data.order_id && payload.data.type == 'new_order'){
+            @if(\App\CentralLogics\Helpers::employee_module_permission_check('order'))
+            order_type = payload.data.order_type
+            playAudio();
+            $('#popup-modal').appendTo("body").modal('show');
+            @endif
+        }else if(payload.data.type == 'message'){
             var conversation_id = getUrlParameter('conversation');
             var user_id = getUrlParameter('user');
-            var url= '{{url('/')}}/vendor-panel/message/view/'+conversation_id+'/' + user_id;
-            $.ajax({
-                url: url,
-                success: function(data) {
-                    $('#view-conversation').html(data.view);
-                }
-            })
-        }
-
-        messaging.onMessage(function (payload) {
-            console.log(payload.data);
-            var conversation_id = getUrlParameter('conversation');
-            var user_id = getUrlParameter('user');
-            var url= '{{url('/')}}/vendor-panel/message/view/'+conversation_id+'/' + user_id;
+            var url= '{{url('/')}}/restaurant-panel/message/view/'+conversation_id+'/' + user_id;
             $.ajax({
                 url: url,
                 success: function(data) {
@@ -437,18 +515,18 @@
             if($('#conversation-list').scrollTop() == 0){
                 converationList();
             }
-            // playAudio();
-            //         $('#popup-modal-msg').appendTo("body").modal('show');
-            // const title = payload.notification.title;
-            // const options = {
-            //     body: payload.notification.body,
-            //     icon: payload.notification.icon,
-            // };
-            // new Notification(title, options);
-        });
+        }
+    });
 
-        startFCM();
-        converationList();
+    function check_order() {
+        location.href = '{{url('/')}}/restaurant-panel/order/list/all';
+    }
+    startFCM();
+    converationList();
+
+    if(getUrlParameter('conversation')){
+        conversationView();
+    }
     // conversationView();
 </script>
 <script>
@@ -458,8 +536,12 @@
             ProgressBar: true
         });
     }
+    function set_time_filter(url, id) {
+            var nurl = new URL(url);
+            nurl.searchParams.set('filter', id);
+            location.href = nurl;
+        }
 </script>
-
 <!-- IE Support -->
 <script>
     if (/MSIE \d|Trident.*rv:/.test(navigator.userAgent)) document.write('<script src="{{asset('public/assets/admin')}}/vendor/babel-polyfill/polyfill.min.js"><\/script>');

@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Zone;
+use App\Models\Incentive;
+use Illuminate\Http\Request;
+use App\CentralLogics\Helpers;
+use App\Http\Controllers\Controller;
 use Brian2694\Toastr\Facades\Toastr;
+use Rap2hpoutre\FastExcel\FastExcel;
 use Grimzy\LaravelMysqlSpatial\Types\Point;
 use Grimzy\LaravelMysqlSpatial\Types\Polygon;
 use Grimzy\LaravelMysqlSpatial\Types\LineString;
-use App\CentralLogics\Helpers;
-use Rap2hpoutre\FastExcel\FastExcel;
 
 class ZoneController extends Controller
 {
@@ -25,10 +26,15 @@ class ZoneController extends Controller
         $request->validate([
             'name' => 'required|unique:zones|max:191',
             'coordinates' => 'required',
-            'per_km_delivery_charge'=>'required_with:minimum_delivery_charge',
-            'minimum_delivery_charge'=>'required_with:per_km_delivery_charge'
+            'per_km_delivery_charge'=>'required|numeric|between:1,999999999999.99',
+            'minimum_delivery_charge'=>'required|numeric|between:1,999999999999.99',
+            'maximum_shipping_charge' => 'nullable|numeric|between:0,999999999999.99|gt:minimum_delivery_charge',
+            'max_cod_order_amount' => 'nullable|numeric|between:0,999999999999.99',
         ]);
-
+        // if( $request['maximum_shipping_charge'] > 0  && $request['maximum_shipping_charge'] <= $request['minimum_delivery_charge']){
+        //     Toastr::error(translate('messages.maximum_shipping_charge_must_be_greater_than_minimum_shipping_charge'));
+        //     return back();
+        // }
         $value = $request->coordinates;
         foreach(explode('),(',trim($value,'()')) as $index=>$single_array){
             if($index == 0)
@@ -46,8 +52,10 @@ class ZoneController extends Controller
         $zone->restaurant_wise_topic =  'zone_'.$zone_id.'_restaurant';
         $zone->customer_wise_topic = 'zone_'.$zone_id.'_customer';
         $zone->deliveryman_wise_topic = 'zone_'.$zone_id.'_delivery_man';
-        $zone->per_km_shipping_charge = $request->per_km_delivery_charge;
-        $zone->minimum_shipping_charge = $request->minimum_delivery_charge;
+        $zone->per_km_shipping_charge = $request->per_km_delivery_charge ?? null;
+        $zone->minimum_shipping_charge = $request->minimum_delivery_charge ?? null;
+        $zone->maximum_shipping_charge = $request->maximum_shipping_charge ?? null ;
+        $zone->max_cod_order_amount = $request->max_cod_order_amount ?? null;
         $zone->save();
 
         Toastr::success(translate('messages.zone_added_successfully'));
@@ -62,8 +70,17 @@ class ZoneController extends Controller
             return back();
         }
         $zone=Zone::selectRaw("*,ST_AsText(ST_Centroid(`coordinates`)) as center")->findOrFail($id);
-        // dd($zone->coordinates);
         return view('admin-views.zone.edit', compact('zone'));
+    }
+    public function zone_settings($id)
+    {
+        if(env('APP_MODE')=='demo' && $id == 1)
+        {
+            Toastr::warning(translate('messages.you_can_not_edit_this_zone_please_add_a_new_zone_to_edit'));
+            return back();
+        }
+        $zone=Zone::with('incentives')->selectRaw("*,ST_AsText(ST_Centroid(`coordinates`)) as center")->findOrFail($id);
+        return view('admin-views.zone.settings', compact('zone'));
     }
 
     public function update(Request $request, $id)
@@ -71,9 +88,8 @@ class ZoneController extends Controller
         $request->validate([
             'name' => 'required|max:191|unique:zones,name,'.$id,
             'coordinates' => 'required',
-            'per_km_delivery_charge'=>'required_with:minimum_delivery_charge',
-            'minimum_delivery_charge'=>'required_with:per_km_delivery_charge'
         ]);
+
         $value = $request->coordinates;
         foreach(explode('),(',trim($value,'()')) as $index=>$single_array){
             if($index == 0)
@@ -90,11 +106,41 @@ class ZoneController extends Controller
         $zone->restaurant_wise_topic =  'zone_'.$id.'_restaurant';
         $zone->customer_wise_topic = 'zone_'.$id.'_customer';
         $zone->deliveryman_wise_topic = 'zone_'.$id.'_delivery_man';
-        $zone->per_km_shipping_charge = $request->per_km_delivery_charge;
-        $zone->minimum_shipping_charge = $request->minimum_delivery_charge;
         $zone->save();
         Toastr::success(translate('messages.zone_updated_successfully'));
         return redirect()->route('admin.zone.home');
+    }
+
+    public function zone_settings_update(Request $request, $id){
+        $request->validate([
+            'per_km_delivery_charge'=>'required|numeric|between:1,999999999999.99',
+            'minimum_delivery_charge'=>'required|numeric|between:1,999999999999.99',
+            'maximum_shipping_charge' => 'nullable|numeric|between:0,999999999999.99|gt:minimum_delivery_charge',
+            'max_cod_order_amount' => 'nullable|numeric|between:0,999999999999.99',
+            'increased_delivery_fee' => 'nullable|numeric|between:0.01,9999.99|required_if:increased_delivery_fee_status,1',
+            ], [
+                'increased_delivery_fee.required_if' => translate('messages.increased_delivery_fee_is_required')
+            ]);
+        // if( $request['maximum_shipping_charge'] > 0  && $request['maximum_shipping_charge'] <= $request['minimum_delivery_charge']){
+        //     Toastr::error(translate('messages.maximum_shipping_charge_must_be_greater_than_minimum_shipping_charge'));
+        //     return back();
+        // }
+
+        $zone=Zone::findOrFail($id);
+        $zone->restaurant_wise_topic =  'zone_'.$id.'_restaurant';
+        $zone->customer_wise_topic = 'zone_'.$id.'_customer';
+        $zone->deliveryman_wise_topic = 'zone_'.$id.'_delivery_man';
+        $zone->per_km_shipping_charge = $request->per_km_delivery_charge;
+        $zone->minimum_shipping_charge = $request->minimum_delivery_charge;
+        $zone->maximum_shipping_charge = $request->maximum_shipping_charge ?? null;
+        $zone->max_cod_order_amount = $request->max_cod_order_amount ?? null;
+        $zone->increased_delivery_fee = $request->increased_delivery_fee ?? 0;
+        $zone->increased_delivery_fee_status = $request->increased_delivery_fee_status ?? 0;
+        $zone->increase_delivery_charge_message = $request->increase_delivery_charge_message ?? null;
+        $zone->save();
+        Toastr::success(translate('messages.zone_settings_updated_successfully'));
+        // return redirect()->route('admin.zone.home');
+        return back();
     }
 
     public function destroy(Zone $zone)
@@ -178,5 +224,31 @@ class ZoneController extends Controller
         }elseif($type == 'csv'){
             return (new FastExcel(Helpers::export_zones($zones)))->download('Zones.csv');
         }
+    }
+
+    public function store_incentive(Request $request, $zone_id)
+    {
+        $request->validate([
+            'earning' => 'required|unique:incentives|numeric|between:1,999999999999.99',
+            'incentive' => 'required|numeric|between:1,999999999999.99'
+        ],[
+            'earning.unique' => translate('This_earning_amount_already_exists')
+        ]);
+
+        $incentive = new Incentive();
+        $incentive->earning = $request->earning;
+        $incentive->incentive = $request->incentive;
+        $incentive->zone_id = $zone_id;
+        $incentive->save();
+        Toastr::success(translate('messages.incentive_inserted_successfully'));
+        return back();
+    }
+
+    public function destroy_incentive(Request $request, $id)
+    {
+        $incentive = Incentive::findOrFail($id);
+        $incentive->delete();
+        Toastr::success(translate('messages.incentive_deleted_successfully'));
+        return back();
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\CentralLogics\Helpers;
+use App\Traits\ActivationClass;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\URL;
 
 class InstallController extends Controller
 {
+    use ActivationClass;
+
     public function step0()
     {
         return view('installation.step0');
@@ -48,7 +51,17 @@ class InstallController extends Controller
         Helpers::setEnvironmentValue('SOFTWARE_ID', 'MzM1NzE3NTA=');
         Helpers::setEnvironmentValue('BUYER_USERNAME', $request['username']);
         Helpers::setEnvironmentValue('PURCHASE_CODE', $request['purchase_key']);
-        return redirect()->route('dmvf', ['purchase_key' => $request['purchase_key'], 'username' => $request['username']]);
+        // return redirect()->route('dmvf', ['purchase_key' => $request['purchase_key'], 'username' => $request['username']]);
+        $post = [
+            'name' => $request['name'],
+            'email' => $request['email'],
+            'username' => $request['username'],
+            'purchase_key' => $request['purchase_key'],
+            'domain' => preg_replace("#^[^:/.]*[:/]+#i", "", url('/')),
+        ];
+        $response = $this->dmvf($post);
+        return redirect($response);
+
     }
 
     public function system_settings(Request $request)
@@ -115,7 +128,8 @@ class InstallController extends Controller
                     BUYER_USERNAME=' . session('username') . '
                     SOFTWARE_ID=MzM1NzE3NTA=
 
-                    SOFTWARE_VERSION=5.8.1
+                    SOFTWARE_VERSION=6.2.0
+                    REACT_APP_KEY=43218516
                     ';
             $file = fopen(base_path('.env'), 'w');
             fwrite($file, $output);

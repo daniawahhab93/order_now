@@ -1,7 +1,9 @@
 @php($background_Change = \App\Models\BusinessSetting::where(['key' => 'backgroundChange'])->first())
 @php($background_Change = isset($background_Change->value) ? json_decode($background_Change->value, true) : null)
 <!DOCTYPE html>
-<html lang="en">
+@php($site_direction = \App\Models\BusinessSetting::where('key', 'site_direction')->first())
+@php($site_direction = $site_direction->value ?? 'ltr')
+<html dir="{{ $site_direction }}" lang="en">
 <head>
     <!-- Required meta tags -->
     <meta charset="utf-8" />
@@ -18,7 +20,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/owl-carousel/1.3.3/owl.carousel.min.css">
+    <link rel="stylesheet" href="{{asset('/public/assets/landing/owl/dist/assets/owl.carousel.css')}}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/owl-carousel/1.3.3/owl.theme.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/owl-carousel/1.3.3/owl.transitions.css">
     <link rel="stylesheet" href="{{ asset('public/assets/admin') }}/css/toastr.css">
@@ -233,12 +235,12 @@
     </footer>
     <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/owl-carousel/1.3.3/owl.carousel.min.js">
+    <script type="text/javascript" src="{{asset('/public/assets/landing/owl/dist/owl.carousel.min.js')}}">
     </script>
     <script src="{{ asset('public/assets/admin') }}/js/toastr.js"></script>
     {!! Toastr::message() !!}
     <script>
-        $(".owl-carousel").owlCarousel({
+        $(".testimononial--slider").owlCarousel({
             items: 2,
             itemsDesktop: [1000, 2],
             itemsDesktopSmall: [979, 2],

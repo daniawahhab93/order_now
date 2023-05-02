@@ -61,6 +61,7 @@
                     <p>{{ translate('6. You can upload your restaurant images in restaurant folder from gallery, and copy image`s path.') }}</p>
 
                     <p>{{ translate('7. Default password for restaurant is 12345678.') }}</p>
+                    <p style="color: red" >{{ translate('8. Latitude must be a number between -90 to 90  and Longitude must a number between -180 to 180. Otherwise it will create server error') }}</p>
                 </div>
                 <div class="text-center pb-4">
                     <h3 class="mb-3 export--template-title">{{ translate('Download Spreadsheet Template') }}</h3>
@@ -73,7 +74,7 @@
                 </div>
             </div>
         </div>
-        <form class="product-form" action="{{route('admin.vendor.bulk-import')}}" method="POST"
+        <form class="product-form" action="{{route('admin.restaurant.bulk-import')}}" method="POST"
                 enctype="multipart/form-data">
             @csrf
             <div class="card mt-2 rest-part">

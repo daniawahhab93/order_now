@@ -1,5 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+
+<?php
+    // if (env('APP_MODE') == 'demo') {
+        //     $site_direction = session()->get('site_direction');
+        // }else{
+            //     $site_direction = \App\Models\BusinessSetting::where('key', 'site_direction')->first();
+            //     $site_direction = $site_direction->value ?? 'ltr';
+            // }
+                $site_direction = session()->get('site_direction');
+
+?>
+<html dir="{{ $site_direction }}" lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="{{ $site_direction === 'rtl'?'active':'' }}">
 <head>
     <!-- Required Meta Tags Always Come First -->
     <meta charset="utf-8">
@@ -88,7 +99,7 @@
                             </span>
                         </label>
                         <div class="input-group input-group-merge">
-                            <input type="password" class="js-toggle-password form-control form-control-lg"
+                            <input type="password" class="js-toggle-password form-control form-control-lg __rounded"
                                 name="password" id="signupSrPassword"
                                 aria-label="{{translate('messages.password_length_placeholder',['length'=>'6+'])}}" required
                                 data-msg="{{translate('messages.invalid_password_warning')}}"

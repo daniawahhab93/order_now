@@ -60,7 +60,8 @@
                     <p> {{ translate('5. For parent category "position" will 0 and for sub category it will be 1.') }}</p>
 
                     <p> {{ translate('6. By default status will be 1, please input the right ids.') }}</p>
-                    <p> {{ translate('7. For a category parent_id will be empty, for sub category it will be the category id.') }}</p>
+                    <p> {{ translate('7. For Priority set 0 for Normal, 1 for Medium and 2 for high.') }}</p>
+                    <p> {{ translate('8. For a category parent_id will be empty, for sub category it will be the category id.') }}</p>
                 </div>
                 <div class="text-center pb-4">
                     <h3 class="mb-3 export--template-title">{{ translate('Download Spreadsheet Template') }}</h3>

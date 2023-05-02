@@ -30,6 +30,9 @@ class RestaurantController extends Controller
             'name' => 'required|max:191',
             'address' => 'nullable|max:1000',
             'contact' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10|max:20|unique:restaurants,phone,'.Helpers::get_restaurant_id(),
+            'image' => 'nullable|max:2048',
+            'photo' => 'nullable|max:2048',
+
         ], [
             'f_name.required' => translate('messages.first_name_is_required'),
         ]);

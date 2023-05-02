@@ -39,11 +39,15 @@ class DeliveryManController extends Controller
             'email' => 'required|email|unique:delivery_men',
             'phone' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10|unique:delivery_men',
             'zone_id' => 'required',
+            'vehicle_id' => 'required',
             'earning' => 'required',
             'password'=>'required|min:6',
+            'image' => 'nullable|max:2048',
+            'identity_image.*' => 'nullable|max:2048',
         ], [
             'f_name.required' => translate('messages.first_name_is_required'),
             'zone_id.required' => translate('messages.select_a_zone'),
+            'vehicle_id.required' => translate('messages.select_a_vehicle'),
             'earning.required' => translate('messages.select_dm_type')
         ]);
 
@@ -72,6 +76,7 @@ class DeliveryManController extends Controller
         $dm->identity_number = $request->identity_number;
         $dm->identity_type = $request->identity_type;
         $dm->zone_id = $request->zone_id;
+        $dm->vehicle_id = $request->vehicle_id;
         $dm->identity_image = $identity_image;
         $dm->image = $image_name;
         $dm->active = 0;

@@ -24,7 +24,7 @@ class BannerController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'title' => 'required|max:191',
-            'image' => 'required',
+            'image' => 'required|max:2048',
             'banner_type' => 'required',
             'zone_id' => 'required',
             'restaurant_id' => 'required_if:banner_type,restaurant_wise',
@@ -77,6 +77,8 @@ class BannerController extends Controller
             'title' => 'required|max:191',
             'banner_type' => 'required',
             'zone_id' => 'required',
+            'image' => 'nullable|max:2048',
+
             'restaurant_id' => 'required_if:banner_type,restaurant_wise',
             'item_id' => 'required_if:banner_type,item_wise',
         ], [

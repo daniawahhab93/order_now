@@ -21,52 +21,17 @@
         </div>
         <!-- End Page Header -->
 
-        @php($app_user_version_ios=\App\Models\BusinessSetting::where(['key'=>'app_user_version_ios'])->first())
-        @php($app_user_version_ios=$app_user_version_ios?$app_user_version_ios->value:null)
-
-        @php($app_user_version_android=\App\Models\BusinessSetting::where(['key'=>'app_user_version_android'])->first())
-        @php($app_user_version_android=$app_user_version_android?$app_user_version_android->value:null)
-
-        @php($app_merchant_version_ios=\App\Models\BusinessSetting::where(['key'=>'app_merchant_version_ios'])->first())
-        @php($app_merchant_version_ios=$app_merchant_version_ios?$app_merchant_version_ios->value:null)
-
-        @php($app_merchant_version_android=\App\Models\BusinessSetting::where(['key'=>'app_merchant_version_android'])->first())
-        @php($app_merchant_version_android=$app_merchant_version_android?$app_merchant_version_android->value:null)
-
-
-        @php($app_user_url_ios=\App\Models\BusinessSetting::where(['key'=>'app_user_url_ios'])->first())
-        @php($app_user_url_ios=$app_user_url_ios?$app_user_url_ios->value:null)
-
-        @php($app_user_url_android=\App\Models\BusinessSetting::where(['key'=>'app_user_url_android'])->first())
-        @php($app_user_url_android=$app_user_url_android?$app_user_url_android->value:null)
-
-        @php($app_merchant_url_ios=\App\Models\BusinessSetting::where(['key'=>'app_merchant_url_ios'])->first())
-        @php($app_merchant_url_ios=$app_merchant_url_ios?$app_merchant_url_ios->value:null)
-
-        @php($app_merchant_url_android=\App\Models\BusinessSetting::where(['key'=>'app_merchant_url_android'])->first())
-        @php($app_merchant_url_android=$app_merchant_url_android?$app_merchant_url_android->value:null)
-
-
-        @php($app_delivery_man_version_android=\App\Models\BusinessSetting::where(['key'=>'app_delivery_man_version_android'])->first())
-        @php($app_delivery_man_version_android=$app_delivery_man_version_android?$app_delivery_man_version_android->value:null)
-
-        @php($app_delivery_man_version_ios=\App\Models\BusinessSetting::where(['key'=>'app_delivery_man_version_ios'])->first())
-        @php($app_delivery_man_version_ios=$app_delivery_man_version_ios?$app_delivery_man_version_ios->value:null)
-
-
-        @php($app_delivery_man_url_ios=\App\Models\BusinessSetting::where(['key'=>'app_delivery_man_url_ios'])->first())
-        @php($app_delivery_man_url_ios=$app_delivery_man_url_ios?$app_delivery_man_url_ios->value:null)
-
-        @php($app_delivery_man_url_android=\App\Models\BusinessSetting::where(['key'=>'app_delivery_man_url_android'])->first())
-        @php($app_delivery_man_url_android=$app_delivery_man_url_android?$app_delivery_man_url_android->value:null)
-
-
         @php($app_minimum_version_android=\App\Models\BusinessSetting::where(['key'=>'app_minimum_version_android'])->first())
         @php($app_minimum_version_android=$app_minimum_version_android?$app_minimum_version_android->value:null)
+
+        @php($app_url_android=\App\Models\BusinessSetting::where(['key'=>'app_url_android'])->first())
+        @php($app_url_android=$app_url_android?$app_url_android->value:null)
 
         @php($app_minimum_version_ios=\App\Models\BusinessSetting::where(['key'=>'app_minimum_version_ios'])->first())
         @php($app_minimum_version_ios=$app_minimum_version_ios?$app_minimum_version_ios->value:null)
 
+        @php($app_url_ios=\App\Models\BusinessSetting::where(['key'=>'app_url_ios'])->first())
+        @php($app_url_ios=$app_url_ios?$app_url_ios->value:null)
 
         @php($popular_food=\App\Models\BusinessSetting::where(['key'=>'popular_food'])->first())
         @php($popular_food=$popular_food?$popular_food->value:null)
@@ -79,6 +44,22 @@
 
         @php($most_reviewed_foods=\App\Models\BusinessSetting::where(['key'=>'most_reviewed_foods'])->first())
         @php($most_reviewed_foods=$most_reviewed_foods?$most_reviewed_foods->value:null)
+
+
+        @php($app_minimum_version_android_restaurant=\App\Models\BusinessSetting::where(['key'=>'app_minimum_version_android_restaurant'])->first())
+        @php($app_minimum_version_android_restaurant=$app_minimum_version_android_restaurant?$app_minimum_version_android_restaurant->value:null)
+        @php($app_url_android_restaurant=\App\Models\BusinessSetting::where(['key'=>'app_url_android_restaurant'])->first())
+        @php($app_url_android_restaurant=$app_url_android_restaurant?$app_url_android_restaurant->value:null)
+
+        @php($app_minimum_version_ios_restaurant=\App\Models\BusinessSetting::where(['key'=>'app_minimum_version_ios_restaurant'])->first())
+        @php($app_minimum_version_ios_restaurant=$app_minimum_version_ios_restaurant?$app_minimum_version_ios_restaurant->value:null)
+        @php($app_url_ios_restaurant=\App\Models\BusinessSetting::where(['key'=>'app_url_ios_restaurant'])->first())
+        @php($app_url_ios_restaurant=$app_url_ios_restaurant?$app_url_ios_restaurant->value:null)
+
+        @php($app_minimum_version_android_deliveryman=\App\Models\BusinessSetting::where(['key'=>'app_minimum_version_android_deliveryman'])->first())
+        @php($app_minimum_version_android_deliveryman=$app_minimum_version_android_deliveryman?$app_minimum_version_android_deliveryman->value:null)
+        @php($app_url_android_deliveryman=\App\Models\BusinessSetting::where(['key'=>'app_url_android_deliveryman'])->first())
+        @php($app_url_android_deliveryman=$app_url_android_deliveryman?$app_url_android_deliveryman->value:null)
 
         <div class="card mb-3">
             <div class="card-body">
@@ -137,121 +118,106 @@
                         <form action="{{route('admin.business-settings.app-settings')}}" method="post"
                             enctype="multipart/form-data">
                             @csrf
-                            <div class="row g-3">
+                            <h3 class=""> {{ translate('user_app_section') }}</h3>
+                            <div class="row g-3 mt-2 mb-4">
                                 <div class="col-md-6 col-12">
                                     <div class="form-group">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_minimum_version')}} ({{translate('messages.android')}})</label>
+                                        <label  class="form-label text-capitalize">{{translate('messages.app_minimum_version')}} {{translate('messages.for_user')}} ({{translate('messages.android')}})
+                                            <span class="input-label-secondary text--title" data-toggle="tooltip"
+                                            data-placement="right"
+                                            data-original-title="{{ translate('messages.app_min_version_hint') }}">
+                                            <i class="tio-info-outined"></i>
+                                        </span>
+                                        </label>
                                         <input type="number" placeholder="{{translate('messages.app_minimum_version')}}" class="form-control h--45px" name="app_minimum_version_android"
-                                            value="{{env('APP_MODE')!='demo'?$app_minimum_version_android??'':''}}">
+                                            step="0.001"   min="0" value="{{env('APP_MODE')!='demo'?$app_minimum_version_android??'':''}}">
+                                    </div>
+                                    <div class="form-group m-0">
+                                        <label class="form-label text-capitalize">{{translate('messages.Download_Url')}} {{translate('messages.for_user')}} ({{translate('messages.android')}})</label>
+                                        <input type="text" placeholder="{{translate('messages.Download_Url')}}" class="form-control h--45px" name="app_url_android"
+                                            value="{{env('APP_MODE')!='demo'?$app_url_android??'':''}}">
                                     </div>
                                 </div>
                                 <div class="col-md-6 col-12">
                                     <div class="form-group">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_minimum_version')}} ({{translate('messages.ios')}})</label>
-                                        <input type="number" placeholder="{{translate('messages.app_minimum_version')}}" class="form-control h--45px" name="app_minimum_version_ios"
-                                            value="{{env('APP_MODE')!='demo'?$app_minimum_version_ios??'':''}}">
+                                        <label  class="form-label text-capitalize">{{translate('messages.app_minimum_version')}} {{translate('messages.for_user')}} ({{translate('messages.ios')}})
+                                            <span class="input-label-secondary text--title" data-toggle="tooltip"
+                                            data-placement="right"
+                                            data-original-title="{{ translate('messages.app_min_version_hint') }}">
+                                            <i class="tio-info-outined"></i>
+                                        </span>
+                                        </label>
+                                        <input type="number" placeholder="{{translate('messages.app_minimum_version')}}"  class="form-control h--45px" name="app_minimum_version_ios"
+                                        step="0.001"  min="0" value="{{env('APP_MODE')!='demo'?$app_minimum_version_ios??'':''}}">
+                                    </div>
+                                    <div class="form-group m-0">
+                                        <label class="form-label text-capitalize">{{translate('messages.Download_Url')}} {{translate('messages.for_user')}} ({{translate('messages.ios')}})</label>
+                                        <input type="text" placeholder="{{translate('messages.Download_Url')}}" class="form-control h--45px" name="app_url_ios"
+                                        value="{{env('APP_MODE')!='demo'?$app_url_ios??'':''}}">
                                     </div>
                                 </div>
                             </div>
-                            <div class="row g-3">
-                                <div class="col-md-4 col-12">
-                                    <div class="form-group">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_user_version_ios')}} ({{translate('messages.ios')}})</label>
-                                        <input type="number" placeholder="{{translate('messages.app_user_version_ios')}}" class="form-control h--45px" name="app_user_version_ios"
-                                            value="{{env('APP_MODE')!='demo'?$app_user_version_ios??'':''}}">
-                                    </div>
-                                    <div class="form-group m-0">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_user_version_android')}} ({{translate('messages.android')}})</label>
-                                        <input type="number" placeholder="{{translate('messages.app_user_version_android')}}" class="form-control h--45px" name="app_user_version_android"
-                                               value="{{env('APP_MODE')!='demo'?$app_user_version_android??'':''}}">
-                                    </div>
-                                </div>
-                                <div class="col-md-4 col-12">
-                                    <div class="form-group">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_merchant_version_ios')}} ({{translate('messages.ios')}})</label>
-                                        <input type="number" placeholder="{{translate('messages.app_merchant_version_ios')}}" class="form-control h--45px" name="app_merchant_version_ios"
-                                            value="{{env('APP_MODE')!='demo'?$app_merchant_version_ios??'':''}}">
-                                    </div>
-                                    <div class="form-group m-0">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_merchant_version_android')}} ({{translate('messages.android')}})</label>
-                                        <input type="number" placeholder="{{translate('messages.app_merchant_version_android')}}" class="form-control h--45px" name="app_merchant_version_android"
-                                               value="{{env('APP_MODE')!='demo'?$app_merchant_version_android??'':''}}">
-                                    </div>
-                                </div>
-                                <div class="col-md-4 col-12">
-                                    <div class="form-group">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_delivery_man_version_ios')}} ({{translate('messages.ios')}})</label>
-                                        <input type="number" placeholder="{{translate('messages.app_delivery_man_version_ios')}}" class="form-control h--45px" name="app_delivery_man_version_ios"
-                                            value="{{env('APP_MODE')!='demo'?$app_delivery_man_version_ios??'':''}}">
-                                    </div>
-                                    <div class="form-group m-0">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_delivery_man_version_android')}} ({{translate('messages.android')}})</label>
-                                        <input type="number" placeholder="{{translate('messages.app_delivery_man_version_android')}}" class="form-control h--45px" name="app_delivery_man_version_android"
-                                               value="{{env('APP_MODE')!='demo'?$app_delivery_man_version_android??'':''}}">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row g-3">
-                                <div class="col-md-4 col-12">
-                                    <div class="form-group">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_user_url_ios')}} ({{translate('messages.ios')}})</label>
-                                        <input type="url" placeholder="{{translate('messages.app_user_url_ios')}}" class="form-control h--45px" name="app_user_url_ios"
-                                            value="{{env('APP_MODE')!='demo'?$app_user_url_ios??'':''}}">
-                                    </div>
-                                    <div class="form-group m-0">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_user_url_android')}} ({{translate('messages.android')}})</label>
-                                        <input type="url" placeholder="{{translate('messages.app_user_url_android')}}" class="form-control h--45px" name="app_user_url_android"
-                                               value="{{env('APP_MODE')!='demo'?$app_user_url_android??'':''}}">
-                                    </div>
-                                </div>
-                                <div class="col-md-4 col-12">
-                                    <div class="form-group">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_merchant_url_ios')}} ({{translate('messages.ios')}})</label>
-                                        <input type="url" placeholder="{{translate('messages.app_merchant_url_ios')}}" class="form-control h--45px" name="app_merchant_url_ios"
-                                            value="{{env('APP_MODE')!='demo'?$app_merchant_url_ios??'':''}}">
-                                    </div>
-                                    <div class="form-group m-0">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_merchant_url_android')}} ({{translate('messages.android')}})</label>
-                                        <input type="url" placeholder="{{translate('messages.app_merchant_url_android')}}" class="form-control h--45px" name="app_merchant_url_android"
-                                               value="{{env('APP_MODE')!='demo'?$app_merchant_url_android??'':''}}">
-                                    </div>
-                                </div>
-                                <div class="col-md-4 col-12">
-                                    <div class="form-group">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_delivery_man_url_ios')}} ({{translate('messages.ios')}})</label>
-                                        <input type="url" placeholder="{{translate('messages.app_delivery_man_url_ios')}}" class="form-control h--45px" name="app_delivery_man_url_ios"
-                                            value="{{env('APP_MODE')!='demo'?$app_delivery_man_url_ios??'':''}}">
-                                    </div>
-                                    <div class="form-group m-0">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_delivery_man_url_android')}} ({{translate('messages.android')}})</label>
-                                        <input type="url" placeholder="{{translate('messages.app_delivery_man_url_android')}}" class="form-control h--45px" name="app_delivery_man_url_android"
-                                               value="{{env('APP_MODE')!='demo'?$app_delivery_man_url_android??'':''}}">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row g-3">
+
+                            <h3 class="mt-2"> {{ translate('restaurant_app_section') }}</h3>
+
+                            <div class="row g-3 mb-4 mt-2">
                                 <div class="col-md-6 col-12">
                                     <div class="form-group">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_delivery_man_url_ios')}} ({{translate('messages.ios')}})</label>
-                                        <input type="url" placeholder="{{translate('messages.app_delivery_man_url_ios')}}" class="form-control h--45px" name="app_delivery_man_url_ios"
-                                            value="{{env('APP_MODE')!='demo'?$app_delivery_man_url_ios??'':''}}">
+                                        <label  class="form-label text-capitalize">{{translate('messages.app_minimum_version')}} {{translate('messages.for_restaurant')}} ({{translate('messages.android')}})
+                                            <span class="input-label-secondary text--title" data-toggle="tooltip"
+                                            data-placement="right"
+                                            data-original-title="{{ translate('messages.app_min_version_hint') }}">
+                                            <i class="tio-info-outined"></i>
+                                        </span>
+                                        </label>
+                                        <input type="number" placeholder="{{translate('messages.app_minimum_version')}}" class="form-control h--45px" name="app_minimum_version_android_restaurant"
+                                            step="0.001"   min="0" value="{{env('APP_MODE')!='demo'?$app_minimum_version_android_restaurant??'':''}}">
                                     </div>
                                     <div class="form-group m-0">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_delivery_man_url_android')}} ({{translate('messages.android')}})</label>
-                                        <input type="url" placeholder="{{translate('messages.app_delivery_man_url_android')}}" class="form-control h--45px" name="app_delivery_man_url_android"
-                                               value="{{env('APP_MODE')!='demo'?$app_delivery_man_url_android??'':''}}">
+                                        <label class="form-label text-capitalize">{{translate('messages.Download_Url')}} {{translate('messages.for_restaurant')}} ({{translate('messages.android')}})</label>
+                                        <input type="text" placeholder="{{translate('messages.Download_Url')}}" class="form-control h--45px" name="app_url_android_restaurant"
+                                            value="{{env('APP_MODE')!='demo'?$app_url_android_restaurant??'':''}}">
                                     </div>
                                 </div>
                                 <div class="col-md-6 col-12">
                                     <div class="form-group">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_delivery_man_url_ios')}} ({{translate('messages.ios')}})</label>
-                                        <input type="url" placeholder="{{translate('messages.app_delivery_man_url_ios')}}" class="form-control h--45px" name="app_delivery_man_url_ios"
-                                            value="{{env('APP_MODE')!='demo'?$app_delivery_man_url_ios??'':''}}">
+                                        <label  class="form-label text-capitalize">{{translate('messages.app_minimum_version')}} {{translate('messages.for_restaurant')}} ({{translate('messages.ios')}})
+                                            <span class="input-label-secondary text--title" data-toggle="tooltip"
+                                            data-placement="right"
+                                            data-original-title="{{ translate('messages.app_min_version_hint') }}">
+                                            <i class="tio-info-outined"></i>
+                                        </span>
+                                        </label>
+                                        <input type="number" placeholder="{{translate('messages.app_minimum_version')}}" class="form-control h--45px" name="app_minimum_version_ios_restaurant"
+                                        step="0.001"  min="0" value="{{env('APP_MODE')!='demo'?$app_minimum_version_ios_restaurant??'':''}}">
                                     </div>
                                     <div class="form-group m-0">
-                                        <label  class="form-label text-capitalize">{{translate('messages.app_delivery_man_url_android')}} ({{translate('messages.android')}})</label>
-                                        <input type="url" placeholder="{{translate('messages.app_delivery_man_url_android')}}" class="form-control h--45px" name="app_delivery_man_url_android"
-                                               value="{{env('APP_MODE')!='demo'?$app_delivery_man_url_android??'':''}}">
+                                        <label class="form-label text-capitalize">{{translate('messages.Download_Url')}} {{translate('messages.for_restaurant')}} ({{translate('messages.ios')}})</label>
+                                        <input type="text" placeholder="{{translate('messages.Download_Url')}}" class="form-control h--45px" name="app_url_ios_restaurant"
+                                        value="{{env('APP_MODE')!='demo'?$app_url_ios_restaurant??'':''}}">
+                                    </div>
+                                </div>
+                            </div>
+                            <h3 class="mt-2"> {{ translate('deliveryman_app_section') }}</h3>
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-6 col-12">
+                                    <div class="form-group">
+                                        <label  class="form-label text-capitalize">{{translate('messages.app_minimum_version')}} {{translate('messages.for_deliveryman')}} ({{translate('messages.android')}})
+                                            <span class="input-label-secondary text--title" data-toggle="tooltip"
+                                            data-placement="right"
+                                            data-original-title="{{ translate('messages.app_min_version_hint') }}">
+                                            <i class="tio-info-outined"></i>
+                                        </span>
+                                        </label>
+                                        <input type="number" placeholder="{{translate('messages.app_minimum_version')}}" class="form-control h--45px" name="app_minimum_version_android_deliveryman"
+                                            step="0.001"   min="0" value="{{env('APP_MODE')!='demo'?$app_minimum_version_android_deliveryman??'':''}}">
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-12">
+                                    <div class="form-group m-0">
+                                        <label class="form-label text-capitalize">{{translate('messages.Download_Url')}} {{translate('messages.for_deliveryman')}} ({{translate('messages.android')}})</label>
+                                        <input type="text" placeholder="{{translate('messages.Download_Url')}}" class="form-control h--45px" name="app_url_android_deliveryman"
+                                        value="{{env('APP_MODE')!='demo'?$app_url_android_deliveryman??'':''}}">
                                     </div>
                                 </div>
                             </div>

@@ -92,7 +92,7 @@
                                             {{translate('messages.excel')}}
                                         </button>
                                     </form> --}}
-                                    <a id="export-excel" class="dropdown-item" href="{{route('admin.vendor.withdraw-list-export', ['type'=>'excel'])}}">
+                                    <a id="export-excel" class="dropdown-item" href="{{route('admin.restaurant.withdraw-list-export', ['type'=>'excel'])}}">
                                         <img class="avatar avatar-xss avatar-4by3 mr-2"
                                                 src="{{asset('public/assets/admin')}}/svg/components/excel.svg"
                                                 alt="Image Description">
@@ -109,7 +109,7 @@
                                             .{{translate('messages.csv')}}
                                         </button>
                                     </form> --}}
-                                    <a id="export-csv" class="dropdown-item" href="{{route('admin.vendor.withdraw-list-export', ['type'=>'csv'])}}">
+                                    <a id="export-csv" class="dropdown-item" href="{{route('admin.restaurant.withdraw-list-export', ['type'=>'csv'])}}">
                                         <img class="avatar avatar-xss avatar-4by3 mr-2"
                                                 src="{{asset('public/assets/admin')}}/svg/components/placeholder-csv-format.svg"
                                                 alt="Image Description">
@@ -150,7 +150,7 @@
                                         <td>
                                             @if($wr->vendor && isset($wr->vendor->restaurants[0]))
                                             <a class="deco-none"
-                                               href="{{route('admin.vendor.view',[$wr->vendor['id']])}}">{{ Str::limit($wr->vendor?$wr->vendor->restaurants[0]->name:translate('messages.Restaurant deleted!'), 20, '...') }}</a>
+                                               href="{{route('admin.restaurant.view',[$wr->vendor['id']])}}">{{ Str::limit($wr->vendor?$wr->vendor->restaurants[0]->name:translate('messages.Restaurant deleted!'), 20, '...') }}</a>
                                             @else
                                             {{translate('messages.Restaurant deleted!') }}
                                             @endif
@@ -170,7 +170,7 @@
                                         <td>
                                             <div class="btn--container justify-content-center">
                                                 @if($wr->vendor)
-                                                <a href="{{route('admin.vendor.withdraw_view',[$wr['id'],$wr->vendor['id']])}}"
+                                                <a href="{{route('admin.restaurant.withdraw_view',[$wr['id'],$wr->vendor['id']])}}"
                                                 class="btn btn-sm btn--primary btn-outline-primary action-btn"><i class="tio-invisible"></i>
                                                 </a>
                                                 @else
@@ -218,7 +218,7 @@
                 }
             });
             $.post({
-                url: '{{route('admin.vendor.withdraw_list_search')}}',
+                url: '{{route('admin.restaurant.withdraw_list_search')}}',
                 data: formData,
                 cache: false,
                 contentType: false,
@@ -244,7 +244,7 @@
                 }
             });
             $.post({
-                url: '{{route('admin.vendor.status-filter')}}',
+                url: '{{route('admin.restaurant.status-filter')}}',
                 data: {
                     withdraw_status_filter: type
                 },

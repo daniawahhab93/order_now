@@ -49,6 +49,11 @@
             </div>
 
         </td>
+        @if (isset($order->subscription) && $order->subscription->status != 'canceled' )
+            @php
+                $order->order_status = $order->subscription_log ? $order->subscription_log->order_status : $order->order_status;
+            @endphp
+        @endif
         <td class="text-capitalize text-center">
             @if($order['order_status']=='pending')
                 <span class="badge badge-soft-info mb-1">

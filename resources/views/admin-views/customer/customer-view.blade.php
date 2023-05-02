@@ -57,15 +57,35 @@
             <div class="col-lg-8 mb-3 mb-lg-0">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="card-header-title">{{ translate('messages.Order List') }} <span class="badge badge-soft-secondary">{{ count($orders) }}</span></h5>
+                        <h5 class="card-header-title">{{ translate('messages.Order List') }} <span class="badge badge-soft-secondary" id="itemCount">{{ $orders->total() }}</span></h5>
                         <div>
+
+
+                            <form  action="javascript:" id="search-form">
+                                @csrf
+                                <!-- Search -->
+                                <input type="hidden" name="id"   value="{{ $customer->id }}" id="">
+                                <div class="input--group input-group input-group-merge input-group-flush">
+                                    <input id="datatableSearch_" type="search" name="search" class="form-control" value="{{request()->get('search')}}"
+                                            placeholder="{{  translate('Ex: Search Here by ID...') }}" aria-label="Search" required>
+                                    <button type="submit" class="btn btn--secondary">
+                                        <i class="tio-search"></i>
+                                    </button>
+
+                                </div>
+                                <!-- End Search -->
+                            </form>
+
+
+
+{{--
                             <div class="input--group input-group">
                                 <input type="text" id="column1_search" class="form-control form-control-sm"
-                                            placeholder="{{ translate('Ex: Search Here by ID...') }}">
+                                            placeholder="{{ }}">
                                 <button type="button" class="btn btn--secondary">
                                     <i class="tio-search"></i>
                                 </button>
-                            </div>
+                            </div> --}}
                         </div>
                     </div>
                     <!-- Table -->
@@ -86,31 +106,11 @@
                                 </tr>
                             </thead>
 
-                            <tbody>
-                            @foreach($orders as $key=>$order)
-                                <tr>
-                                    <td>{{$key+$orders->firstItem()}}</td>
-                                    <td class="table-column-pl-0 text-center">
-                                        <a href="{{route('admin.order.details',['id'=>$order['id']])}}">{{$order['id']}}</a>
-                                    </td>
-                                    <td>
-                                        <div class="text-center">
-                                            {{\App\CentralLogics\Helpers::format_currency($order['order_amount'])}}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="btn--container justify-content-center">
-                                        <a class="btn btn-sm btn--warning btn-outline-warning action-btn"
-                                                    href="{{route('admin.order.details',['id'=>$order['id']])}}" title="{{translate('messages.view')}}"><i
-                                                            class="tio-visible-outlined"></i></a>
-                                        <a class="btn btn-sm btn--primary btn-outline-primary action-btn" target="_blank"
-                                                    href="{{route('admin.order.generate-invoice',[$order['id']])}}" title="{{translate('messages.invoice')}}"><i
-                                                            class="tio-print"></i> </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
+
+                            <tbody id="set-rows">
+                                @include('admin-views.customer.partials._list_table')
                             </tbody>
+
                         </table>
                         @if(count($orders) === 0)
                         <div class="empty--data">
@@ -126,7 +126,7 @@
                                 {{-- <div>
                                     1-15 of 380
                                 </div> --}}
-                                <div>
+                                <div class="hide-page">
                                     {!! $orders->links() !!}
                                 </div>
                             </div>
@@ -149,7 +149,7 @@
                                 @if($customer)
                                     {{$customer['f_name'].' '.$customer['l_name']}}
                                     @else
-                                    Customer
+                                    {{ translate('messages.Customer') }}
                                 @endif
                             </span>
                         </h4>
@@ -251,5 +251,35 @@
                 var select2 = $.HSCore.components.HSSelect2.init($(this));
             });
         });
+
     </script>
+
+<script>
+    $('#search-form').on('submit', function () {
+        var formData = new FormData(this);
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+        $.post({
+            url: '{{route('admin.customer.order_search')}}',
+            data: formData,
+            cache: false,
+            contentType: false,
+            processData: false,
+            beforeSend: function () {
+                $('#loading').show();
+            },
+            success: function (data) {
+                $('#set-rows').html(data.view);
+                $('.hide-page').hide();
+                $('#itemCount').html(data.total);
+            },
+            complete: function () {
+                $('#loading').hide();
+            },
+        });
+    });
+</script>
 @endpush

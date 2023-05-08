@@ -467,34 +467,25 @@ class OrderController extends Controller
 
     public function status(Request $request)
     {
-        $request->validate([
-            'reason'=>'required_if:order_status,canceled'
-        ]);
         $order = Order::Notpos()->find($request->id);
-        if (in_array($order->order_status, ['refunded', 'failed'])) {
-            Toastr::warning(translate('messages.you_can_not_change_the_status_of_a_completed_order'));
-            return back();
-        }
-
-
-        if (in_array($order->order_status, ['refund_requested']) && BusinessSetting::where(['key'=>'refund_active_status'])->first()->value == false)  {
-            Toastr::warning(translate('Refund Option is not active. Please active it from Refund Settings'));
-            return back();
-        }
+        // if (in_array($order->order_status, ['delivered', 'refunded', 'failed'])) {
+        //     Toastr::warning(translate('messages.you_can_not_change_the_status_of_a_completed_order'));
+        //     return back();
+        // }
 
         if ($order['delivery_man_id'] == null && $request->order_status == 'out_for_delivery') {
             Toastr::warning(translate('messages.please_assign_deliveryman_first'));
             return back();
         }
 
-        if ($request->order_status == 'delivered' && $order['transaction_reference'] == null && !in_array($order['payment_method'],['cash_on_delivery','wallet'])) {
+        if ($request->order_status == 'delivered' && $order['transaction_reference'] == null && !in_array($order['payment_method'], ['cash_on_delivery', 'wallet'])) {
             Toastr::warning(translate('messages.add_your_paymen_ref_first'));
             return back();
         }
 
         if ($request->order_status == 'delivered') {
 
-            if ($order->transaction  == null || isset($order->subscription_id)) {
+            if ($order->transaction  == null) {
                 if ($order->payment_method == "cash_on_delivery") {
                     if ($order->order_type == 'take_away') {
                         $ol = OrderLogic::create_transaction($order, 'restaurant', null);
@@ -526,95 +517,53 @@ class OrderController extends Controller
                     $item->food->increment('order_count');
                 }
             });
-            $order->customer ?  $order->customer->increment('order_count') : '';
+            $order->customer->increment('order_count');
             $order->restaurant->increment('order_count');
-            }
-
-
-            else if ($request->order_status == 'refunded' && BusinessSetting::where('key', 'refund_active_status')->first()->value == 1) {
-                    if ($order->payment_status == "unpaid") {
-                        Toastr::warning(translate('messages.you_can_not_refund_a_cod_order'));
-                        return back();
-                    }
-                    if (isset($order->delivered)) {
-                        $rt = OrderLogic::refund_order($order);
-
-                        if (!$rt) {
-                            Toastr::warning(translate('messages.faield_to_create_order_transaction'));
-                            return back();
-                        }
-                    }
-                    $refund_method= $request->refund_method  ?? 'manual';
-                    $wallet_status= BusinessSetting::where('key','wallet_status')->first()->value;
-                $refund_to_wallet= BusinessSetting::where('key', 'wallet_add_refund')->first()->value;
-
-                if ($order->payment_status == "paid" && $wallet_status == 1 && $refund_to_wallet==1) {
-                    $refund_amount = round($order->order_amount - $order->delivery_charge - $order->dm_tips, config('round_up_to_digit'));
-                    CustomerLogic::create_wallet_transaction($order->user_id, $refund_amount, 'order_refund', $order->id);
-                    Toastr::info(translate('Refunded amount added to customer wallet'));
-                    $refund_method='wallet';
-                }else{
-                        Toastr::warning(translate('Customer Wallet Refund is not active.Plase Manage the Refund Amount Manually'));
-                        $refund_method=$request->refund_method  ?? 'manual';
-                    }
-
-                    Refund::where('order_id', $order->id)->update([
-                        'order_status' => 'refunded',
-                        'admin_note'=>$request->admin_note ?? null,
-                        'refund_status'=>'approved',
-                        'refund_method'=>$refund_method,
-                    ]);
-
-                    Helpers::increment_order_count($order->restaurant);
-
-                    if ($order->delivery_man) {
-                        $dm = $order->delivery_man;
-                        $dm->current_orders = $dm->current_orders > 1 ? $dm->current_orders - 1 : 0;
-                        $dm->save();
-                    }
-            }
-
-        else if ($request->order_status == 'canceled') {
-            if (in_array($order->order_status, ['delivered', 'canceled', 'refund_requested', 'refunded', 'failed', 'picked_up']) || $order->picked_up) {
-                Toastr::warning(translate('messages.you_can_not_cancel_a_completed_order'));
+        } else if ($request->order_status == 'refunded') {
+            if ($order->payment_method == "cash_on_delivery" || $order->payment_status == "unpaid") {
+                Toastr::warning(translate('messages.you_can_not_refund_a_cod_order'));
                 return back();
             }
-            // if(isset($order->confirmed) && isset($order->subscription_id)){
-            //     Toastr::warning(translate('messages.you_can_not_cancel_this_subscription_order_because_it_is_already_confirmed'));
-            //     return back();
-            // }
-            if(isset($order->subscription_id)){
-                $order->subscription()->update(['status' => 'canceled']);
-                if($order->subscription->log){
-                    $order->subscription->log()->update([
-                        'order_status' => $request->status,
-                        'canceled' => now(),
-                        ]);
+            if (isset($order->delivered)) {
+                $rt = OrderLogic::refund_order($order);
+
+                if (!$rt) {
+                    Toastr::warning(translate('messages.faield_to_create_order_transaction'));
+                    return back();
                 }
             }
-            $order->cancellation_reason = $request->reason;
-            $order->canceled_by = 'admin';
+
+            if ($order->payment_status == "paid" && BusinessSetting::where('key', 'wallet_add_refund')->first()->value == 1) {
+                CustomerLogic::create_wallet_transaction($order->user_id, $order->order_amount, 'order_refund', $order->id);
+            }
 
             if ($order->delivery_man) {
                 $dm = $order->delivery_man;
                 $dm->current_orders = $dm->current_orders > 1 ? $dm->current_orders - 1 : 0;
                 $dm->save();
             }
-
-            Helpers::increment_order_count($order->restaurant);
-            OrderLogic::refund_before_delivered($order);
+        } else if ($request->order_status == 'canceled') {
+            // if (in_array($order->order_status, ['delivered', 'canceled', 'refund_requested', 'refunded', 'failed'])) {
+            //     Toastr::warning(translate('messages.you_can_not_cancel_a_completed_order'));
+            //     return back();
+            // }
+            if ($order->delivery_man) {
+                $dm = $order->delivery_man;
+                $dm->current_orders = $dm->current_orders > 1 ? $dm->current_orders - 1 : 0;
+                $dm->save();
+            }
         }
         $order->order_status = $request->order_status;
-        if($request->order_status == 'processing') {
+        if ($request->order_status == 'processing') {
             $order->processing_time = isset($request->processing_time) ? $request->processing_time : explode('-', $order['restaurant']['delivery_time'])[0];
         }
         $order[$request->order_status] = now();
         $order->save();
 
-        OrderLogic::update_subscription_log($order);
         if (!Helpers::send_order_notification($order)) {
             Toastr::warning(translate('messages.push_notification_faild'));
         }
+
         Toastr::success(translate('messages.order') . translate('messages.status_updated'));
         return back();
     }

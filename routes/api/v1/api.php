@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], function () {
     Route::get('zone/list', 'ZoneController@get_zones');
+
+    Route::post('place_order', 'OrderController@place_order_for_abkar');  //
+
     Route::group(['prefix' => 'auth', 'namespace' => 'Auth'], function () {
         Route::post('sign-up', 'CustomerAuthController@register');
         Route::post('login', 'CustomerAuthController@login');

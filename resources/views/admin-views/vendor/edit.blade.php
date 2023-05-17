@@ -189,7 +189,16 @@
                                 </div>
 
                                 <div class="col-md-8">
-                                    <input id="pac-input" class="controls rounded initial-8" title="{{translate('messages.search_your_location_here')}}" type="text" placeholder="{{translate('messages.search_here')}}"/>
+                                    <style>
+                                        .specific_map
+                                        {
+                                            width:400px!important;
+                                            left:200px!important;
+                                            padding: 20px 0px 20px 10px;
+                                            font-size: 15px;
+                                        }
+                                    </style>
+                                    <input id="pac-input" class="controls rounded initial-8 specific_map" title="{{translate('messages.search_your_location_here')}}" type="text" placeholder="{{translate('messages.search_here')}}"/>
                                     <div style="height: 370px !important" id="map"></div>
                                 </div>
 

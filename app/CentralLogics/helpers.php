@@ -1,4 +1,5 @@
 <?php
+
 namespace App\CentralLogics;
 
 use Exception;
@@ -14,6 +15,7 @@ use App\Models\DMReview;
 use App\Mail\OrderPlaced;
 use App\Models\Restaurant;
 use App\Models\VisitorLog;
+use App\Models\Translation;
 use Illuminate\Support\Str;
 use App\Mail\RefundRejected;
 use Illuminate\Support\Carbon;
@@ -82,15 +84,15 @@ class Helpers
         //         $result = $value['price'];
         //     }
         // }
-            foreach($product as $product_variation){
-                foreach($product_variation['values'] as $option){
-                    foreach($match as $variation){
-                        if($product_variation['name'] == $variation['name'] && isset($variation['values']) && in_array($option['label'], $variation['values']['label'])){
-                            $result += $option['optionPrice'];
-                        }
+        foreach ($product as $product_variation) {
+            foreach ($product_variation['values'] as $option) {
+                foreach ($match as $variation) {
+                    if ($product_variation['name'] == $variation['name'] && isset($variation['values']) && in_array($option['label'], $variation['values']['label'])) {
+                        $result += $option['optionPrice'];
                     }
                 }
             }
+        }
 
         return $result;
     }
@@ -122,7 +124,7 @@ class Helpers
                     $item['available_date_ends'] = $item->end_date->format('Y-m-d');
                     unset($item['end_date']);
                 }
-                $item['recommended'] =(int) $item->recommended;
+                $item['recommended'] = (int)$item->recommended;
                 $categories = [];
                 foreach (json_decode($item['category_ids']) as $value) {
                     $categories[] = ['id' => (string)$value->id, 'position' => $value->position];
@@ -134,7 +136,7 @@ class Helpers
                 $item['tags'] = $item->tags;
                 $item['variations'] = json_decode($item['variations'], true);
                 $item['restaurant_name'] = $item->restaurant->name;
-                $item['restaurant_status'] = (int) $item->restaurant->status;
+                $item['restaurant_status'] = (int)$item->restaurant->status;
                 $item['restaurant_discount'] = self::get_restaurant_discount($item->restaurant) ? $item->restaurant->discount->discount : 0;
                 $item['restaurant_opening_time'] = $item->restaurant->opening_time ? $item->restaurant->opening_time->format('H:i') : null;
                 $item['restaurant_closing_time'] = $item->restaurant->closeing_time ? $item->restaurant->closeing_time->format('H:i') : null;
@@ -220,14 +222,14 @@ class Helpers
             }
             $data['variations'] = json_decode($data['variations'], true);
             $data['restaurant_name'] = $data->restaurant->name;
-            $data['restaurant_status'] = (int) $data->restaurant->status;
+            $data['restaurant_status'] = (int)$data->restaurant->status;
             $data['restaurant_discount'] = self::get_restaurant_discount($data->restaurant) ? $data->restaurant->discount->discount : 0;
             $data['restaurant_opening_time'] = $data->restaurant->opening_time ? $data->restaurant->opening_time->format('H:i') : null;
             $data['restaurant_closing_time'] = $data->restaurant->closeing_time ? $data->restaurant->closeing_time->format('H:i') : null;
             $data['schedule_order'] = $data->restaurant->schedule_order;
             $data['rating_count'] = (int)($data->rating ? array_sum(json_decode($data->rating, true)) : 0);
             $data['avg_rating'] = (float)($data->avg_rating ? $data->avg_rating : 0);
-            $data['recommended'] =(int) $data->recommended;
+            $data['recommended'] = (int)$data->recommended;
             if ($trans) {
                 $data['translations'][] = [
                     'translationable_type' => 'App\Models\Food',
@@ -342,7 +344,7 @@ class Helpers
                     unset($item['translations']);
                 }
 
-                if($item->relationLoaded('childes') && $item['childes']){
+                if ($item->relationLoaded('childes') && $item['childes']) {
                     $item['products_count'] += $item['childes']->sum('products_count');
                     unset($item['childes']);
                 }
@@ -357,7 +359,7 @@ class Helpers
             if (!$trans) {
                 unset($data['translations']);
             }
-            if($data->relationLoaded('childes') && $data['childes']){
+            if ($data->relationLoaded('childes') && $data['childes']) {
                 $data['products_count'] += $data['childes']->sum('products_count');
                 unset($data['childes']);
             }
@@ -415,22 +417,23 @@ class Helpers
 
         return $data;
     }
+
     public static function restaurant_data_formatting($data, $multi_data = false)
     {
         $storage = [];
-        $cuisines=[];
+        $cuisines = [];
 
         if ($multi_data == true) {
             foreach ($data as $item) {
-                if( $item->restaurant_model == 'subscription'  && isset($item->restaurant_sub)){
-                    $item['self_delivery_system'] = (int) $item->restaurant_sub->self_delivery;
+                if ($item->restaurant_model == 'subscription' && isset($item->restaurant_sub)) {
+                    $item['self_delivery_system'] = (int)$item->restaurant_sub->self_delivery;
                 }
-                $item['restaurant_status'] = (int) $item->status;
+                $item['restaurant_status'] = (int)$item->status;
                 if ($item->cuisine) {
 
-                        foreach($item->cuisine as $cuisine){
-                            $cuisines[]=$cuisine;
-                        }
+                    foreach ($item->cuisine as $cuisine) {
+                        $cuisines[] = $cuisine;
+                    }
 
                 }
 
@@ -454,10 +457,10 @@ class Helpers
             }
             $data = $storage;
         } else {
-            if( $data->restaurant_model == 'subscription'  && isset($data->restaurant_sub)){
-                $data['self_delivery_system'] = (int) $data->restaurant_sub->self_delivery;
+            if ($data->restaurant_model == 'subscription' && isset($data->restaurant_sub)) {
+                $data['self_delivery_system'] = (int)$data->restaurant_sub->self_delivery;
             }
-            $data['restaurant_status'] = (int) $data->status;
+            $data['restaurant_status'] = (int)$data->status;
             if ($data->opening_time) {
                 $data['available_time_starts'] = $data->opening_time->format('H:i');
                 unset($data['opening_time']);
@@ -467,11 +470,11 @@ class Helpers
                 unset($data['closeing_time']);
             }
 
-        if ($data->cuisine) {
-            foreach($data->cuisine as $cuisine){
-                $cuisines[]=$cuisine;
+            if ($data->cuisine) {
+                foreach ($data->cuisine as $cuisine) {
+                    $cuisines[] = $cuisine;
+                }
             }
-    }
 
             $ratings = RestaurantLogic::calculate_restaurant_rating($data['rating']);
             unset($data['rating']);
@@ -597,8 +600,27 @@ class Helpers
             $item['variation'] = json_decode($item['variation']);
             $food_details = json_decode($item['food_details'], true);
             $food_details['en_name'] = '';
-            if ($item->food)
-                $food_details['en_name'] = $item->food->name;
+            $food_details['ar_name'] = '';
+            if ($item->food) {
+                $ar_name = Translation::where([
+                    'translationable_type' => 'App\Models\Food',
+                    'translationable_id' => $item->food->id,
+                    'locale' => 'ar',
+                ])->first();
+                if ($ar_name)
+                    $food_details['ar_name'] = $ar_name->value;
+                else
+                    $food_details['ar_name'] = $item->food->name;
+                $en_name = Translation::where([
+                    'translationable_type' => 'App\Models\Food',
+                    'translationable_id' => $item->food->id,
+                    'locale' => 'en',
+                ])->first();
+                if ($en_name)
+                    $food_details['en_name'] = $en_name->value;
+                else
+                    $food_details['en_name'] = $item->food->name;
+            }
             $item['food_details'] = $food_details;
             array_push($storage, $item);
         }
@@ -686,6 +708,7 @@ class Helpers
 
         return $currency_symbol_position == 'right' ? number_format($value, config('round_up_to_digit')) . ' ' . self::currency_symbol() : self::currency_symbol() . ' ' . number_format($value, config('round_up_to_digit'));
     }
+
     public static function send_push_notif_to_device($fcm_token, $data, $web_push_link = null)
     {
         $key = BusinessSetting::where(['key' => 'push_notification_key'])->first()->value;
@@ -695,19 +718,19 @@ class Helpers
             "content-type: application/json"
         );
 
-        if(isset($data['conversation_id'])){
+        if (isset($data['conversation_id'])) {
             $conversation_id = $data['conversation_id'];
-        }else{
+        } else {
             $conversation_id = '';
         }
-        if(isset($data['sender_type'])){
+        if (isset($data['sender_type'])) {
             $sender_type = $data['sender_type'];
-        }else{
+        } else {
             $sender_type = '';
         }
-        if(isset($data['order_type'])){
+        if (isset($data['order_type'])) {
             $order_type = $data['order_type'];
-        }else{
+        } else {
             $order_type = '';
         }
 
@@ -723,9 +746,9 @@ class Helpers
         }
 
         $click_action = "";
-        if($web_push_link){
+        if ($web_push_link) {
             $click_action = ',
-            "click_action": "'.$web_push_link.'"';
+            "click_action": "' . $web_push_link . '"';
         }
 
         $postdata = '{
@@ -758,7 +781,7 @@ class Helpers
                 "icon" : "new",
                 "sound": "notification.wav",
                 "android_channel_id": "stackfood"
-                '.$click_action.'
+                ' . $click_action . '
             }
         }';
 
@@ -790,15 +813,15 @@ class Helpers
             "content-type: application/json"
         );
 
-        if(isset($data['order_type'])){
+        if (isset($data['order_type'])) {
             $order_type = $data['order_type'];
-        }else{
+        } else {
             $order_type = '';
         }
         $click_action = "";
-        if($web_push_link){
+        if ($web_push_link) {
             $click_action = ',
-            "click_action": "'.$web_push_link.'"';
+            "click_action": "' . $web_push_link . '"';
         }
 
         if (isset($data['order_id'])) {
@@ -826,7 +849,7 @@ class Helpers
                     "icon" : "new",
                     "sound": "notification.wav",
                     "android_channel_id": "stackfood"
-                    '.$click_action.'
+                    ' . $click_action . '
                   }
             }';
         } else {
@@ -850,7 +873,7 @@ class Helpers
                     "icon" : "new",
                     "sound": "notification.wav",
                     "android_channel_id": "stackfood"
-                    '.$click_action.'
+                    ' . $click_action . '
                   }
             }';
         }
@@ -935,24 +958,24 @@ class Helpers
         $lowest_price = $product->price;
         // $highest_price = $product->price;
 
-            // foreach(json_decode($product->variations,true) as $variation){
-            //     if(isset($variation["price"])){
-            //         foreach (json_decode($product->variations) as $key => $variation) {
-            //             if ($lowest_price > $variation->price) {
-            //                 $lowest_price = round($variation->price, 2);
-            //             }
-            //             if ($highest_price < $variation->price) {
-            //                 $highest_price = round($variation->price, 2);
-            //             }
-            //         }
-            //         break;
-            //     }
-            //     else{
-            //         foreach ($variation['values'] as $value){
-            //             $value['optionPrice'];
-            //         }
-            //     }
-            // }
+        // foreach(json_decode($product->variations,true) as $variation){
+        //     if(isset($variation["price"])){
+        //         foreach (json_decode($product->variations) as $key => $variation) {
+        //             if ($lowest_price > $variation->price) {
+        //                 $lowest_price = round($variation->price, 2);
+        //             }
+        //             if ($highest_price < $variation->price) {
+        //                 $highest_price = round($variation->price, 2);
+        //             }
+        //         }
+        //         break;
+        //     }
+        //     else{
+        //         foreach ($variation['values'] as $value){
+        //             $value['optionPrice'];
+        //         }
+        //     }
+        // }
 
         if ($discount) {
             $lowest_price -= self::product_discount_calculate($product, $lowest_price, $product->restaurant);
@@ -1048,9 +1071,8 @@ class Helpers
         } elseif ($status == 'refunded') {
             $data = BusinessSetting::where('key', 'order_refunded_message')->first()->value;
         } elseif ($status == 'refund_request_canceled') {
-        $data = BusinessSetting::where('key', 'refund_cancel_message')->first()->value;
-        }
-        else {
+            $data = BusinessSetting::where('key', 'refund_cancel_message')->first()->value;
+        } else {
             $data = '{"status":"0","message":""}';
         }
 
@@ -1064,17 +1086,17 @@ class Helpers
 
     public static function send_order_notification($order)
     {
-        $order= Order::where('id',$order->id)->with('zone:id,deliveryman_wise_topic','restaurant:id,restaurant_model,self_delivery_system,vendor_id','restaurant.restaurant_sub','customer:id,cm_firebase_token,email','restaurant.vendor:id,firebase_token','delivery_man:id,fcm_token')->first();
+        $order = Order::where('id', $order->id)->with('zone:id,deliveryman_wise_topic', 'restaurant:id,restaurant_model,self_delivery_system,vendor_id', 'restaurant.restaurant_sub', 'customer:id,cm_firebase_token,email', 'restaurant.vendor:id,firebase_token', 'delivery_man:id,fcm_token')->first();
 
         try {
             $status = ($order->order_status == 'delivered' && $order->delivery_man) ? 'delivery_boy_delivered' : $order->order_status;
-            if($order->order_status=='confirmed' && $order->payment_method != 'cash_on_delivery' && $order->restaurant->restaurant_model == 'subscription' && isset($order->restaurant->restaurant_sub)){
-                if ($order->restaurant->restaurant_sub->max_order != "unlimited" && $order->restaurant->restaurant_sub->max_order > 0 ) {
-                    $order->restaurant->restaurant_sub()->decrement('max_order' , 1);
+            if ($order->order_status == 'confirmed' && $order->payment_method != 'cash_on_delivery' && $order->restaurant->restaurant_model == 'subscription' && isset($order->restaurant->restaurant_sub)) {
+                if ($order->restaurant->restaurant_sub->max_order != "unlimited" && $order->restaurant->restaurant_sub->max_order > 0) {
+                    $order->restaurant->restaurant_sub()->decrement('max_order', 1);
                 }
             }
 
-            if($order->subscription_id == null &&  ($order->payment_method == 'cash_on_delivery' && $order->order_status == 'pending' )||($order->payment_method != 'cash_on_delivery' && $order->order_status == 'confirmed' )){
+            if ($order->subscription_id == null && ($order->payment_method == 'cash_on_delivery' && $order->order_status == 'pending') || ($order->payment_method != 'cash_on_delivery' && $order->order_status == 'confirmed')) {
                 $data = [
                     'title' => translate('messages.order_push_title'),
                     'description' => translate('messages.new_order_push_description'),
@@ -1082,7 +1104,7 @@ class Helpers
                     'image' => '',
                     'type' => 'new_order_admin',
                 ];
-                self::send_push_notif_to_topic($data, 'admin_message', 'order_request', url('/').'/admin/order/list/all');
+                self::send_push_notif_to_topic($data, 'admin_message', 'order_request', url('/') . '/admin/order/list/all');
             }
 
             $value = self::order_status_update_message($status);
@@ -1103,7 +1125,7 @@ class Helpers
                 ]);
             }
 
-            if($order->customer && $order->order_status == 'refund_request_canceled'){
+            if ($order->customer && $order->order_status == 'refund_request_canceled') {
                 $data = [
                     'title' => translate('messages.order_push_title'),
                     'description' => translate('messages.Your_refund_request_has_been_canceled'),
@@ -1140,9 +1162,8 @@ class Helpers
             if ($order->order_type == 'delivery' && !$order->scheduled && $order->order_status == 'pending' && $order->payment_method == 'cash_on_delivery' && config('order_confirmation_model') == 'deliveryman' && $order->order_type != 'take_away') {
                 // if ($order->restaurant->self_delivery_system)
                 if (($order->restaurant->restaurant_model == 'commission' && $order->restaurant->self_delivery_system)
-                || ($order->restaurant->restaurant_model == 'subscription' &&  isset($order->restaurant->restaurant_sub) && $order->restaurant->restaurant_sub->self_delivery)
-                )
-                {
+                    || ($order->restaurant->restaurant_model == 'subscription' && isset($order->restaurant->restaurant_sub) && $order->restaurant->restaurant_sub->self_delivery)
+                ) {
                     $data = [
                         'title' => translate('messages.order_push_title'),
                         'description' => translate('messages.new_order_push_description'),
@@ -1157,7 +1178,7 @@ class Helpers
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
-                    $web_push_link = url('/').'/restaurant-panel/order/list/all';
+                    $web_push_link = url('/') . '/restaurant-panel/order/list/all';
                     self::send_push_notif_to_topic($data, "restaurant_panel_{$order->restaurant_id}_message", 'new_order', $web_push_link);
                 } else {
                     $data = [
@@ -1167,9 +1188,9 @@ class Helpers
                         'image' => '',
                     ];
 
-                    if($order->zone){
-                        if($order->vehicle_id){
-                            $topic = 'delivery_man_'.$order->zone_id.'_'.$order->vehicle_id;
+                    if ($order->zone) {
+                        if ($order->vehicle_id) {
+                            $topic = 'delivery_man_' . $order->zone_id . '_' . $order->vehicle_id;
                             self::send_push_notif_to_topic($data, $topic, 'order_request');
                         }
                         self::send_push_notif_to_topic($data, $order->zone->deliveryman_wise_topic, 'order_request');
@@ -1192,7 +1213,7 @@ class Helpers
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
-                $web_push_link = url('/').'/restaurant-panel/order/list/all';
+                $web_push_link = url('/') . '/restaurant-panel/order/list/all';
                 self::send_push_notif_to_topic($data, "restaurant_panel_{$order->restaurant_id}_message", 'new_order', $web_push_link);
             }
 
@@ -1212,13 +1233,13 @@ class Helpers
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
-                $web_push_link = url('/').'/restaurant-panel/order/list/all';
+                $web_push_link = url('/') . '/restaurant-panel/order/list/all';
                 self::send_push_notif_to_topic($data, "restaurant_panel_{$order->restaurant->id}_message", 'new_order', $web_push_link);
             }
 
             if ($order->order_status == 'confirmed' && $order->order_type != 'take_away' && config('order_confirmation_model') == 'deliveryman' && $order->payment_method == 'cash_on_delivery') {
                 if ($order->restaurant->restaurant_model == 'commission' && $order->restaurant->self_delivery_system
-                || ($order->restaurant->restaurant_model == 'subscription' &&  isset($order->restaurant->restaurant_sub) && $order->restaurant->restaurant_sub->self_delivery)
+                    || ($order->restaurant->restaurant_model == 'subscription' && isset($order->restaurant->restaurant_sub) && $order->restaurant->restaurant_sub->self_delivery)
                 ) {
                     $data = [
                         'title' => translate('messages.order_push_title'),
@@ -1245,12 +1266,12 @@ class Helpers
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
-                    $web_push_link = url('/').'/restaurant-panel/order/list/all';
+                    $web_push_link = url('/') . '/restaurant-panel/order/list/all';
                     self::send_push_notif_to_topic($data, "restaurant_panel_{$order->restaurant_id}_message", 'new_order', $web_push_link);
                 }
             }
 
-            if ($order->order_type == 'delivery' && !$order->scheduled && $order->order_status == 'confirmed'  && ($order->payment_method != 'cash_on_delivery' || config('order_confirmation_model') == 'restaurant')) {
+            if ($order->order_type == 'delivery' && !$order->scheduled && $order->order_status == 'confirmed' && ($order->payment_method != 'cash_on_delivery' || config('order_confirmation_model') == 'restaurant')) {
                 $data = [
                     'title' => translate('messages.order_push_title'),
                     'description' => translate('messages.new_order_push_description'),
@@ -1258,14 +1279,13 @@ class Helpers
                     'image' => '',
                 ];
                 if (($order->restaurant->restaurant_model == 'commission' && $order->restaurant->self_delivery_system)
-                || ($order->restaurant->restaurant_model == 'subscription' &&  isset($order->restaurant->restaurant_sub) && $order->restaurant->restaurant_sub->self_delivery)
-                )
-                {
+                    || ($order->restaurant->restaurant_model == 'subscription' && isset($order->restaurant->restaurant_sub) && $order->restaurant->restaurant_sub->self_delivery)
+                ) {
                     self::send_push_notif_to_topic($data, "restaurant_dm_" . $order->restaurant_id, 'order_request');
                 } else {
-                    if($order->zone){
-                        if($order->vehicle_id){
-                            $topic = 'delivery_man_'.$order->zone_id.'_'.$order->vehicle_id;
+                    if ($order->zone) {
+                        if ($order->vehicle_id) {
+                            $topic = 'delivery_man_' . $order->zone_id . '_' . $order->vehicle_id;
                             self::send_push_notif_to_topic($data, $topic, 'order_request');
                         }
                         self::send_push_notif_to_topic($data, $order->zone->deliveryman_wise_topic, 'order_request');
@@ -1294,7 +1314,7 @@ class Helpers
                 if ($order->order_status == 'confirmed' && $order->payment_method != 'cash_on_delivery' && config('mail.status')) {
                     Mail::to($order->customer->email)->send(new OrderPlaced($order->id));
                 }
-                if($order->order_status == 'refund_request_canceled' && config('mail.status')){
+                if ($order->order_status == 'refund_request_canceled' && config('mail.status')) {
                     Mail::to($order->customer->email)->send(new RefundRejected($order->id));
                 }
             } catch (\Exception $ex) {
@@ -1352,7 +1372,7 @@ class Helpers
         }
     }
 
-    public static  function remove_dir($dir)
+    public static function remove_dir($dir)
     {
         if (is_dir($dir)) {
             $objects = scandir($dir);
@@ -1476,8 +1496,8 @@ class Helpers
     {
 
         if (auth('vendor')->check()) {
-            if ($mod_name == 'reviews' ) {
-                return auth('vendor')->user()->restaurants[0]->reviews_section ;
+            if ($mod_name == 'reviews') {
+                return auth('vendor')->user()->restaurants[0]->reviews_section;
             } else if ($mod_name == 'deliveryman') {
                 return auth('vendor')->user()->restaurants[0]->self_delivery_system;
             } else if ($mod_name == 'pos') {
@@ -1569,7 +1589,7 @@ class Helpers
 
     public static function insert_business_settings_key($key, $value = null)
     {
-        $data =  BusinessSetting::where('key', $key)->first();
+        $data = BusinessSetting::where('key', $key)->first();
         if (!$data) {
             DB::table('business_settings')->updateOrInsert(['key' => $key], [
                 'value' => $value,
@@ -1743,15 +1763,13 @@ class Helpers
     {
         if (strpos(url()->current(), '/api')) {
             $lang = App::getLocale();
-        } elseif ( strpos(url()->current(), '/admin') && session()->has('local')) {
+        } elseif (strpos(url()->current(), '/admin') && session()->has('local')) {
             $lang = session('local');
-        }elseif (strpos(url()->current(), '/restaurant-panel') && session()->has('vendor_local')) {
+        } elseif (strpos(url()->current(), '/restaurant-panel') && session()->has('vendor_local')) {
             $lang = session('vendor_local');
-        }
-        elseif (session()->has('landing_local')) {
+        } elseif (session()->has('landing_local')) {
             $lang = session('landing_local');
-        }
-        elseif (session()->has('local')) {
+        } elseif (session()->has('local')) {
             $lang = session('local');
         } else {
             $data = Helpers::get_business_settings('language');
@@ -1785,7 +1803,8 @@ class Helpers
     // }
 
 
-    public static function generate_referer_code() {
+    public static function generate_referer_code()
+    {
         $ref_code = strtoupper(Str::random(10));
 
         if (self::referer_code_exists($ref_code)) {
@@ -1795,10 +1814,10 @@ class Helpers
         return $ref_code;
     }
 
-    public static function referer_code_exists($ref_code) {
+    public static function referer_code_exists($ref_code)
+    {
         return User::where('ref_code', '=', $ref_code)->exists();
     }
-
 
 
     public static function remove_invalid_charcaters($str)
@@ -1806,16 +1825,16 @@ class Helpers
         return str_ireplace(['\'', '"', ',', ';', '<', '>', '?'], ' ', $str);
     }
 
-    public static function set_time_log($user_id , $date, $online = null, $offline = null,$shift_id = null)
+    public static function set_time_log($user_id, $date, $online = null, $offline = null, $shift_id = null)
     {
         try {
-            $time_log = TimeLog::where(['user_id'=>$user_id, 'date'=>$date])->first();
+            $time_log = TimeLog::where(['user_id' => $user_id, 'date' => $date])->first();
 
-            if($time_log && $time_log->online && $online) return true;
+            if ($time_log && $time_log->online && $online) return true;
 
-            if($offline && $time_log) {
+            if ($offline && $time_log) {
                 $time_log->offline = $offline;
-                $time_log->working_hour = (strtotime($offline) - strtotime($time_log->online))/60;
+                $time_log->working_hour = (strtotime($offline) - strtotime($time_log->online)) / 60;
                 $time_log->shift_id = $shift_id;
                 $time_log->save();
                 return true;
@@ -1829,127 +1848,136 @@ class Helpers
             $time_log->shift_id = $shift_id;
             $time_log->save();
             return true;
-        } catch(\Exception $ex) {
+        } catch (\Exception $ex) {
             info($ex);
         }
         return false;
     }
 
-    public static function push_notification_export_data($data){
+    public static function push_notification_export_data($data)
+    {
         $format = [];
-        foreach($data as $key=>$item){
-            $format[] =[
-                '#'=>$key+1,
-                translate('title')=>$item['title'],
-                translate('description')=>$item['description'],
-                translate('zone')=>$item->zone ? $item->zone->name : translate('messages.all_zones'),
-                translate('tergat')=>$item['tergat'],
-                translate('status')=>$item['status']
+        foreach ($data as $key => $item) {
+            $format[] = [
+                '#' => $key + 1,
+                translate('title') => $item['title'],
+                translate('description') => $item['description'],
+                translate('zone') => $item->zone ? $item->zone->name : translate('messages.all_zones'),
+                translate('tergat') => $item['tergat'],
+                translate('status') => $item['status']
             ];
         }
         return $format;
     }
-    public static function restaurant_withdraw_list_export($data){
-        $format = [];
-        foreach($data as $key=>$wr){
 
-            if($wr->approved==0){
-            $status=translate('Pending');
-            }elseif($wr->approved==1){
-                $status= translate('Approved');
-            } else{
-                $status=  translate('Denied');
+    public static function restaurant_withdraw_list_export($data)
+    {
+        $format = [];
+        foreach ($data as $key => $wr) {
+
+            if ($wr->approved == 0) {
+                $status = translate('Pending');
+            } elseif ($wr->approved == 1) {
+                $status = translate('Approved');
+            } else {
+                $status = translate('Denied');
             }
 
-            $format[] =[
-                'Sl'=>$key+1,
-                translate('amount')=>$wr['amount'],
-                translate('restaurant')=>$wr->vendor?$wr->vendor->restaurants[0]->name:translate('messages.Restaurant deleted!'),
-                translate('request_time')=>date('Y-m-d '.config('timeformat'),strtotime($wr->created_at)),
-                translate('status')=>$status,
+            $format[] = [
+                'Sl' => $key + 1,
+                translate('amount') => $wr['amount'],
+                translate('restaurant') => $wr->vendor ? $wr->vendor->restaurants[0]->name : translate('messages.Restaurant deleted!'),
+                translate('request_time') => date('Y-m-d ' . config('timeformat'), strtotime($wr->created_at)),
+                translate('status') => $status,
             ];
         }
         return $format;
     }
-    public static function vendor_employee_list_export($data){
-        $format = [];
-        foreach($data as $key=>$e){
-            $format[] =[
-                'Sl'=>$key+1,
-                translate('name')=>$e['f_name'].' '.$e['l_name'] ,
-                translate('email')=>$e['email'],
-                translate('phone')=>$e['phone'],
-                translate('Role')=>$e->role?$e->role['name']:translate('messages.role_deleted'),
-            ];
-        }
-        return $format;
-    }
-    public static function dm_earning_list_export($data){
-        $format = [];
-        foreach($data as $key=>$at){
-            $format[] =[
-                'Sl'=>$key+1,
-                translate('name')=>$at->delivery_man ? $at->delivery_man->f_name.' '.$at->delivery_man->l_name : translate('messages.deliveryman_deleted!') ,
-                translate('received_at')=>$at->created_at->format('Y-m-d '.config('timeformat')),
-                translate('amount')=>$at['amount'],
-                translate('method')=>$at['method'],
-                translate('reference')=>$at['ref'],
-            ];
-        }
-        return $format;
-    }
-    public static function export_account_transaction($data){
-        $format = [];
-        foreach($data as $key=>$at){
 
-            if($at->restaurant){
-               $received_from= $at->restaurant->name;
-            } elseif($at->deliveryman){
-              $received_from=   $at->deliveryman->f_name .' '. $at->deliveryman->l_name;
+    public static function vendor_employee_list_export($data)
+    {
+        $format = [];
+        foreach ($data as $key => $e) {
+            $format[] = [
+                'Sl' => $key + 1,
+                translate('name') => $e['f_name'] . ' ' . $e['l_name'],
+                translate('email') => $e['email'],
+                translate('phone') => $e['phone'],
+                translate('Role') => $e->role ? $e->role['name'] : translate('messages.role_deleted'),
+            ];
+        }
+        return $format;
+    }
+
+    public static function dm_earning_list_export($data)
+    {
+        $format = [];
+        foreach ($data as $key => $at) {
+            $format[] = [
+                'Sl' => $key + 1,
+                translate('name') => $at->delivery_man ? $at->delivery_man->f_name . ' ' . $at->delivery_man->l_name : translate('messages.deliveryman_deleted!'),
+                translate('received_at') => $at->created_at->format('Y-m-d ' . config('timeformat')),
+                translate('amount') => $at['amount'],
+                translate('method') => $at['method'],
+                translate('reference') => $at['ref'],
+            ];
+        }
+        return $format;
+    }
+
+    public static function export_account_transaction($data)
+    {
+        $format = [];
+        foreach ($data as $key => $at) {
+
+            if ($at->restaurant) {
+                $received_from = $at->restaurant->name;
+            } elseif ($at->deliveryman) {
+                $received_from = $at->deliveryman->f_name . ' ' . $at->deliveryman->l_name;
+            } else {
+                $received_from = translate('messages.not_found');
             }
-             else {
-               $received_from=  translate('messages.not_found');
-             }
 
-            $format[] =[
-                'Sl'=>$key+1,
-                translate('received_from')=> $received_from,
-                translate('type')=>$at['from_type'],
-                translate('received_at')=>$at->created_at->format('Y-m-d '.config('timeformat')),
-                translate('amount')=>$at['amount'],
-                translate('reference')=>$at['ref'],
+            $format[] = [
+                'Sl' => $key + 1,
+                translate('received_from') => $received_from,
+                translate('type') => $at['from_type'],
+                translate('received_at') => $at->created_at->format('Y-m-d ' . config('timeformat')),
+                translate('amount') => $at['amount'],
+                translate('reference') => $at['ref'],
             ];
         }
         return $format;
     }
 
 
-
-    public static function export_zones($collection){
+    public static function export_zones($collection)
+    {
         $data = [];
 
-        foreach($collection as $key=>$item){
+        foreach ($collection as $key => $item) {
             $data[] = [
-                'SL'=>$key+1,
-                translate('messages.zone').' '.translate('messages.id')=>$item['id'],
-                translate('messages.name')=>$item['name'],
-                translate('messages.restaurants')=> $item->restaurants->count(),
-                translate('messages.deliveryman')=>  $item->deliverymen->count(),
-                translate('messages.status')=> $item['status']
+                'SL' => $key + 1,
+                translate('messages.zone') . ' ' . translate('messages.id') => $item['id'],
+                translate('messages.name') => $item['name'],
+                translate('messages.restaurants') => $item->restaurants->count(),
+                translate('messages.deliveryman') => $item->deliverymen->count(),
+                translate('messages.status') => $item['status']
             ];
         }
 
         return $data;
     }
 
-    public static function export_restaurants($collection){
+    public static function export_restaurants($collection)
+    {
         $data = [];
 
-        foreach($collection as $key=>$item){
+        foreach ($collection as $key => $item) {
             $data[] = [
-                'SL'=>$key+1,
-                translate('messages.restaurant_name')=> $item['name'],
-                translate('messages.owner_information') => $item->vendor->f_name.' '.$item->vendor->l_name,
+                'SL' => $key + 1,
+                translate('messages.restaurant_name') => $item['name'],
+                translate('messages.owner_information') => $item->vendor->f_name . ' ' . $item->vendor->l_name,
                 translate('messages.phone') => $item->vendor->phone,
                 translate('messages.zone') => $item->zone->name,
                 translate('messages.status') => $item['status'] ? translate('messages.active') : translate('messages.inactive'),
@@ -1958,34 +1986,33 @@ class Helpers
 
         return $data;
     }
-    public static function export_subscription($collection){
+
+    public static function export_subscription($collection)
+    {
         $data = [];
 
-        foreach($collection as $key=>$item){
-            $payment_status =translate('paid');
-        if ($item->payment_method == 'free_trial'){
-            $payment_status =translate('unpaid');
-            $Payment_type= translate('messages.free_trial') ;
-        }
-        elseif($item->payment_method == 'wallet'){
-            $Payment_type= translate('messages.Wallet payment');
-        }
-        elseif($item->payment_method == 'manual_payment_admin'){
-            $Payment_type= translate('messages.Manual payment') ;
-        }
-        elseif($item->payment_method == 'manual_payment_by_restaurant'){
-            $Payment_type= translate('messages.Manual payment') ;
-        }else{
-            $Payment_type= $item->payment_method ;
-        }
+        foreach ($collection as $key => $item) {
+            $payment_status = translate('paid');
+            if ($item->payment_method == 'free_trial') {
+                $payment_status = translate('unpaid');
+                $Payment_type = translate('messages.free_trial');
+            } elseif ($item->payment_method == 'wallet') {
+                $Payment_type = translate('messages.Wallet payment');
+            } elseif ($item->payment_method == 'manual_payment_admin') {
+                $Payment_type = translate('messages.Manual payment');
+            } elseif ($item->payment_method == 'manual_payment_by_restaurant') {
+                $Payment_type = translate('messages.Manual payment');
+            } else {
+                $Payment_type = $item->payment_method;
+            }
 
             $data[] = [
-                'SL'=>$key+1,
-                translate('messages.transaction').' '.translate('messages.id') => $item->id,
-                translate('Transaction Date')=> $item->created_at->format('d M Y'),
+                'SL' => $key + 1,
+                translate('messages.transaction') . ' ' . translate('messages.id') => $item->id,
+                translate('Transaction Date') => $item->created_at->format('d M Y'),
                 translate('messages.restaurant_name') => $item->restaurant->name,
-                translate('messages.Package_name') =>    $item->package->package_name,
-                translate('messages.Pricing') => Helpers::format_currency($item->price) ,
+                translate('messages.Package_name') => $item->package->package_name,
+                translate('messages.Pricing') => Helpers::format_currency($item->price),
                 translate('messages.Duration') => $item->validity . ' ' . translate('messages.days'),
                 translate('messages.Payment Status') => $payment_status,
                 translate('messages.Payment_type') => $Payment_type,
@@ -1995,117 +2022,119 @@ class Helpers
         return $data;
     }
 
-    public static function export_restaurant_orders($collection){
+    public static function export_restaurant_orders($collection)
+    {
         $data = [];
-        foreach($collection as $key=>$item){
+        foreach ($collection as $key => $item) {
             $data[] = [
-                'SL'=>$key+1,
+                'SL' => $key + 1,
                 translate('messages.order_id') => $item['id'],
                 translate('messages.order_date') => $item['created_at'],
-                translate('messages.customer_name') => isset($item->customer) ? $item->customer->f_name.' '.$item->customer->l_name : null,
+                translate('messages.customer_name') => isset($item->customer) ? $item->customer->f_name . ' ' . $item->customer->l_name : null,
                 translate('messages.phone') => isset($item->customer) ? $item->customer->phone : null,
                 translate('messages.total_amount') => $item['order_amount'] . ' ' . Helpers::currency_symbol(),
                 translate('messages.amount') => $item['order_amount'] + $item['delivery_charge'] . ' ' . Helpers::currency_symbol(),
-                translate('messages.delivery') =>  $item['delivery_charge'] . ' ' . Helpers::currency_symbol(),
+                translate('messages.delivery') => $item['delivery_charge'] . ' ' . Helpers::currency_symbol(),
                 translate('messages.order_status') => $item['order_status']
             ];
         }
         return $data;
     }
-    public static function export_d_man($collection){
-        $availability='';
-        foreach($collection as $key=>$dm){
-            if($dm->application_status == 'approved'){
-                if($dm->active){
-                    $availability=translate('messages.online');
-                }else{
-                $availability=translate('messages.offline');
+
+    public static function export_d_man($collection)
+    {
+        $availability = '';
+        foreach ($collection as $key => $dm) {
+            if ($dm->application_status == 'approved') {
+                if ($dm->active) {
+                    $availability = translate('messages.online');
+                } else {
+                    $availability = translate('messages.offline');
                 }
-            }
-            elseif($dm->application_status == 'denied'){
-                $availability=translate('messages.denied');
-            } else{
-                $availability=translate('messages.pending');
+            } elseif ($dm->application_status == 'denied') {
+                $availability = translate('messages.denied');
+            } else {
+                $availability = translate('messages.pending');
             }
 
             $data[] = [
-                'SL'=>$key+1,
-                translate('messages.name') => $dm['f_name'].' '.$dm['l_name'],
-                translate('messages.ratings') => count($dm->rating)>0?number_format($dm->rating[0]->average, 1, '.', ' '):0,
+                'SL' => $key + 1,
+                translate('messages.name') => $dm['f_name'] . ' ' . $dm['l_name'],
+                translate('messages.ratings') => count($dm->rating) > 0 ? number_format($dm->rating[0]->average, 1, '.', ' ') : 0,
                 translate('messages.contact') => $dm['phone'],
-                translate('messages.zone') => isset($dm->zone) ? $dm->zone->name : translate('messages.zone').' '.translate('messages.deleted'),
-                translate('messages.Total Orders') =>  $dm->orders ? count($dm->orders):0 ,
-                translate('messages.Currenty Assigned Orders') => $dm->current_orders ,
-                translate('messages.availability') => $availability ,
+                translate('messages.zone') => isset($dm->zone) ? $dm->zone->name : translate('messages.zone') . ' ' . translate('messages.deleted'),
+                translate('messages.Total Orders') => $dm->orders ? count($dm->orders) : 0,
+                translate('messages.Currenty Assigned Orders') => $dm->current_orders,
+                translate('messages.availability') => $availability,
             ];
         }
         return $data;
     }
 
 
-
-
-    public static function export_day_wise_report($collection){
+    public static function export_day_wise_report($collection)
+    {
         $data = [];
 
-        foreach($collection as $key=>$item){
+        foreach ($collection as $key => $item) {
             $discount_by_admin = 0;
-            if($item->order->discount_on_product_by == 'admin'){
+            if ($item->order->discount_on_product_by == 'admin') {
                 $discount_by_admin = $item->order['restaurant_discount_amount'];
             };
             $data[] = [
-                'SL'=>$key+1,
+                'SL' => $key + 1,
                 translate('messages.order_id') => $item['order_id'],
-                translate('messages.restaurant')=>$item->order->restaurant?$item->order->restaurant->name:translate('messages.invalid'),
-                translate('messages.customer_name')=>$item->order->customer?$item->order->customer['f_name'].' '.$item->order->customer['l_name']:translate('messages.invalid').' '.translate('messages.customer').' '.translate('messages.data'),
-                translate('total_item_amount')=>\App\CentralLogics\Helpers::format_currency($item->order['order_amount'] - $item->order['dm_tips']-$item->order['delivery_charge'] - $item['tax'] + $item->order['coupon_discount_amount'] + $item->order['restaurant_discount_amount']),
-                translate('item_discount')=>\App\CentralLogics\Helpers::format_currency($item->order->details->sum('discount_on_food')),
-                translate('coupon_discount')=>\App\CentralLogics\Helpers::format_currency($item->order['coupon_discount_amount']),
-                translate('discounted_amount')=>\App\CentralLogics\Helpers::format_currency($item->order['coupon_discount_amount'] + $item->order['restaurant_discount_amount']),
-                translate('messages.tax')=>\App\CentralLogics\Helpers::format_currency($item->tax),
-                translate('messages.delivery_charge')=>\App\CentralLogics\Helpers::format_currency($item['delivery_charge'] + $item['delivery_fee_comission']),
+                translate('messages.restaurant') => $item->order->restaurant ? $item->order->restaurant->name : translate('messages.invalid'),
+                translate('messages.customer_name') => $item->order->customer ? $item->order->customer['f_name'] . ' ' . $item->order->customer['l_name'] : translate('messages.invalid') . ' ' . translate('messages.customer') . ' ' . translate('messages.data'),
+                translate('total_item_amount') => \App\CentralLogics\Helpers::format_currency($item->order['order_amount'] - $item->order['dm_tips'] - $item->order['delivery_charge'] - $item['tax'] + $item->order['coupon_discount_amount'] + $item->order['restaurant_discount_amount']),
+                translate('item_discount') => \App\CentralLogics\Helpers::format_currency($item->order->details->sum('discount_on_food')),
+                translate('coupon_discount') => \App\CentralLogics\Helpers::format_currency($item->order['coupon_discount_amount']),
+                translate('discounted_amount') => \App\CentralLogics\Helpers::format_currency($item->order['coupon_discount_amount'] + $item->order['restaurant_discount_amount']),
+                translate('messages.tax') => \App\CentralLogics\Helpers::format_currency($item->tax),
+                translate('messages.delivery_charge') => \App\CentralLogics\Helpers::format_currency($item['delivery_charge'] + $item['delivery_fee_comission']),
                 translate('messages.total_order_amount') => \App\CentralLogics\Helpers::format_currency($item['order_amount']),
                 translate('messages.admin_discount') => \App\CentralLogics\Helpers::format_currency($item['admin_expense']),
                 translate('messages.restaurant_discount') => \App\CentralLogics\Helpers::format_currency($item->discount_amount_by_restaurant),
-                translate('messages.admin_commission') => \App\CentralLogics\Helpers::format_currency($item->admin_commission + $item->admin_expense - $discount_by_admin ),
+                translate('messages.admin_commission') => \App\CentralLogics\Helpers::format_currency($item->admin_commission + $item->admin_expense - $discount_by_admin),
                 translate('Comission on delivery fee') => \App\CentralLogics\Helpers::format_currency($item['delivery_fee_comission']),
                 translate('admin_net_income') => \App\CentralLogics\Helpers::format_currency($item['admin_commission'] + $item->delivery_fee_comission),
                 translate('restaurant_net_income') => \App\CentralLogics\Helpers::format_currency($item['restaurant_amount'] - $item['tax']),
                 translate('messages.amount_received_by') => $item['received_by'],
-                translate('messages.payment_method')=>translate(str_replace('_', ' ', $item->order['payment_method'])),
+                translate('messages.payment_method') => translate(str_replace('_', ' ', $item->order['payment_method'])),
                 translate('messages.payment_status') => $item->status ? translate("messages.refunded") : translate("messages.completed"),
             ];
         }
 
         return $data;
     }
-    public static function food_wise_report_export($collection){
+
+    public static function food_wise_report_export($collection)
+    {
         $data = [];
-        foreach($collection as $key=>$item){
+        foreach ($collection as $key => $item) {
             $data[] = [
-                'SL'=>$key+1,
-                 translate('messages.id') => $item['id'],
-                 translate('messages.name') => $item['name'],
-                 translate('messages.restaurant') => $item->restaurant ? $item->restaurant->name : '',
-                 translate('messages.order') => $item->orders_count,
-                 translate('messages.price') => \App\CentralLogics\Helpers::format_currency($item->price),
-                 translate('messages.total_amount_sold') => \App\CentralLogics\Helpers::format_currency($item->orders_sum_price),
-                 translate('messages.total_discount_given') => \App\CentralLogics\Helpers::format_currency($item->orders_sum_discount_on_food),
-                 translate('messages.average_sale_value') => $item->orders_count>0? \App\CentralLogics\Helpers::format_currency(($item->orders_sum_price-$item->orders_sum_discount_on_food)/$item->orders_count):0 ,
-                 translate('messages.average_ratings') => round($item->avg_rating,1),
+                'SL' => $key + 1,
+                translate('messages.id') => $item['id'],
+                translate('messages.name') => $item['name'],
+                translate('messages.restaurant') => $item->restaurant ? $item->restaurant->name : '',
+                translate('messages.order') => $item->orders_count,
+                translate('messages.price') => \App\CentralLogics\Helpers::format_currency($item->price),
+                translate('messages.total_amount_sold') => \App\CentralLogics\Helpers::format_currency($item->orders_sum_price),
+                translate('messages.total_discount_given') => \App\CentralLogics\Helpers::format_currency($item->orders_sum_discount_on_food),
+                translate('messages.average_sale_value') => $item->orders_count > 0 ? \App\CentralLogics\Helpers::format_currency(($item->orders_sum_price - $item->orders_sum_discount_on_food) / $item->orders_count) : 0,
+                translate('messages.average_ratings') => round($item->avg_rating, 1),
             ];
         }
         return $data;
     }
 
 
-
-
-    public static function export_restaurant_food($collection){
+    public static function export_restaurant_food($collection)
+    {
         $data = [];
-        foreach($collection as $key=>$item){
+        foreach ($collection as $key => $item) {
             $data[] = [
-                'SL'=>$key+1,
+                'SL' => $key + 1,
                 translate('messages.name') => $item['name'],
                 translate('messages.category') => $item->category,
                 translate('messages.price') => $item['price'],
@@ -2116,28 +2145,30 @@ class Helpers
         return $data;
     }
 
-    public static function export_categories($collection){
+    public static function export_categories($collection)
+    {
         $data = [];
-        foreach($collection as $key=>$item){
+        foreach ($collection as $key => $item) {
             $data[] = [
-                'SL'=>$key+1,
-                 translate('messages.id') => $item['id'],
-                 translate('messages.name') => $item['name'],
-                 translate('messages.priority') => ($item['priority'] == 1) ? 'medium' : ((1)? 'normal' : 'high'),
-                 translate('messages.status') => $item['status']
+                'SL' => $key + 1,
+                translate('messages.id') => $item['id'],
+                translate('messages.name') => $item['name'],
+                translate('messages.priority') => ($item['priority'] == 1) ? 'medium' : ((1) ? 'normal' : 'high'),
+                translate('messages.status') => $item['status']
             ];
         }
 
         return $data;
     }
 
-    public static function export_attributes($collection){
+    public static function export_attributes($collection)
+    {
         $data = [];
-        foreach($collection as $key=>$item){
+        foreach ($collection as $key => $item) {
             $data[] = [
-                'SL'=>$key+1,
-                 translate('messages.id') => $item['id'],
-                 translate('messages.name') => $item['name'],
+                'SL' => $key + 1,
+                translate('messages.id') => $item['id'],
+                translate('messages.name') => $item['name'],
             ];
         }
 
@@ -2149,13 +2180,13 @@ class Helpers
         $result = [];
         $variation_price = 0;
 
-        foreach($variations as $k=> $variation){
-            foreach($product_variations as  $product_variation){
-                if( isset($variation['values']) && isset($product_variation['values']) && $product_variation['name'] == $variation['name']  ){
+        foreach ($variations as $k => $variation) {
+            foreach ($product_variations as $product_variation) {
+                if (isset($variation['values']) && isset($product_variation['values']) && $product_variation['name'] == $variation['name']) {
                     $result[$k] = $product_variation;
                     $result[$k]['values'] = [];
-                    foreach($product_variation['values'] as $key=> $option){
-                        if(in_array($option['label'], $variation['values']['label'])){
+                    foreach ($product_variation['values'] as $key => $option) {
+                        if (in_array($option['label'], $variation['values']['label'])) {
                             $result[$k]['values'][] = $option;
                             $variation_price += $option['optionPrice'];
                         }
@@ -2164,62 +2195,58 @@ class Helpers
             }
         }
 
-        return ['price'=>$variation_price,'variations'=>$result];
+        return ['price' => $variation_price, 'variations' => $result];
     }
 
 
-
-
-    public Static function subscription_check()
+    public static function subscription_check()
     {
-        $business_model= BusinessSetting::where('key', 'business_model')->first();
-        if(!$business_model)
-            {
-                Helpers::insert_business_settings_key('refund_active_status', '1');
-                Helpers::insert_business_settings_key('business_model',
+        $business_model = BusinessSetting::where('key', 'business_model')->first();
+        if (!$business_model) {
+            Helpers::insert_business_settings_key('refund_active_status', '1');
+            Helpers::insert_business_settings_key('business_model',
                 json_encode([
-                    'commission'        =>  1,
-                    'subscription'     =>  0,
+                    'commission' => 1,
+                    'subscription' => 0,
                 ]));
-                $business_model = [
-                    'commission'        =>  1,
-                    'subscription'     =>  0,
-                ];
-            } else{
-                $business_model = $business_model->value ? json_decode($business_model->value, true) : [
-                    'commission'        =>  1,
-                    'subscription'     =>  0,
-                ];
-            }
+            $business_model = [
+                'commission' => 1,
+                'subscription' => 0,
+            ];
+        } else {
+            $business_model = $business_model->value ? json_decode($business_model->value, true) : [
+                'commission' => 1,
+                'subscription' => 0,
+            ];
+        }
 
-        if ($business_model['subscription'] == 1 ){
+        if ($business_model['subscription'] == 1) {
             return true;
         }
         return false;
     }
 
-    public Static function commission_check()
+    public static function commission_check()
     {
-        $business_model= BusinessSetting::where('key', 'business_model')->first();
-        if(!$business_model)
-            {
-                Helpers::insert_business_settings_key('business_model',
+        $business_model = BusinessSetting::where('key', 'business_model')->first();
+        if (!$business_model) {
+            Helpers::insert_business_settings_key('business_model',
                 json_encode([
-                    'commission'        =>  1,
-                    'subscription'     =>  0,
+                    'commission' => 1,
+                    'subscription' => 0,
                 ]));
-                $business_model = [
-                    'commission'        =>  1,
-                    'subscription'     =>  0,
-                ];
-            } else{
-                $business_model = $business_model->value ? json_decode($business_model->value, true) : [
-                    'commission'        =>  1,
-                    'subscription'     =>  0,
-                ];
-            }
+            $business_model = [
+                'commission' => 1,
+                'subscription' => 0,
+            ];
+        } else {
+            $business_model = $business_model->value ? json_decode($business_model->value, true) : [
+                'commission' => 1,
+                'subscription' => 0,
+            ];
+        }
 
-        if ($business_model['commission'] == 1 ){
+        if ($business_model['commission'] == 1) {
             return true;
         }
         return false;
@@ -2228,145 +2255,145 @@ class Helpers
     public static function check_subscription_validity()
     {
         $current_date = date('Y-m-d');
-        $check_subscription_validity_on= BusinessSetting::where('key', 'check_subscription_validity_on')->first();
-        if(!$check_subscription_validity_on){
+        $check_subscription_validity_on = BusinessSetting::where('key', 'check_subscription_validity_on')->first();
+        if (!$check_subscription_validity_on) {
             Helpers::insert_business_settings_key('check_subscription_validity_on', date('Y-m-d'));
         }
-        if($check_subscription_validity_on && $check_subscription_validity_on->value != $current_date){
-            Restaurant::whereHas('restaurant_subs',function ($query)use($current_date){
-                $query->where('status',1)->where('expiry_date', '<', $current_date);
+        if ($check_subscription_validity_on && $check_subscription_validity_on->value != $current_date) {
+            Restaurant::whereHas('restaurant_subs', function ($query) use ($current_date) {
+                $query->where('status', 1)->where('expiry_date', '<', $current_date);
             })->update(['status' => 0,
-                        'pos_system'=>1,
-                        'self_delivery_system'=>1,
-                        'reviews_section'=>1,
-                        'free_delivery'=>0,
-                        'restaurant_model'=>'unsubscribed',
-                        ]);
-            RestaurantSubscription::where('status',1)->where('expiry_date', '<', $current_date)->update([
+                'pos_system' => 1,
+                'self_delivery_system' => 1,
+                'reviews_section' => 1,
+                'free_delivery' => 0,
+                'restaurant_model' => 'unsubscribed',
+            ]);
+            RestaurantSubscription::where('status', 1)->where('expiry_date', '<', $current_date)->update([
                 'status' => 0
             ]);
-            $check_subscription_validity_on->value=$current_date;
+            $check_subscription_validity_on->value = $current_date;
             $check_subscription_validity_on->save();
             Helpers::create_subscription_order_logs();
         }
         return false;
     }
 
-    public static function subscription_plan_chosen($restaurant_id ,$package_id, $payment_method  ,$discount,$reference=null ,$type=null){
-        $restaurant=Restaurant::findOrFail($restaurant_id);
+    public static function subscription_plan_chosen($restaurant_id, $package_id, $payment_method, $discount, $reference = null, $type = null)
+    {
+        $restaurant = Restaurant::findOrFail($restaurant_id);
         $package = SubscriptionPackage::findOrFail($package_id);
-        $add_days=0;
-        $add_orders=0;
-        $total_food= $restaurant->foods()->withoutGlobalScope(\App\Scopes\RestaurantScope::class)->count();
-        if ($package->max_product != 'unlimited' &&  $total_food >= $package->max_product  ){
+        $add_days = 0;
+        $add_orders = 0;
+        $total_food = $restaurant->foods()->withoutGlobalScope(\App\Scopes\RestaurantScope::class)->count();
+        if ($package->max_product != 'unlimited' && $total_food >= $package->max_product) {
             return 'downgrade_error';
         }
         try {
-            $restaurant_subscription=$restaurant->restaurant_sub;
+            $restaurant_subscription = $restaurant->restaurant_sub;
             if (isset($restaurant_subscription) && $type == 'renew') {
-                $restaurant_subscription->total_package_renewed= $restaurant_subscription->total_package_renewed + 1;
-                $day_left=$restaurant_subscription->expiry_date->format('Y-m-d');
+                $restaurant_subscription->total_package_renewed = $restaurant_subscription->total_package_renewed + 1;
+                $day_left = $restaurant_subscription->expiry_date->format('Y-m-d');
                 if (Carbon::now()->subDays(1)->diffInDays($day_left, false) > 0) {
-                    $add_days= Carbon::now()->subDays(1)->diffInDays($day_left, false);
+                    $add_days = Carbon::now()->subDays(1)->diffInDays($day_left, false);
                 }
                 if ($restaurant_subscription->max_order != 'unlimited' && $restaurant_subscription->max_order > 0) {
-                    $add_orders=$restaurant_subscription->max_order;
+                    $add_orders = $restaurant_subscription->max_order;
                 }
-            } else{
-                RestaurantSubscription::where('restaurant_id',$restaurant->id)->update([
+            } else {
+                RestaurantSubscription::where('restaurant_id', $restaurant->id)->update([
                     'status' => 0,
                 ]);
-                $restaurant_subscription =new RestaurantSubscription();
-                $restaurant_subscription->total_package_renewed= 0;
+                $restaurant_subscription = new RestaurantSubscription();
+                $restaurant_subscription->total_package_renewed = 0;
 
             }
 
-            $restaurant_subscription->package_id=$package->id;
-            $restaurant_subscription->restaurant_id=$restaurant->id;
-            if ($payment_method  == 'free_trial' ) {
+            $restaurant_subscription->package_id = $package->id;
+            $restaurant_subscription->restaurant_id = $restaurant->id;
+            if ($payment_method == 'free_trial') {
                 $free_trial_period_data = BusinessSetting::where(['key' => 'free_trial_period'])->first();
                 if ($free_trial_period_data == false) {
-                    $values= [
+                    $values = [
                         'data' => 7,
                         'status' => 1,
                     ];
-                    Helpers::insert_business_settings_key('free_trial_period',  json_encode($values) );
+                    Helpers::insert_business_settings_key('free_trial_period', json_encode($values));
                 }
-                $free_trial_period_data = json_decode(BusinessSetting::where(['key' => 'free_trial_period'])->first()->value,true);
-                $free_trial_period= $free_trial_period_data['data'];
-                $restaurant_subscription->expiry_date= Carbon::now()->addDays($free_trial_period)->format('Y-m-d');
+                $free_trial_period_data = json_decode(BusinessSetting::where(['key' => 'free_trial_period'])->first()->value, true);
+                $free_trial_period = $free_trial_period_data['data'];
+                $restaurant_subscription->expiry_date = Carbon::now()->addDays($free_trial_period)->format('Y-m-d');
+            } else {
+                $restaurant_subscription->expiry_date = Carbon::now()->addDays($package->validity + $add_days)->format('Y-m-d');
             }
-            else{
-                $restaurant_subscription->expiry_date= Carbon::now()->addDays($package->validity+$add_days)->format('Y-m-d');
-            }
-            if($package->max_order != 'unlimited'){
-                $restaurant_subscription->max_order=$package->max_order + $add_orders;
-            } else{
-                $restaurant_subscription->max_order=$package->max_order;
+            if ($package->max_order != 'unlimited') {
+                $restaurant_subscription->max_order = $package->max_order + $add_orders;
+            } else {
+                $restaurant_subscription->max_order = $package->max_order;
             }
 
 
-            $restaurant_subscription->max_product=$package->max_product;
-            $restaurant_subscription->pos=$package->pos;
-            $restaurant_subscription->mobile_app=$package->mobile_app;
-            $restaurant_subscription->chat=$package->chat;
-            $restaurant_subscription->review=$package->review;
-            $restaurant_subscription->self_delivery=$package->self_delivery;
+            $restaurant_subscription->max_product = $package->max_product;
+            $restaurant_subscription->pos = $package->pos;
+            $restaurant_subscription->mobile_app = $package->mobile_app;
+            $restaurant_subscription->chat = $package->chat;
+            $restaurant_subscription->review = $package->review;
+            $restaurant_subscription->self_delivery = $package->self_delivery;
 
-            $restaurant->food_section= 1;
-            $restaurant->pos_system= 1;
+            $restaurant->food_section = 1;
+            $restaurant->pos_system = 1;
             if ($type == 'new_join') {
-                $restaurant->status= 0;
-                $restaurant_subscription->status= 0;
+                $restaurant->status = 0;
+                $restaurant_subscription->status = 0;
 
-            }else{
-                $restaurant->status= 1;
-                $restaurant_subscription->status= 1;
+            } else {
+                $restaurant->status = 1;
+                $restaurant_subscription->status = 1;
 
             }
 
             // For Restaurant Free Delivery
-            if($restaurant->free_delivery == 1 && $package->self_delivery == 1){
-                $restaurant->free_delivery = 1 ;
-            } else{
-                $restaurant->free_delivery = 0 ;
-                $restaurant->coupon()->where('created_by','vendor')->where('coupon_type','free_delivery')->delete();
-            }
-
-
-            $restaurant->reviews_section= 1;
-            $restaurant->self_delivery_system= 1;
-            $restaurant->restaurant_model= 'subscription';
-
-            $subscription_transaction= new SubscriptionTransaction();
-            $subscription_transaction->id= Str::uuid();
-            $subscription_transaction->package_id=$package->id;
-            $subscription_transaction->restaurant_id=$restaurant->id;
-            $subscription_transaction->price=$package->price;
-            if ($payment_method  == 'free_trial') {
-                $subscription_transaction->validity= $free_trial_period;
-                $subscription_transaction->paid_amount= 0;
+            if ($restaurant->free_delivery == 1 && $package->self_delivery == 1) {
+                $restaurant->free_delivery = 1;
             } else {
-                $subscription_transaction->validity=$package->validity;
-                $subscription_transaction->paid_amount= $package->price - (($package->price*$discount)/100);
-            }
-            $subscription_transaction->payment_method=$payment_method;
-            $subscription_transaction->reference=$reference ?? null;
-            $subscription_transaction->discount=$discount ?? 0;
-            if( $payment_method == 'manual_payment_admin'){
-                $subscription_transaction->created_by= 'Admin';
-            } else{
-                $subscription_transaction->created_by= 'Restaurant';
+                $restaurant->free_delivery = 0;
+                $restaurant->coupon()->where('created_by', 'vendor')->where('coupon_type', 'free_delivery')->delete();
             }
 
-            $subscription_transaction->package_details=[
-                'pos'=>$package->pos,
-                'review'=>$package->review,
-                'self_delivery'=>$package->self_delivery,
-                'chat'=>$package->chat,
-                'mobile_app'=>$package->mobile_app,
-                'max_order'=>$package->max_order,
-                'max_product'=>$package->max_product,
+
+            $restaurant->reviews_section = 1;
+            $restaurant->self_delivery_system = 1;
+            $restaurant->restaurant_model = 'subscription';
+
+            $subscription_transaction = new SubscriptionTransaction();
+            $subscription_transaction->id = Str::uuid();
+            $subscription_transaction->package_id = $package->id;
+            $subscription_transaction->restaurant_id = $restaurant->id;
+            $subscription_transaction->price = $package->price;
+            if ($payment_method == 'free_trial') {
+                $subscription_transaction->validity = $free_trial_period;
+                $subscription_transaction->paid_amount = 0;
+            } else {
+                $subscription_transaction->validity = $package->validity;
+                $subscription_transaction->paid_amount = $package->price - (($package->price * $discount) / 100);
+            }
+            $subscription_transaction->payment_method = $payment_method;
+            $subscription_transaction->reference = $reference ?? null;
+            $subscription_transaction->discount = $discount ?? 0;
+            if ($payment_method == 'manual_payment_admin') {
+                $subscription_transaction->created_by = 'Admin';
+            } else {
+                $subscription_transaction->created_by = 'Restaurant';
+            }
+
+            $subscription_transaction->package_details = [
+                'pos' => $package->pos,
+                'review' => $package->review,
+                'self_delivery' => $package->self_delivery,
+                'chat' => $package->chat,
+                'mobile_app' => $package->mobile_app,
+                'max_order' => $package->max_order,
+                'max_product' => $package->max_product,
             ];
 
             DB::beginTransaction();
@@ -2374,14 +2401,15 @@ class Helpers
             $subscription_transaction->save();
             $restaurant_subscription->save();
             DB::commit();
-        } catch(\Exception $e){
+        } catch (\Exception $e) {
             DB::rollBack();
-            info(["line___{$e->getLine()}",$e->getMessage()]);
+            info(["line___{$e->getLine()}", $e->getMessage()]);
             return false;
         }
         return true;
     }
-    public static function expenseCreate($amount,$type,$datetime,$order_id,$created_by,$restaurant_id=null,$description='',$delivery_man_id=null)
+
+    public static function expenseCreate($amount, $type, $datetime, $order_id, $created_by, $restaurant_id = null, $description = '', $delivery_man_id = null)
     {
         $expense = new Expense();
         $expense->amount = $amount;
@@ -2395,23 +2423,27 @@ class Helpers
         $expense->updated_at = $datetime;
         return $expense->save();
     }
-    public static function hex_to_rbg($color){
+
+    public static function hex_to_rbg($color)
+    {
         list($r, $g, $b) = sscanf($color, "#%02x%02x%02x");
         $output = "$r, $g, $b";
         return $output;
     }
 
-    public static function increment_order_count($data){
-        $restaurant=$data;
-        $rest_sub=$restaurant->restaurant_sub;
-        if ( $restaurant->restaurant_model == 'subscription' && isset($rest_sub) && $rest_sub->max_order != "unlimited") {
+    public static function increment_order_count($data)
+    {
+        $restaurant = $data;
+        $rest_sub = $restaurant->restaurant_sub;
+        if ($restaurant->restaurant_model == 'subscription' && isset($rest_sub) && $rest_sub->max_order != "unlimited") {
             $rest_sub->increment('max_order', 1);
         }
         return true;
     }
 
-    public static function react_activation_check($react_domain, $react_license_code){
-        $scheme = str_contains($react_domain, 'localhost')?'http://':'https://';
+    public static function react_activation_check($react_domain, $react_license_code)
+    {
+        $scheme = str_contains($react_domain, 'localhost') ? 'http://' : 'https://';
         $url = empty(parse_url($react_domain)['scheme']) ? $scheme . ltrim($react_domain, '/') : $react_domain;
         $response = Http::post('https://store.6amtech.com/api/v1/customer/license-check', [
             'domain_name' => str_ireplace('www.', '', parse_url($url, PHP_URL_HOST)),
@@ -2460,15 +2492,16 @@ class Helpers
         return false;
     }
 
-    public static function react_domain_status_check(){
+    public static function react_domain_status_check()
+    {
         $data = self::get_business_settings('react_setup');
-        if($data && isset($data['react_domain']) && isset($data['react_license_code'])){
-            if(isset($data['react_platform']) && $data['react_platform'] == 'codecanyon'){
+        if ($data && isset($data['react_domain']) && isset($data['react_license_code'])) {
+            if (isset($data['react_platform']) && $data['react_platform'] == 'codecanyon') {
                 $data['status'] = (int)self::activation_submit($data['react_license_code']);
-            }elseif(!self::react_activation_check($data['react_domain'], $data['react_license_code'])){
-                $data['status']=0;
-            }elseif($data['status'] != 1){
-                $data['status']=1;
+            } elseif (!self::react_activation_check($data['react_domain'], $data['react_license_code'])) {
+                $data['status'] = 0;
+            } elseif ($data['status'] != 1) {
+                $data['status'] = 1;
             }
             DB::table('business_settings')->updateOrInsert(['key' => 'react_setup'], [
                 'value' => json_encode($data)
@@ -2476,7 +2509,8 @@ class Helpers
         }
     }
 
-    public static function number_format_short( $n ) {
+    public static function number_format_short($n)
+    {
         if ($n < 900) {
             // 0 - 900
             $n = $n;
@@ -2506,13 +2540,13 @@ class Helpers
 
         $currency_symbol_position = BusinessSetting::where(['key' => 'currency_symbol_position'])->first()->value;
 
-        return $currency_symbol_position == 'right' ? number_format($n, config('round_up_to_digit')).$suffix . ' ' . self::currency_symbol() : self::currency_symbol() . ' ' . number_format($n, config('round_up_to_digit')).$suffix;
+        return $currency_symbol_position == 'right' ? number_format($n, config('round_up_to_digit')) . $suffix . ' ' . self::currency_symbol() : self::currency_symbol() . ' ' . number_format($n, config('round_up_to_digit')) . $suffix;
     }
 
 
     public static function gen_mpdf($view, $file_prefix, $file_postfix)
     {
-        $mpdf = new \Mpdf\Mpdf(['tempDir' => __DIR__ . '/../../storage/tmp','default_font' => 'FreeSerif', 'mode' => 'utf-8', 'format' => [190, 250]]);
+        $mpdf = new \Mpdf\Mpdf(['tempDir' => __DIR__ . '/../../storage/tmp', 'default_font' => 'FreeSerif', 'mode' => 'utf-8', 'format' => [190, 250]]);
         /* $mpdf->AddPage('XL', '', '', '', '', 10, 10, 10, '10', '270', '');*/
         $mpdf->autoScriptToLang = true;
         $mpdf->autoLangToFont = true;
@@ -2523,17 +2557,18 @@ class Helpers
         $mpdf->Output($file_prefix . $file_postfix . '.pdf', 'D');
     }
 
-    public static function export_expense_wise_report($collection){
+    public static function export_expense_wise_report($collection)
+    {
         $data = [];
-        foreach($collection as $key=>$item){
-            if(isset($item->order->customer)){
-                            $customer_name= $item->order->customer->f_name.' '.$item->order->customer->l_name;
-                                }
+        foreach ($collection as $key => $item) {
+            if (isset($item->order->customer)) {
+                $customer_name = $item->order->customer->f_name . ' ' . $item->order->customer->l_name;
+            }
             $data[] = [
-                'SL'=>$key+1,
+                'SL' => $key + 1,
                 translate('messages.order_id') => $item['order_id'],
-                translate('messages.expense_date') =>  $item['created_at']->format('Y/m/d ' . config('timeformat')),
-                translate('messages.type') => str::title( str_replace('_', ' ',  $item['type'])),
+                translate('messages.expense_date') => $item['created_at']->format('Y/m/d ' . config('timeformat')),
+                translate('messages.type') => str::title(str_replace('_', ' ', $item['type'])),
                 translate('messages.customer_name') => $customer_name,
                 translate('messages.amount') => $item['amount'],
             ];
@@ -2541,8 +2576,9 @@ class Helpers
         return $data;
     }
 
-    public static function product_tax($price , $tax, $is_include=false){
-        $price_tax = ($price * $tax) / (100 + ($is_include?$tax:0)) ;
+    public static function product_tax($price, $tax, $is_include = false)
+    {
+        $price_tax = ($price * $tax) / (100 + ($is_include ? $tax : 0));
         return $price_tax;
     }
 
@@ -2565,7 +2601,7 @@ class Helpers
             $wallet_transaction->save();
             $dmwallet->total_earning = $dmwallet->total_earning + $amount;
             $dmwallet->save();
-            Helpers::expenseCreate($amount,$type,now(),$order_id=null,$created_by='admin',$restaurant_id=null,$description='',$delivery_man_id);
+            Helpers::expenseCreate($amount, $type, now(), $order_id = null, $created_by = 'admin', $restaurant_id = null, $description = '', $delivery_man_id);
             DB::commit();
             return true;
         } catch (Exception $ex) {
@@ -2583,30 +2619,29 @@ class Helpers
         $days = $type != 'daily' ? array_column($days, 'time', 'day') : $days;
         for ($date = $startDate; $date->lte($endDate); $date->addDay()) {
 
-            if($type == 'weekly'){
-                if(isset($days[$date->weekday()])){
-                    $arrayOfDate[] = $date->format('Y-m-d ').$days[$date->weekday()];
+            if ($type == 'weekly') {
+                if (isset($days[$date->weekday()])) {
+                    $arrayOfDate[] = $date->format('Y-m-d ') . $days[$date->weekday()];
                 }
-            }elseif($type == 'monthly'){
-                if(isset($days[$date->day])){
-                    $arrayOfDate[] = $date->format('Y-m-d ').$days[$date->day];
+            } elseif ($type == 'monthly') {
+                if (isset($days[$date->day])) {
+                    $arrayOfDate[] = $date->format('Y-m-d ') . $days[$date->day];
                 }
-            }else{
-                $arrayOfDate[] = $date->format('Y-m-d ').$days[0]['itme'];
+            } else {
+                $arrayOfDate[] = $date->format('Y-m-d ') . $days[0]['itme'];
             }
         }
         return $arrayOfDate;
     }
 
 
-
-    public static function visitor_log($model,$user_id,$visitor_log_id,$order_count=false){
-            if( $model == 'restaurant' ){
-                $visitor_log_type = 'App\Models\Restaurant';
-            }
-            else {
-                $visitor_log_type = 'App\Models\Category';
-            }
+    public static function visitor_log($model, $user_id, $visitor_log_id, $order_count = false)
+    {
+        if ($model == 'restaurant') {
+            $visitor_log_type = 'App\Models\Restaurant';
+        } else {
+            $visitor_log_type = 'App\Models\Category';
+        }
         VisitorLog::updateOrInsert(
             ['visitor_log_type' => $visitor_log_type,
                 'user_id' => $user_id,
@@ -2614,7 +2649,7 @@ class Helpers
             ],
             [
                 'visit_count' => $order_count == false ? DB::raw('visit_count + 1') : DB::raw('visit_count'),
-                'order_count' =>  $order_count == true ? DB::raw('order_count + 1') : DB::raw('order_count'),
+                'order_count' => $order_count == true ? DB::raw('order_count + 1') : DB::raw('order_count'),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]
@@ -2773,7 +2808,7 @@ class Helpers
         );
 
         foreach ($locales as $locale) {
-            $locale_region = explode('-',$locale);
+            $locale_region = explode('-', $locale);
             if ($country_code == $locale_region[0]) {
                 return $locale_region[0];
             }
@@ -2786,8 +2821,9 @@ class Helpers
     {
         $res = file_get_contents("https://translate.googleapis.com/translate_a/single?client=gtx&ie=UTF-8&oe=UTF-8&dt=bd&dt=ex&dt=ld&dt=md&dt=qca&dt=rw&dt=rm&dt=ss&dt=t&dt=at&sl=" . $sl . "&tl=" . $tl . "&hl=hl&q=" . urlencode($q), $_SERVER['DOCUMENT_ROOT'] . "/transes.html");
         $res = json_decode($res);
-        return str_replace('_',' ',$res[0][0][0]);
+        return str_replace('_', ' ', $res[0][0][0]);
     }
+
     public static function language_load()
     {
         if (\session()->has('language_settings')) {
@@ -2798,6 +2834,7 @@ class Helpers
         }
         return $language;
     }
+
     public static function vendor_language_load()
     {
         if (\session()->has('vendor_language_settings')) {
@@ -2810,21 +2847,20 @@ class Helpers
     }
 
 
-
     public static function create_subscription_order_logs()
     {
-        $order_schedule_day=now()->dayOfWeek;
-            $o=Order::HasSubscriptionTodayGet()->with(['restaurant.schedule_today','subscription.schedule_today'])->whereHas('restaurant.schedules',function ($q)use($order_schedule_day){
-                $q->where('day',$order_schedule_day);
-            })
+        $order_schedule_day = now()->dayOfWeek;
+        $o = Order::HasSubscriptionTodayGet()->with(['restaurant.schedule_today', 'subscription.schedule_today'])->whereHas('restaurant.schedules', function ($q) use ($order_schedule_day) {
+            $q->where('day', $order_schedule_day);
+        })
             ->get();
-            foreach($o as $order){
-                foreach($order->restaurant->schedule_today as $rest_sh){
-                    if(Carbon::parse($rest_sh->opening_time) <= Carbon::parse($order->subscription->schedule_today->time) && Carbon::parse($rest_sh->closing_time) >= Carbon::parse($order->subscription->schedule_today->time) ){
+        foreach ($o as $order) {
+            foreach ($order->restaurant->schedule_today as $rest_sh) {
+                if (Carbon::parse($rest_sh->opening_time) <= Carbon::parse($order->subscription->schedule_today->time) && Carbon::parse($rest_sh->closing_time) >= Carbon::parse($order->subscription->schedule_today->time)) {
                     OrderLogic::create_subscription_log($order->id);
-                    }
                 }
             }
+        }
         return true;
     }
 
@@ -2839,7 +2875,8 @@ class Helpers
         return $language;
     }
 
-    public static function apple_client_secret(){
+    public static function apple_client_secret()
+    {
         // Set up the necessary variables
         $keyId = 'U7KA7F82UM';
         $teamId = '7WSYLQ8Y87';

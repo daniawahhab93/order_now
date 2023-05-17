@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Models\Food;
 use App\Models\Zone;
 use App\Models\Order;
+use App\Models\User;
 use App\Models\Coupon;
 use App\Models\Refund;
 use App\Models\Vehicle;
@@ -344,8 +345,23 @@ class OrderController extends Controller
         $order->confirmed = $request->payment_method == 'wallet' ? now() : null;
         $order->created_at = now();
         $order->updated_at = now();
-        foreach ($request['cart'] as $c) {
-            if ($c['item_campaign_id'] != null) {
+        $cart = array();
+
+        if (isset($request['cart']))
+            $cart = $request['cart'];
+        if (!isset($request['cart'])) {
+            $cart[0] = [
+                "food_id" => 934,
+                "item_campaign_id" => null,
+                "price" => 5.0,
+                "variations" => [],
+                "quantity" => 1,
+                "add_on_ids" => [],
+                "add_ons" => [],
+                "add_on_qtys" => []];
+        }
+        foreach ($cart as $c) {
+            if (isset($c['item_campaign_id']) && $c['item_campaign_id'] != null) {
 
                 $product = ItemCampaign::active()->find($c['item_campaign_id']);
                 if ($product) {
@@ -556,6 +572,31 @@ class OrderController extends Controller
                 // $order->checked = 1;
             }
 
+            $order_exist = Order::where(
+                [
+                    'user_id' => $request->user()->id,
+                    'order_amount' => $order->order_amount,
+                    'payment_method' => $order->payment_method,
+                    'order_type' => $order->order_type,
+                    'restaurant_id' => $order->restaurant_id,
+                ]
+            )->first();
+
+            if ($order_exist) {
+                $fdate =date('Y-m-d H:i:s',$_SERVER['REQUEST_TIME']) ;
+                $tdate =date($order_exist->created_at);
+                $datetime1 = new \DateTime($fdate);
+                $datetime2 = new \DateTime($tdate);
+                $interval = $datetime1->diff($datetime2);
+
+                if ($interval->i < 2)
+                    return response()->json([
+                        'errors' => [
+                            ['code' => 'order_time', 'message' => translate('messages.failed_to_place_order')]
+                        ]
+                    ], 403);
+            }
+
             $order->save();
             // new Order Subscription logs create for the order
             OrderLogic::create_subscription_log($order->id);
@@ -593,10 +634,22 @@ class OrderController extends Controller
             } catch (\Exception $ex) {
                 info($ex);
             }
+
+            // $fname = '';
+            // $lname = '';
+
+
+            // $user=User::where('id',$order->user_id)->first();
+            // if ($user) {
+            //     $fname =$user->fname;
+            //     $lname = $user->lname;
+
+            // }
+
             return response()->json([
                 'message' => translate('messages.order_placed_successfully'),
                 'order_id' => $order->id,
-                'username' => $order->user()->fname . ' ' . $order->user()->lname,
+                'username' => $request->user()->fname . ' ' . $request->user()->lname,
                 'total_ammount' => $total_price + $order->delivery_charge + $tax_a
             ], 200);
         } catch (\Exception $e) {
@@ -634,7 +687,7 @@ class OrderController extends Controller
         $rest_info = $request->restaurant_name . ' ( ' . $request->restaurant_longitude . ' , ' . $request->restaurant_latitude . ' ) ';
         $user_info = $request->f_name . ' ' . $request->l_name . ' , Phone: ' . $request->phone . ' ,Address: ' . $request->address . ' ( ' . $request->longitude . ' , ' . $request->latitude . ' ) ';
         $cart = $request->cart;
-        $order_note = $rest_info . "\n" . $user_info . "\n". $cart;
+        $order_note = $rest_info . "\n" . $user_info . "\n" . $cart;
 
         $distance = GeoFacade::setPoint([$request->restaurant_longitude, $request->restaurant_latitude])
             ->setOptions(['units' => ['km']])
@@ -643,7 +696,7 @@ class OrderController extends Controller
             // get the calculated distance between each point
             ->getDistance();
 
-        $distance = round($distance["1-2"]["km"],2);
+        $distance = round($distance["1-2"]["km"], 2);
 
         if ($validator->fails()) {
             return response()->json(['errors' => Helpers::error_processor($validator)], 403);
@@ -1009,7 +1062,7 @@ class OrderController extends Controller
 //        }
 
 //        $coupon_discount_amount = $coupon ? CouponLogic::get_discount($coupon, $product_price + $total_addon_price - $restaurant_discount_amount) : 0;
-        $total_price =$request->order_amount;
+        $total_price = $request->order_amount;
 
         $tax = ($restaurant->tax > 0) ? $restaurant->tax : 0;
 //        $order->tax_status = 'excluded';
@@ -1050,7 +1103,7 @@ class OrderController extends Controller
         // {
         //     $coupon->increment('total_uses');
         // }
-        $coupon_discount_amount=0;
+        $coupon_discount_amount = 0;
         $order_amount = round($total_price + $tax_a + $order->delivery_charge, config('round_up_to_digit'));
 
         if ($request->payment_method == 'wallet' && $request->user()->wallet_balance < $order_amount) {
@@ -1061,7 +1114,7 @@ class OrderController extends Controller
             ], 203);
         }
         try {
-            $order->coupon_discount_amount = $coupon_discount_amount?round($coupon_discount_amount, config('round_up_to_digit')):0;
+            $order->coupon_discount_amount = $coupon_discount_amount ? round($coupon_discount_amount, config('round_up_to_digit')) : 0;
             $order->coupon_discount_title = $coupon ? $coupon->title : '';
             $order->free_delivery_by = $free_delivery_by;
             $order->restaurant_discount_amount = round($restaurant_discount_amount, config('round_up_to_digit'));

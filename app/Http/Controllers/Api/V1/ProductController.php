@@ -83,6 +83,13 @@ class ProductController extends Controller
                     };
                 });
             });
+            $q->orWhereHas('translations',function($query)use($key){
+                $query->where(function($q)use($key){
+                    foreach ($key as $value) {
+                        $q->where('value', 'like', "%{$value}%");
+                    };
+                });
+            });
         })
         ->paginate($limit, ['*'], 'page', $offset);
 
